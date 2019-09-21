@@ -18,7 +18,7 @@ It uses live data exposed by [LTA Datamall](https://www.mytransport.sg/content/m
 
 ## Getting Started
  ```
- git pull https://github.com/XOptimistixX/stops-flutter.git
+ git clone https://github.com/jeffsieu/stops-flutter.git
  ```
  
 ### Setting API keys
