@@ -19,11 +19,13 @@ class StopsApp extends StatelessWidget {
         theme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
+          accentColor: Colors.deepOrangeAccent,
           brightness: Brightness.light,
         ),
         darkTheme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
+          accentColor: Colors.orangeAccent,
           brightness: Brightness.dark,
         ),
         home: HomePage(),
@@ -34,32 +36,15 @@ class StopsApp extends StatelessWidget {
     return SystemUiOverlayStyle(
       systemNavigationBarDividerColor: Colors.transparent,
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: brightness,
+      statusBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
       statusBarBrightness: brightness,
       systemNavigationBarColor: brightness == Brightness.light ? ThemeData.light().canvasColor : ThemeData.dark().canvasColor,
       systemNavigationBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
     );
   }
-
-  static Widget themeAnnotatedRegion({BuildContext context, Widget child}) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-        value: StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness),
-        child: child,
-    );
-  }
-
 }
 
 class HomePage extends BottomSheetPage {
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   @override
   _HomePageState createState() => _HomePageState();
 
@@ -70,7 +55,6 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   String name;
   String code;
 
-
   @override
   void initState() {
     super.initState();
@@ -79,7 +63,6 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       if (shortcutType == 'action_search') {
         _pushSearchRoute();
       }
-      // More handling code...
     });
     quickActions.setShortcutItems(<ShortcutItem>[
       const ShortcutItem(type: 'action_search', localizedTitle: 'Search', icon: 'icon_search'),
@@ -88,22 +71,20 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
     buildSheet(isHomePage: true);
-    return StopsApp.themeAnnotatedRegion(
-      context: context,
-      child: Scaffold(
-        appBar: AppBar(
-          brightness: MediaQuery.of(context).platformBrightness,
-          titleSpacing: 8.0,
-          title: Container(
-            child: _buildSearchField(),
-          ),
-          backgroundColor: Colors.transparent,
-          elevation: 0.0,
+    return Scaffold(
+      appBar: AppBar(
+        brightness: MediaQuery.of(context).platformBrightness,
+        titleSpacing: 8.0,
+        title: Container(
+          child: _buildSearchField(),
         ),
-        body: Center(
-            child: _buildBody()
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0.0,
+      ),
+      body: Center(
+        child: _buildBody(),
       ),
     );
   }

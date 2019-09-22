@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
@@ -67,6 +68,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   ScrollController _scrollController;
 
   GoogleMap _googleMap;
+
+  TextStyle _headingStyle;
+
   final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
 
   @override
@@ -132,7 +136,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
+    _headingStyle = TextStyle(fontWeight: FontWeight.bold, letterSpacing: 3, color: Theme.of(context).accentColor);
     buildSheet(isHomePage: false);
+    _isMapCreated = false;
     if (_query.isEmpty)
       _clearIconAnimationController.reverse();
     else
@@ -172,57 +179,32 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
-    return StopsApp.themeAnnotatedRegion(
-      context: context,
-      child: Scaffold(
-        appBar: AppBar(
-          brightness: MediaQuery.of(context).platformBrightness,
-          backgroundColor: Theme.of(context).cardColor,
-          leading: null,
-          automaticallyImplyLeading: false,
-          titleSpacing: 0.0,
-          title: _buildSearchCard(),
-          bottom: _showServicesOnly ? PreferredSize(
-              preferredSize: AppBar().preferredSize,
-              child: Row(
-                children: <Widget>[
-                  const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.filter_list)),
-                  Chip(label: const Text('Services'), onDeleted: () => _toggleShowServicesOnly()),
-                ],
-              )
-          ) : null,
-        ),
-        body: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            FocusScope.of(context).requestFocus(FocusNode());
-          },
-          child: bottomSheetContainer,
-        ),
-        floatingActionButton: Opacity(
-          opacity: _isMapVisible || rubberAnimationController.value > rubberAnimationController.lowerBound ? 0 : 1,
-          child: AnimatedBuilder(
-            builder: (BuildContext context, Widget child) {
-              return Transform.translate(
-                offset: Offset(0, _fabTopOffset * min(rubberAnimationController.value, 0.5)),
-                child: FloatingActionButton.extended(
-                    onPressed: () => setState(() {
-                      if (_isMapVisible) {
-                        _mapClipperAnimationController.reverse();
-                      }
-                      else {
-                        _mapClipperAnimationController.forward();
-                        _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
-                      }
-                      _isMapVisible = !_isMapVisible;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Material(child: bottomSheetContainer),
+      floatingActionButton: Opacity(
+        opacity: _isMapVisible || rubberAnimationController.value > rubberAnimationController.lowerBound ? 0 : 1,
+        child: AnimatedBuilder(
+          builder: (BuildContext context, Widget child) {
+            return Transform.translate(
+              offset: Offset(0, _fabTopOffset * min(rubberAnimationController.value, 0.5)),
+              child: FloatingActionButton.extended(
+                  onPressed: () => setState(() {
+                    if (_isMapVisible) {
+                      _mapClipperAnimationController.reverse();
+                    }
+                    else {
+                      _mapClipperAnimationController.forward();
+                      _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
+                    }
+                    _isMapVisible = !_isMapVisible;
 
-                    }),
-                    label: const Text('Choose on map'),
-                    icon: const Icon(Icons.map)
-                ),
-              );
-            }, animation: rubberAnimationController,
-          ),
+                  }),
+                  label: const Text('Choose on map'),
+                  icon: const Icon(Icons.map)
+              ),
+            );
+          }, animation: rubberAnimationController,
         ),
       ),
     );
@@ -250,7 +232,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     return Hero(
       tag: 'searchField',
       child: Material(
-        color: Theme.of(context).cardColor,
+        clipBehavior: Clip.none,
+        type: MaterialType.card,
+        elevation: 2.0,
+        borderRadius: BorderRadius.circular(8.0),
         child: Row(
           children: <Widget>[
            IconButton(
@@ -281,11 +266,29 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   Widget _buildBody() {
     _filterLists();
     final List<Widget> slivers = <Widget>[
-      if (_query.isEmpty) ... <Widget> {
-        if (_searchHistory.isNotEmpty)
-          _buildHistorySliverHeader(),
-        _buildHistory(),
-      },
+      SliverAppBar(
+        brightness: MediaQuery.of(context).platformBrightness,
+        backgroundColor: Colors.transparent,
+        leading: null,
+        automaticallyImplyLeading: false,
+        titleSpacing: 8.0,
+        elevation: 0.0,
+        title: _buildSearchCard(),
+        bottom: _showServicesOnly ? PreferredSize(
+            preferredSize: AppBar().preferredSize,
+            child: Row(
+              children: <Widget>[
+                const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.filter_list)),
+                Chip(label: const Text('Services'), onDeleted: () => _toggleShowServicesOnly()),
+              ],
+            )
+        ) : null,
+        floating: true,
+        snap: true,
+      ),
+
+      if (_query.isEmpty)
+          _buildHistory(),
       SliverToBoxAdapter(child: _buildMapWidget()),
       if (!_showServicesOnly && _filteredBusServices.isNotEmpty)
         _buildBusServicesSliverHeader(),
@@ -384,36 +387,41 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildHistory() {
     return SliverToBoxAdapter(
-      child: FutureBuilder<List<String>>(
-          future: getHistory(),
-          initialData: _searchHistory,
-          builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
-            if (snapshot.data != null)
-              _searchHistory = snapshot.data;
-            return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemBuilder: (BuildContext context, int position) {
-                  return ListTile(
-                      leading: const Icon(Icons.history),
-                      title: Text(snapshot.data[position]),
-                      onTap: () => setState(() {_query = snapshot.data[position]; _textController.text = _query; _textController.selection = TextSelection(baseOffset: _query.length, extentOffset: _query.length);}),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        margin: const EdgeInsets.all(8.0),
+        child: InkWell(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.only(left: 16.0, top: 16.0, bottom: 8.0),
+                child: Text.rich(const TextSpan(text: 'Past searches'), style: _headingStyle),
+              ),
+              FutureBuilder<List<String>>(
+                future: getHistory(),
+                initialData: _searchHistory,
+                builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
+                  if (snapshot.data != null)
+                    _searchHistory = snapshot.data;
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(0.0),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (BuildContext context, int position) {
+                      return ListTile(
+                          leading: const Icon(Icons.history),
+                          title: Text(snapshot.data[position]),
+                          onTap: () => setState(() {_query = snapshot.data[position]; _textController.text = _query; _textController.selection = TextSelection(baseOffset: _query.length, extentOffset: _query.length);}),
+                      );
+                    },
+                    itemCount: snapshot.data != null ? snapshot.data.length : 0,
                   );
-
-                },
-                itemCount: snapshot.data != null ? snapshot.data.length : 0,
-            );
-          }
-      ),
-    );
-  }
-
-  Widget _buildHistorySliverHeader() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8.0, left: 16.0),
-        child:
-        Text('History', style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).accentColor)),
+                }
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -441,7 +449,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       child: Padding(
         padding: const EdgeInsets.only(top: 8.0, left: 16.0),
         child:
-        Text('Bus stops', style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).accentColor)),
+        Text('Bus stops', style: _headingStyle),
       ),
     );
   }
@@ -554,7 +562,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     final LatLng ne = LatLng(northeast.latitude, northeast.longitude);
     final LatLng sw = LatLng(southwest.latitude, southwest.longitude);
 
-      controller.moveCamera(CameraUpdate.newLatLngBounds(LatLngBounds(southwest: sw, northeast: ne), 10.0));
+    controller.moveCamera(CameraUpdate.newLatLngBounds(LatLngBounds(southwest: sw, northeast: ne), 10.0));
   }
 
   Future<void> _loadBusStops() async {
