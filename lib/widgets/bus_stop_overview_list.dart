@@ -24,12 +24,12 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
         builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
             switch (snapshot.connectionState) {
               case ConnectionState.none:
-                return const Center(child: Text('Error'));
+                return const SliverToBoxAdapter(child: Center(child: Text('Error')));
               case ConnectionState.active:
-                return const Center(child: Text('Active'));
+                return const SliverToBoxAdapter(child: Center(child: Text('Active')));
               case ConnectionState.waiting:
                 if (snapshot.data == null)
-                  return const Center(child: Text('Loading buses...'));
+                  return const SliverToBoxAdapter(child: Center(child: Text('Loading buses...')));
                 continue done;
               done:
               case ConnectionState.done:
@@ -39,17 +39,16 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                   busStopList = _busStops;
                 else
                   busStopList = <BusStop>[];
-                return ListView(
-                  children: <BusStopOverviewItem>[
-                    for (BusStop busStop in busStopList)
-                      BusStopOverviewItem(busStop, key: Key(busStop.code))
-                  ],
+                return SliverList(
+                  delegate: SliverChildListDelegate(<Widget>[
+                      for (BusStop busStop in busStopList)
+                        BusStopOverviewItem(busStop, key: Key(busStop.code))
+                    ],
+                  ),
                 );
             }
             return null;
           }
     );
   }
-
-
 }

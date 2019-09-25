@@ -69,8 +69,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   GoogleMap _googleMap;
 
-  TextStyle _headingStyle;
-
   final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
 
   @override
@@ -137,7 +135,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
-    _headingStyle = TextStyle(fontWeight: FontWeight.bold, letterSpacing: 3, color: Theme.of(context).accentColor);
     buildSheet(isHomePage: false);
     _isMapCreated = false;
     if (_query.isEmpty)
@@ -283,8 +280,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
               ],
             )
         ) : null,
-        floating: true,
-        snap: true,
       ),
 
       if (_query.isEmpty)
@@ -394,10 +389,17 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.only(left: 16.0, top: 16.0, bottom: 8.0),
-                child: Text.rich(const TextSpan(text: 'Past searches'), style: _headingStyle),
-              ),
+              if (_searchHistory.isNotEmpty) ... <Widget> {
+                Padding(
+                  padding: const EdgeInsets.only(
+                      left: 16.0, top: 16.0, bottom: 8.0),
+                  child: Text.rich(
+                      const TextSpan(text: 'Past searches'), style: Theme
+                      .of(context)
+                      .textTheme
+                      .headline),
+                ),
+              },
               FutureBuilder<List<String>>(
                 future: getHistory(),
                 initialData: _searchHistory,
@@ -412,7 +414,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
                       return ListTile(
                           leading: const Icon(Icons.history),
                           title: Text(snapshot.data[position]),
-                          onTap: () => setState(() {_query = snapshot.data[position]; _textController.text = _query; _textController.selection = TextSelection(baseOffset: _query.length, extentOffset: _query.length);}),
+                          onTap: () => setState(() {
+                            _query = snapshot.data[position];
+                            _textController.text = _query;
+                            _textController.selection = TextSelection(baseOffset: _query.length, extentOffset: _query.length);
+                          }),
                       );
                     },
                     itemCount: snapshot.data != null ? snapshot.data.length : 0,
@@ -433,7 +439,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text('Services', style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).accentColor)),
+            Text('Services', style: Theme.of(context).textTheme.headline),
             FlatButton(
               onPressed: _toggleShowServicesOnly,
               child: const Text('See all'),
@@ -449,7 +455,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       child: Padding(
         padding: const EdgeInsets.only(top: 8.0, left: 16.0),
         child:
-        Text('Bus stops', style: _headingStyle),
+        Text('Bus stops', style: Theme.of(context).textTheme.headline),
       ),
     );
   }

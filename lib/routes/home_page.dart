@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:location/location.dart';
 
 import 'package:quick_actions/quick_actions.dart';
+import 'package:stops_sg/utils/location_utils.dart';
 
+import '../utils/bus_stop.dart';
+import '../utils/shared_preferences_utils.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import 'bottom_sheet_page.dart';
 import 'search_page.dart';
@@ -21,12 +25,14 @@ class StopsApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           accentColor: Colors.deepOrangeAccent,
           brightness: Brightness.light,
+          textTheme: TextTheme(headline: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent)),
         ),
         darkTheme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
           accentColor: Colors.orangeAccent,
           brightness: Brightness.dark,
+          textTheme: TextTheme(headline: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent)),
         ),
         home: HomePage(),
     );
@@ -73,6 +79,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
     buildSheet(isHomePage: true);
+
+    final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
+
     return Scaffold(
       appBar: AppBar(
         brightness: MediaQuery.of(context).platformBrightness,
@@ -84,7 +93,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
         elevation: 0.0,
       ),
       body: Center(
-        child: _buildBody(),
+        child: bottomSheetContainer,
       ),
     );
   }
@@ -127,7 +136,69 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Widget _buildBody() {
-    return bottomSheet(child: BusStopOverviewList());
+    return CustomScrollView(
+      scrollDirection: Axis.vertical,
+      slivers: <Widget>[
+        _buildSuggestions(),
+        BusStopOverviewList(),
+      ],
+    );
+  }
+
+  Widget _buildSuggestions() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getNearestBusStops(),
+      builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+        return snapshot.hasData ? SliverToBoxAdapter(
+          child: Container(
+            height: 150,
+            child: PageView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 3,
+              itemBuilder: (BuildContext context, int position) {
+                final BusStop busStop = snapshot.data['busStops'][position];
+                final double distanceInMeters = snapshot.data['distances'][position];
+
+                return Container(
+                  width: MediaQuery.of(context).size.width,
+                  child: Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                    margin: const EdgeInsets.all(8.0),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8.0),
+                      onTap: () => showBusDetailSheet(busStop),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.headline),
+                            Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
+                            Container(height: 16.0),
+                            Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),
+                            Text('${busStop.code} · ${busStop.road}', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ) : const SliverToBoxAdapter();
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> _getNearestBusStops() async {
+    final LocationData locationData = await LocationUtils.getLocation();
+    if (locationData == null) {
+      // Location permissions not given
+      return null;
+    } else {
+      return await getNearestBusStops(locationData.latitude, locationData.longitude);
+    }
   }
 
   void _pushSearchRoute() {

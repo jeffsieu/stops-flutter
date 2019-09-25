@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:latlong/latlong.dart' as latlong;
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +30,27 @@ Future<Database> _accessDatabase() async {
       },
       version: 1,
   );
+}
+
+Future<Map<String, dynamic>> getNearestBusStops(double latitude, double longitude) async {
+  const int numberOfEntries = 3;
+
+  const String distanceQuery = '(latitude - ?) * (latitude - ?) + (longitude - ?) * (longitude - ?) AS distance';
+  const String fullQuery = 'SELECT *, $distanceQuery FROM busstops ORDER BY distance LIMIT ?';
+  final List<String> args = <String>['$latitude', '$latitude', '$longitude', '$longitude', '$numberOfEntries'];
+
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> result = await database.rawQuery(fullQuery, args);
+  final List<BusStop> busStops = List<BusStop>.generate(result.length, (int i) => BusStop.fromMap(result[i]));
+  final List<double> distances = List<double>.generate(result.length, (int i) {
+    final double distanceMeters = const latlong.Distance().as(
+        latlong.LengthUnit.Meter,
+        latlong.LatLng(result[i]['latitude'], result[i]['longitude']),
+        latlong.LatLng(latitude, longitude));
+    return distanceMeters;
+  });
+
+  return <String, dynamic> {'busStops': busStops, 'distances': distances};
 }
 
 Future<List<BusStop>> getStarredBusStops() async {
