@@ -22,14 +22,14 @@ It uses live data exposed by [LTA Datamall](https://www.mytransport.sg/content/m
  ```
  
 ### Setting API keys
-Set your [Google Maps API key](https://console.cloud.google.com/google/maps-apis/overview) for Android at `stops_flutter/android/local.properties`.
+Set your [Google Maps API key](https://console.cloud.google.com/google/maps-apis/overview) for Android at `stops-flutter/android/local.properties`.
  ```properties
 ...
 googleMaps.apiKey=apikey
  ```
 
  
- For bus stop retrieval, set your [LTA API key](https://www.mytransport.sg/content/mytransport/home/dataMall/request-for-api.html) at `stops_flutter/assets/secrets.json`. 
+ For bus stop retrieval, set your [LTA API key](https://www.mytransport.sg/content/mytransport/home/dataMall/request-for-api.html) at `stops-flutter/assets/secrets.json`. 
  ```json
  {
      "lta_api_key": "apikey"
