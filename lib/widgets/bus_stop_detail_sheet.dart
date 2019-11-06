@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
-import '../utils/shared_preferences_utils.dart';
+import '../utils/database_utils.dart';
 import '../widgets/bus_timing_row.dart';
 
 class BusStopDetailSheet extends StatefulWidget {

@@ -6,7 +6,7 @@ import 'package:quick_actions/quick_actions.dart';
 import 'package:stops_sg/utils/location_utils.dart';
 
 import '../utils/bus_stop.dart';
-import '../utils/shared_preferences_utils.dart';
+import '../utils/database_utils.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import 'bottom_sheet_page.dart';
 import 'search_page.dart';
@@ -58,9 +58,6 @@ class HomePage extends BottomSheetPage {
 }
 
 class _HomePageState extends BottomSheetPageState<HomePage> {
-  String name;
-  String code;
-
   @override
   void initState() {
     super.initState();
@@ -136,12 +133,15 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Widget _buildBody() {
-    return CustomScrollView(
-      scrollDirection: Axis.vertical,
-      slivers: <Widget>[
-        _buildSuggestions(),
-        BusStopOverviewList(),
-      ],
+    return RefreshIndicator(
+      onRefresh: refreshLocation,
+      child: CustomScrollView(
+        scrollDirection: Axis.vertical,
+        slivers: <Widget>[
+          _buildSuggestions(),
+          BusStopOverviewList(),
+        ],
+      ),
     );
   }
 
@@ -199,6 +199,10 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     } else {
       return await getNearestBusStops(locationData.latitude, locationData.longitude);
     }
+  }
+
+  Future<void> refreshLocation() async {
+    setState(() { });
   }
 
   void _pushSearchRoute() {

@@ -21,22 +21,23 @@ class BusStop {
 
   static BusStop fromJson(dynamic json) {
     return BusStop(
-        displayName: json[BusAPI.kBusStopNameKey],
-        defaultName: json[BusAPI.kBusStopNameKey],
-        code: json[BusAPI.kBusStopCodeKey],
-        road: json[BusAPI.kBusStopRoadKey],
-        latitude: json[BusAPI.kBusStopLatitudeKey],
-        longitude: json[BusAPI.kBusStopLongitudeKey]);
+      displayName: json[BusAPI.kBusStopNameKey],
+      defaultName: json[BusAPI.kBusStopNameKey],
+      code: json[BusAPI.kBusStopCodeKey],
+      road: json[BusAPI.kBusStopRoadKey],
+      latitude: json[BusAPI.kBusStopLatitudeKey],
+      longitude: json[BusAPI.kBusStopLongitudeKey]);
   }
 
   static BusStop fromMap(Map<String, dynamic> map) {
     return BusStop(
-        displayName: map['displayName'],
-        defaultName: map['defaultName'],
-        code: map['code'],
-        road: map['road'],
-        latitude: map['latitude'],
-        longitude: map['longitude']);
+      displayName: map['displayName'],
+      defaultName: map['defaultName'],
+      code: map['code'],
+      road: map['road'],
+      latitude: map['latitude'],
+      longitude: map['longitude'],
+    );
   }
 
   Map<String, dynamic> toMap() {
@@ -52,12 +53,12 @@ class BusStop {
 
   static BusStop withCode(String code) {
     return BusStop(
-        displayName: '',
-        defaultName: '',
-        code: code,
-        road: '',
-        latitude: -1,
-        longitude: -1);
+      displayName: '',
+      defaultName: '',
+      code: code,
+      road: '',
+      latitude: -1,
+      longitude: -1);
   }
 
   @override
@@ -77,7 +78,4 @@ class BusStop {
   int get hashCode {
     return code.hashCode;
   }
-
-
 }
-

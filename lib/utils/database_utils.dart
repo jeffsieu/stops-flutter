@@ -6,7 +6,10 @@ import 'package:meta/meta.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:stops_sg/utils/bus_api.dart';
+import 'package:stops_sg/utils/bus_route.dart';
 
+import 'bus_service.dart';
 import 'bus_stop.dart';
 
 /* Called when bus stop name is changed */
@@ -18,6 +21,8 @@ const String _isBusFollowedKey = 'BUS_FOLLOW';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
 const String _searchHistoryKey = 'SEARCH_HISTORY';
 const String _areBusStopsCachedKey = 'BUS_STOP_CACHE';
+const String _areBusServicesCachedKey = 'BUS_SERVICE_CACHE';
+const String _areBusServiceRoutesCachedKey = 'BUS_ROUTE_CACHE';
 
 Map<String, List<BusFollowStatusListener>> _busFollowStatusListeners = <String, List<BusFollowStatusListener>>{};
 Map<BusStop, List<BusStopChangeListener>> _busStopListeners = <BusStop, List<BusStopChangeListener>>{};
@@ -26,7 +31,23 @@ Future<Database> _accessDatabase() async {
   return openDatabase(
       join(await getDatabasesPath(), 'busstop_database.db'),
       onCreate: (Database db, int version) {
-        db.execute('CREATE TABLE busstops(code TEXT PRIMARY KEY, displayName TEXT, defaultName TEXT, road TEXT, latitude DOUBLE, longitude DOUBLE, starred INTEGER DEFAULT 0)');
+        db.execute('CREATE TABLE bus_stop('
+          'code VARCHAR(5) PRIMARY KEY,'
+          'displayName TEXT,'
+          'defaultName TEXT,'
+          'road TEXT,'
+          'latitude DOUBLE,'
+          'longitude DOUBLE,'
+          'starred BOOLEAN DEFAULT 0)');
+        db.execute('CREATE TABLE bus_service('
+          'number VARCHAR(4) PRIMARY KEY,'
+          'operator TEXT)');
+        db.execute('CREATE TABLE bus_route('
+          'serviceNumber VARCHAR(4) NOT NULL,'
+          'direction INTEGER NOT NULL,'
+          'busStopCode VARCHAR(5) NOT NULL,'
+          'distance DOUBLE,'
+          'PRIMARY KEY (serviceNumber, direction, busStopCode))');
       },
       version: 1,
   );
@@ -36,7 +57,7 @@ Future<Map<String, dynamic>> getNearestBusStops(double latitude, double longitud
   const int numberOfEntries = 3;
 
   const String distanceQuery = '(latitude - ?) * (latitude - ?) + (longitude - ?) * (longitude - ?) AS distance';
-  const String fullQuery = 'SELECT *, $distanceQuery FROM busstops ORDER BY distance LIMIT ?';
+  const String fullQuery = 'SELECT *, $distanceQuery FROM bus_stop ORDER BY distance LIMIT ?';
   final List<String> args = <String>['$latitude', '$latitude', '$longitude', '$longitude', '$numberOfEntries'];
 
   final Database database = await _accessDatabase();
@@ -55,7 +76,7 @@ Future<Map<String, dynamic>> getNearestBusStops(double latitude, double longitud
 
 Future<List<BusStop>> getStarredBusStops() async {
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> result = await database.query('busstops', where: 'starred = 1');
+  final List<Map<String, dynamic>> result = await database.query('bus_stop', where: 'starred = 1');
   final List<BusStop> busStops = List<BusStop>.generate(result.length, (int i) => BusStop.fromMap(result[i]));
 
   return busStops;
@@ -66,7 +87,7 @@ Future<void> starBusStop(BusStop busStop) async {
   final Map<String, dynamic> map = busStop.toMap();
   map['starred'] = 1;
   await database.update(
-    'busstops',
+    'bus_stop',
     map,
     where: 'code = ?',
     whereArgs: <dynamic>[busStop.code],
@@ -83,7 +104,7 @@ Future<void> unstarBusStop(BusStop busStop) async {
   final Map<String, dynamic> map = busStop.toMap();
   map['starred'] = 0;
   await database.update(
-    'busstops',
+    'bus_stop',
     map,
     where: 'code = ?',
     whereArgs: <dynamic>[busStop.code],
@@ -92,7 +113,7 @@ Future<void> unstarBusStop(BusStop busStop) async {
 
 Future<bool> isBusStopStarred(BusStop busStop) async {
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> result = await database.query('busstops', where: 'starred = 1 and code = ?', whereArgs: <dynamic>[busStop.code]);
+  final List<Map<String, dynamic>> result = await database.query('bus_stop', where: 'starred = 1 and code = ?', whereArgs: <dynamic>[busStop.code]);
   return result.isNotEmpty;
 }
 
@@ -216,10 +237,12 @@ Future<List<String>> getHistory() async {
 
 Future<void> cacheBusStops(List<BusStop> busStops) async {
   final Database database = await _accessDatabase();
+  final Batch batch = database.batch();
 
-  for (int i = 0; i < busStops.length; i++) {
-    await _cacheBusStop(busStops[i], database);
+  for (final BusStop busStop in busStops) {
+    _cacheBusStop(busStop, batch);
   }
+  await batch.commit(noResult: true);
 
   getCachedBusStops().then((List<BusStop> bs) {
     assert(bs.length == busStops.length);
@@ -229,9 +252,9 @@ Future<void> cacheBusStops(List<BusStop> busStops) async {
   });
 }
 
-Future<void> _cacheBusStop(BusStop busStop, Database database) async {
-  await database.insert(
-    'busstops',
+void _cacheBusStop(BusStop busStop, Batch batch) {
+  batch.insert(
+    'bus_stop',
     busStop.toMap(),
     conflictAlgorithm: ConflictAlgorithm.replace,
   );
@@ -244,14 +267,105 @@ Future<bool> areBusStopsCached() async {
 
 Future<List<BusStop>> getCachedBusStops() async {
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> maps = await database.query('busstops');
+  final List<Map<String, dynamic>> maps = await database.query('bus_stop');
 
   return List<BusStop>.generate(maps.length, (int i) => BusStop.fromMap(maps[i]));
 }
 
 Future<BusStop> getCachedBusStopWithCode(String busStopCode) async {
+  assert (await areBusStopsCached());
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> result = await database.query('busstops', where: 'code = ?', whereArgs: <dynamic>[busStopCode]);
+  final List<Map<String, dynamic>> result = await database.query('bus_stop', where: 'code = ?', whereArgs: <dynamic>[busStopCode]);
 
-  return BusStop.fromMap(result[0]);
+  return BusStop.fromMap(result.first);
+}
+
+Future<void> cacheBusServices(List<BusService> busServices) async {
+  final Database database = await _accessDatabase();
+  final Batch batch = database.batch();
+
+  for (final BusService busService in busServices) {
+    _cacheBusService(busService, batch);
+  }
+  batch.commit(noResult: true);
+
+  getCachedBusServices().then((List<BusService> bs) {
+    assert(bs.length == busServices.length);
+    SharedPreferences.getInstance().then((SharedPreferences prefs) {
+      prefs.setBool(_areBusServicesCachedKey, true);
+    });
+  });
+}
+
+void _cacheBusService(BusService busService, Batch batch) {
+  batch.insert(
+    'bus_service',
+    busService.toMap(),
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+}
+
+Future<bool> areBusServicesCached() async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.containsKey(_areBusServicesCachedKey);
+}
+
+Future<List<BusService>> getCachedBusServices() async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> maps = await database.query('bus_service');
+
+  return List<BusService>.generate(maps.length, (int i) => BusService.fromMap(maps[i]));
+}
+
+Future<Batch> beginBatchTransaction() async {
+  return (await _accessDatabase()).batch();
+}
+
+void cacheBusServiceRouteStop(Map<String, dynamic> busStop, Batch batch) {
+  final String serviceNumber = busStop[BusAPI.kBusServiceNumberKey];
+  final int direction = busStop[BusAPI.kBusServiceDirectionKey];
+  final String busStopCode = busStop[BusAPI.kBusStopCodeKey];
+  final double distance = busStop[BusAPI.kBusStopDistanceKey]?.toDouble() ?? 0;
+
+  final dynamic json = <String, dynamic>{
+    'serviceNumber': serviceNumber,
+    'direction': direction,
+    'busStopCode': busStopCode,
+    'distance': distance,
+  };
+
+  batch.insert(
+    'bus_route',
+    json,
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+}
+
+Future<bool> areBusServiceRoutesCached() async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.containsKey(_areBusServiceRoutesCachedKey);
+}
+
+Future<void> setBusServiceRoutesCached() async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(_areBusServiceRoutesCachedKey, true);
+}
+
+Future<List<BusServiceRoute>> getCachedBusRoutes(BusService busService) async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> maps = await database.query('bus_route', where: 'serviceNumber = ?', whereArgs: <dynamic>[busService.number], orderBy: 'distance');
+  final Map<int, BusServiceRoute> routes = <int, BusServiceRoute>{};
+  for (Map<String, dynamic> bs in maps) {
+    final int direction = bs['direction'];
+    final double distance = bs['distance'];
+    final String busStopCode = bs['busStopCode'];
+    final BusStop busStop = await getCachedBusStopWithCode(busStopCode);
+
+    if (!routes.containsKey(direction)) {
+      routes[direction] = BusServiceRoute(direction: direction);
+    }
+    routes[direction].busStops.add(busStop);
+    routes[direction].distances.add(distance);
+  }
+  return routes.values.toList();
 }
