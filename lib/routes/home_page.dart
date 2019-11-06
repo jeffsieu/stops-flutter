@@ -6,7 +6,7 @@ import 'package:quick_actions/quick_actions.dart';
 import 'package:stops_sg/utils/location_utils.dart';
 
 import '../utils/bus_stop.dart';
-import '../utils/shared_preferences_utils.dart';
+import '../utils/database_utils.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import 'bottom_sheet_page.dart';
 import 'search_page.dart';

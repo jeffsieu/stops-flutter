@@ -1,9 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../utils/bus_stop.dart';
-import '../utils/shared_preferences_utils.dart';
+import '../utils/database_utils.dart';
 import 'bus_stop_overview_item.dart';
 
 class BusStopOverviewList extends StatefulWidget {

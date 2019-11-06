@@ -14,8 +14,8 @@ import '../utils/bus_api.dart';
 import '../utils/bus_service.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
+import '../utils/database_utils.dart';
 import '../utils/location_utils.dart';
-import '../utils/shared_preferences_utils.dart';
 import '../widgets/bus_stop_search_item.dart';
 import 'bottom_sheet_page.dart';
 import 'bus_service_page.dart';
@@ -108,13 +108,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       });
     }
 
-    _loadBusStops();
+    _fetchBusStops();
     _fetchBusServices();
-
-    // TODO(jeffsieu): Move this into a dialog that opens during initial launch (to reduce lag).
-    busServiceSkipsStored().then((bool stored) {
+    areBusServiceRoutesCached().then((bool stored) {
       if (!stored)
-        BusAPI().fetchAndStoreBusServiceSkips();
+        BusAPI().fetchAndStoreBusServiceRoutes();
     });
 
     _scrollController = ScrollController();
@@ -477,45 +475,45 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildBusStopList() {
     return SliverList(
-        delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int position) {
-            final BusStop busStop = _filteredBusStops[position];
-            final Map<String, dynamic> metadata = _queryMetadata[busStop];
+      delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int position) {
+          final BusStop busStop = _filteredBusStops[position];
+          final Map<String, dynamic> metadata = _queryMetadata[busStop];
 
-            final String distance = _distanceMetadata.containsKey(busStop) ? getDistanceVerboseFromMeters(_distanceMetadata[busStop]) : '';
+          final String distance = _distanceMetadata.containsKey(busStop) ? getDistanceVerboseFromMeters(_distanceMetadata[busStop]) : '';
 
-            final String name = busStop.displayName;
-            final String busStopCode = busStop.code;
+          final String name = busStop.displayName;
+          final String busStopCode = busStop.code;
 
-            final String nameStart =
-            name.substring(0, metadata['DescriptionStart']);
-            final String nameBold = name.substring(
-                metadata['DescriptionStart'], metadata['DescriptionEnd']);
-            final String nameEnd = name.substring(
-                metadata['DescriptionEnd'], name.length);
+          final String nameStart =
+          name.substring(0, metadata['DescriptionStart']);
+          final String nameBold = name.substring(
+              metadata['DescriptionStart'], metadata['DescriptionEnd']);
+          final String nameEnd = name.substring(
+              metadata['DescriptionEnd'], name.length);
 
-            final String busStopCodeStart =
-            busStopCode.substring(0, metadata['BusStopCodeStart']);
-            final String busStopCodeBold = busStopCode.substring(
-                metadata['BusStopCodeStart'], metadata['BusStopCodeEnd']);
-            final String busStopCodeEnd = busStopCode.substring(
-                metadata['BusStopCodeEnd'], busStopCode.length);
-            return BusStopSearchItem(
-              key: Key(busStopCode),
-              // necessary to let Flutter rebuild component when search is performed
-              // (otherwise the filter works but clicking the item will show information for a different bus stop
-              codeStart: busStopCodeStart,
-              codeBold: busStopCodeBold,
-              codeEnd: busStopCodeEnd,
-              nameStart: nameStart,
-              nameBold: nameBold,
-              nameEnd: nameEnd,
-              distance: distance,
-              busStop: busStop,
-            );
-          },
-          childCount: _showServicesOnly ? 0 : _filteredBusStops.length,
-        )
+          final String busStopCodeStart =
+          busStopCode.substring(0, metadata['BusStopCodeStart']);
+          final String busStopCodeBold = busStopCode.substring(
+              metadata['BusStopCodeStart'], metadata['BusStopCodeEnd']);
+          final String busStopCodeEnd = busStopCode.substring(
+              metadata['BusStopCodeEnd'], busStopCode.length);
+          return BusStopSearchItem(
+            key: Key(busStopCode),
+            // necessary to let Flutter rebuild component when search is performed
+            // (otherwise the filter works but clicking the item will show information for a different bus stop
+            codeStart: busStopCodeStart,
+            codeBold: busStopCodeBold,
+            codeEnd: busStopCodeEnd,
+            nameStart: nameStart,
+            nameBold: nameBold,
+            nameEnd: nameEnd,
+            distance: distance,
+            busStop: busStop,
+          );
+        },
+        childCount: _showServicesOnly ? 0 : _filteredBusStops.length,
+      )
     );
   }
 
@@ -571,7 +569,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     controller.moveCamera(CameraUpdate.newLatLngBounds(LatLngBounds(southwest: sw, northeast: ne), 10.0));
   }
 
-  Future<void> _loadBusStops() async {
+  Future<void> _fetchBusStops() async {
     BusAPI().busStopsStream().listen((List<BusStop> busStops) {
       if (mounted)
         setState(() {
@@ -583,24 +581,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   }
 
   void _fetchBusServices() {
-    BusAPI().busServicesStream().listen((List<BusServiceRoute> busServiceRoutes) {
+    BusAPI().busServicesStream().listen((List<BusService> busServices) {
       if (mounted)
         setState(() {
-          final Map<String, List<BusServiceRoute>> servicesMap = <String, List<BusServiceRoute>>{};
-
-          for (BusServiceRoute route in busServiceRoutes) {
-            assert(route.destination != null);
-            servicesMap.putIfAbsent(route.number, () => <BusServiceRoute>[]);
-            if (!servicesMap[route.number].contains(route))
-              servicesMap[route.number].add(route);
-          }
-
-          final List<BusService> busServices = <BusService>[];
-
-          for (List<BusServiceRoute> routes in servicesMap.values) {
-            busServices.add(BusService(routes: routes));
-          }
-
           _busServices = busServices;
         });
     });
@@ -652,11 +635,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     return metadata;
   }
 
-  void _pushBusServiceRoute(BusService busService) {
+  Future<void> _pushBusServiceRoute(BusService busService) async {
+    busService.routes ??= await getCachedBusRoutes(busService);
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage(busService));
-
-    // add bus service to history
-    pushHistory(_query);
+    pushHistory(_query); // add query to history
     Navigator.push(context, route);
   }
 }

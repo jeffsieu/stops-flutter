@@ -1,64 +1,48 @@
 import 'package:meta/meta.dart';
 
 import 'bus_api.dart';
+import 'bus_route.dart';
 import 'bus_stop.dart';
 
 class BusService {
-  BusService({
-    @required this.routes
-  }) : assert(routes != null),
-      assert(routes.isNotEmpty),
-      assert(routes.length <= 2),
-      assert(routes.every((BusServiceRoute route) => route.number == routes[0].number));
-
-  final List<BusServiceRoute> routes;
-
-  String get number => routes[0].number;
-  int get directionCount => routes.length;
-  List<BusStop> get origin => routes.map<BusStop>((BusServiceRoute route) => route.origin).toList();
-  List<BusStop> get destination => routes.map<BusStop>((BusServiceRoute route) => route.destination).toList();
-}
-
-class BusServiceRoute {
-  BusServiceRoute({
-    @required this.direction,
+  BusService._({
     @required this.number,
     @required this.operator,
-    @required this.origin,
-    @required this.destination,
-    this.busStops,
   });
 
-  List<BusStop> busStops;
-  List<double> distances;
-  BusStop origin;
-  BusStop destination;
-  int direction;
-  String number;
-  String operator;
+  List<BusServiceRoute> _routes;
+  final String number;
+  final String operator;
 
-  static BusServiceRoute fromJson(dynamic json) {
-      return BusServiceRoute(
-        direction: json[BusAPI.kBusServiceDirectionKey],
-        number: json[BusAPI.kBusServiceNumberKey],
-        operator: json[BusAPI.kBusServiceOperatorKey],
-        origin: BusStop.withCode(json[BusAPI.kBusServiceOriginKey]),
-        destination: BusStop.withCode(json[BusAPI.kBusServiceDestinationKey]),
-      );
+  set routes(List<BusServiceRoute> routes) {
+    _routes = routes;
+    for (final BusServiceRoute route in _routes)
+      route.service = this;
   }
 
-  @override
-  bool operator ==(dynamic other) {
-    if (other.runtimeType != runtimeType)
-      return false;
-    final BusServiceRoute otherBusServiceRoute = other;
-    return otherBusServiceRoute.number == number && otherBusServiceRoute.direction == direction;
+  List<BusServiceRoute> get routes => _routes;
+  int get directionCount => _routes.length;
+  List<BusStop> get origin => _routes.map<BusStop>((BusServiceRoute route) => route.origin).toList();
+  List<BusStop> get destination => _routes.map<BusStop>((BusServiceRoute route) => route.destination).toList();
+
+  static BusService fromJson(dynamic json) {
+    return BusService._(
+      number: json[BusAPI.kBusServiceNumberKey],
+      operator: json[BusAPI.kBusServiceOperatorKey],
+    );
   }
 
-  @override
-  int get hashCode {
-    return number.hashCode^direction.hashCode;
+  static BusService fromMap(Map<String, dynamic> map) {
+    return BusService._(
+        number: map['number'],
+        operator: map['operator'],
+    );
   }
 
-
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'number': number,
+      'operator': operator,
+    };
+  }
 }
