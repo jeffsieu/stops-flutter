@@ -58,9 +58,6 @@ class HomePage extends BottomSheetPage {
 }
 
 class _HomePageState extends BottomSheetPageState<HomePage> {
-  String name;
-  String code;
-
   @override
   void initState() {
     super.initState();
@@ -136,12 +133,15 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Widget _buildBody() {
-    return CustomScrollView(
-      scrollDirection: Axis.vertical,
-      slivers: <Widget>[
-        _buildSuggestions(),
-        BusStopOverviewList(),
-      ],
+    return RefreshIndicator(
+      onRefresh: refreshLocation,
+      child: CustomScrollView(
+        scrollDirection: Axis.vertical,
+        slivers: <Widget>[
+          _buildSuggestions(),
+          BusStopOverviewList(),
+        ],
+      ),
     );
   }
 
@@ -199,6 +199,10 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     } else {
       return await getNearestBusStops(locationData.latitude, locationData.longitude);
     }
+  }
+
+  Future<void> refreshLocation() async {
+    setState(() { });
   }
 
   void _pushSearchRoute() {
