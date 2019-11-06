@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import 'shared_preferences_utils.dart';
+import 'database_utils.dart';
 
 class NotificationAPI {
   factory NotificationAPI() {

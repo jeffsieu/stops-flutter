@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:sqflite/sqflite.dart';
 
 import '../utils/bus_service.dart';
 import '../utils/bus_stop.dart';
-import '../utils/shared_preferences_utils.dart';
+import '../utils/database_utils.dart';
 
 class BusAPI {
   factory BusAPI() {
@@ -48,13 +49,13 @@ class BusAPI {
 
   static final BusAPI _singleton = BusAPI._internal();
 
-  final List<BusServiceRoute> _busServices = <BusServiceRoute>[];
+  final List<BusService> _busServices = <BusService>[];
   final List<BusStop> _busStops = <BusStop>[];
   final Map<BusStop, StreamController<String>> _arrivalControllers = <BusStop, StreamController<String>>{};
   final Map<BusStop, String> _arrivalCache = <BusStop, String>{};
 
-  bool _isBusStopsLoaded = false;
-  bool _isBusServicesLoaded = false;
+  bool _areBusStopsLoaded = false;
+  bool _areBusServicesLoaded = false;
   int _arrivalSkip = 0;
   int _servicesSkip = 0;
 
@@ -79,52 +80,57 @@ class BusAPI {
     StreamController<List<BusStop>> controller;
     Future<void> onListen() async {
       if (!await areBusStopsCached()) {
-        while (!_isBusStopsLoaded) {
+        while (!_areBusStopsLoaded) {
           final String result = await _fetchBusStopList(_arrivalSkip);
           final List<dynamic> resultList = jsonDecode(result)['value'];
           _busStops.addAll(resultList.map((dynamic busStopJson) =>
               BusStop.fromJson(busStopJson)));
 
           if (resultList.length != 500) {
-            _isBusStopsLoaded = true;
+            _areBusStopsLoaded = true;
           } else {
             controller.add(_busStops);
             _arrivalSkip += 500;
           }
         }
         cacheBusStops(_busStops);
-      } else if (!_isBusStopsLoaded){
+      } else if (!_areBusStopsLoaded){
         _busStops.addAll(await getCachedBusStops());
-        _isBusStopsLoaded = true;
+        _areBusStopsLoaded = true;
       }
       controller.add(_busStops);
     }
 
     controller = StreamController<List<BusStop>>(onListen: onListen);
-
     return controller.stream;
   }
 
-  Stream<List<BusServiceRoute>> busServicesStream() {
-    StreamController<List<BusServiceRoute>> controller;
-
+  Stream<List<BusService>> busServicesStream() {
+    StreamController<List<BusService>> controller;
     Future<void> onListen() async {
-      while (!_isBusServicesLoaded) {
-        final String result = await _fetchBusServiceList(_servicesSkip);
-        final List<dynamic> resultList = jsonDecode(result)['value'];
-        _busServices.addAll(resultList.map((dynamic busServiceRouteJson) => BusServiceRoute.fromJson(busServiceRouteJson)));
+      if (!await areBusServicesCached()) {
+        while (!_areBusServicesLoaded) {
+          final String result = await _fetchBusServiceList(_servicesSkip);
+          final List<dynamic> resultList = jsonDecode(result)['value'];
+          _busServices.addAll(resultList.map((dynamic busServiceJson) =>
+              BusService.fromJson(busServiceJson)));
 
-        if (resultList.length != 500) {
-          _isBusServicesLoaded = true;
-        } else {
-          controller.add(_busServices);
-          _servicesSkip += 500;
+          if (resultList.length != 500) {
+            _areBusServicesLoaded = true;
+          } else {
+            controller.add(_busServices);
+            _servicesSkip += 500;
+          }
         }
+        cacheBusServices(_busServices);
+      } else if (!_areBusServicesLoaded){
+        _busServices.addAll(await getCachedBusServices());
+        _areBusServicesLoaded = true;
       }
       controller.add(_busServices);
     }
 
-    controller = StreamController<List<BusServiceRoute>>(onListen: onListen);
+    controller = StreamController<List<BusService>>(onListen: onListen);
     return controller.stream;
   }
 
@@ -192,158 +198,25 @@ class BusAPI {
     return _fetchAsString(_kGetBusServicesUrl, skip);
   }
 
-  Future<void> fetchAndStoreBusServiceSkips() async {
+  Future<String> _fetchBusServiceRouteList(int skip) async {
+    return _fetchAsString(_kGetBusRoutesUrl, skip);
+  }
+
+  Future<void> fetchAndStoreBusServiceRoutes() async {
     int skip = 0;
+    List<dynamic> resultList;
 
-    while (true) {
-      final String result = await BusAPI()._fetchAsString(_kGetBusRoutesUrl, skip);
-      final List<dynamic> resultList = jsonDecode(result)['value'];
-      for (int i in Iterable<int>.generate(resultList.length, (int index) => index)) {
-        final int busServiceSkip = skip + i;
-        final dynamic busServiceRouteJson = resultList[i];
-        if (busServiceRouteJson[kBusServiceRouteStopSequenceKey] == 1 && busServiceRouteJson[kBusServiceDirectionKey] == 1) {
-          final String serviceNumber = busServiceRouteJson[kBusServiceNumberKey];
-          storeBusServiceSkip(serviceNumber, busServiceSkip);
-        }
-      }
+    final Batch batch = await beginBatchTransaction();
 
-      if (resultList.length != 500)
-        break;
-
-      skip += 500;
-    }
-
-    setBusServiceSkipsStored();
-  }
-
-  Future<Map<String, List<dynamic>>> getBusStopsInService(String serviceNumber) async {
-    int skip = await getBusServiceSkip(serviceNumber);
-
-    // if skip was not previously found, manually find it
-    if (skip == -1) {
-      skip = await _findBusServiceSkip(serviceNumber);
-      storeBusServiceSkip(serviceNumber, skip);
-    }
-
-    String result = await _fetchAsString(_kGetBusRoutesUrl, skip);
-    List<dynamic> resultList = jsonDecode(result)['value'];
-
-    final dynamic firstBusStopJson = resultList[0];
-    if (firstBusStopJson[kBusServiceDirectionKey] != 1 || firstBusStopJson[kBusServiceRouteStopSequenceKey] != 1) {
-      // Skip value is invalid
-      skip = await _findBusServiceSkip(serviceNumber, skip);
-      storeBusServiceSkip(serviceNumber, skip);
-
-      result = await _fetchAsString(_kGetBusRoutesUrl, skip);
+    do {
+      final String result = await _fetchBusServiceRouteList(skip);
       resultList = jsonDecode(result)['value'];
-    }
-
-    final Iterable<dynamic> serviceList = resultList.where((dynamic busStop) => busStop[kBusServiceNumberKey] == serviceNumber);
-    final List<dynamic> direction1 = serviceList.where((dynamic busStop) => busStop[kBusServiceDirectionKey] == 1).toList();
-    final List<dynamic> direction2 = serviceList.where((dynamic busStop) => busStop[kBusServiceDirectionKey] == 2).toList();
-
-    direction1.sort((dynamic a, dynamic b) => a[kBusServiceRouteStopSequenceKey] - b[kBusServiceRouteStopSequenceKey]);
-    direction2.sort((dynamic a, dynamic b) => a[kBusServiceRouteStopSequenceKey] - b[kBusServiceRouteStopSequenceKey]);
-
-    final List<BusStop> busStops1 = <BusStop>[];
-    final List<BusStop> busStops2 = <BusStop>[];
-
-    for (dynamic json in direction1) {
-      final BusStop busStop = await getCachedBusStopWithCode(json[kBusStopCodeKey]);
-      busStops1.add(busStop);
-    }
-
-    for (dynamic json in direction2) {
-      final BusStop busStop = await getCachedBusStopWithCode(json[kBusStopCodeKey]);
-      busStops2.add(busStop);
-    }
-
-    final List<double> distances1 = direction1.map<double>((dynamic json) => double.tryParse(json[kBusStopDistanceKey].toString())).toList();
-    final List<double> distances2 = direction2.map<double>((dynamic json) => double.tryParse(json[kBusStopDistanceKey].toString())).toList();
-
-    assert(busStops1.isNotEmpty);
-    assert(distances1.isNotEmpty);
-    final List<List<BusStop>> busStopList = <List<BusStop>>[];
-    final List<List<double>> distanceList = <List<double>>[];
-    busStopList.add(busStops1);
-    distanceList.add(distances1);
-    if (busStops2.isNotEmpty) {
-      busStopList.add(busStops2);
-      distanceList.add(distances2);
-    }
-
-    return <String, List<dynamic>>{'routes': busStopList, 'distances': distanceList};
-  }
-
-  // finds the busService in log n time
-  // Since n is around 27000, log2(n) is 14.7.
-  // and the function will find the result within 15 tries
-  Future<int> _findBusServiceSkip(String serviceNumber, [int initialSkip]) async {
-    const int approxTotalSkips = 26353;
-
-    int totalTries = 15;
-    int lowerBound = 0, upperBound = approxTotalSkips;
-    int adjustmentFactor = 1;
-    int prevDirection = 0;
-    int nextSkip = initialSkip ?? ((lowerBound + upperBound)/2).floor();
-    int nextValue;
-    while (totalTries > 0) {
-      final String result = await _fetchAsString(_kGetBusRoutesUrl, nextSkip);
-
-      final List<dynamic> resultList = jsonDecode(result)['value'];
-      final String firstServiceNumber = resultList[0][kBusServiceNumberKey];
-      final int firstDirection = resultList[0][kBusServiceDirectionKey];
-      final int firstStopSequence = resultList[0][kBusServiceRouteStopSequenceKey];
-
-      // We use compareTo instead of of BusUtils.compareBusNumber
-      // because this is how the API sorts the bus service numbers
-
-      //1.compareTo(2) returns -1 so if difference < 0, serviceNumber < firstServiceNumber
-      final int firstDifference = serviceNumber.compareTo(firstServiceNumber);
-
-      if (prevDirection == firstDifference.sign) {
-        adjustmentFactor *= 2;
-      } else {
-        adjustmentFactor = 1;
+      for (dynamic busStop in resultList) {
+        cacheBusServiceRouteStop(busStop, batch);
       }
-
-      prevDirection = firstDifference.sign;
-
-      // if the adjustment factor is 1, we move to 1/2
-      // if the adjustment factor is 2, we move to 1/4 or 3/4
-
-      // weight is either 1/2, 1/4, 1/8, ...
-      final double weight = 1/(adjustmentFactor*2);
-
-      // factor is either 1/4 or 3/4, 1/8 or 7/8
-      final double factor = (-firstDifference.sign * weight) % 1;
-
-
-      if (firstDifference < 0) {
-        upperBound = nextSkip;
-        nextSkip = (lowerBound + (upperBound - lowerBound).roundToDouble() * factor).round();
-      } else if (firstDifference > 0) {
-        lowerBound = nextSkip;
-        nextSkip = (lowerBound + (upperBound - lowerBound).roundToDouble() * factor).round();
-      } else {
-        // Service number has been found;
-        if (firstDirection != 1) {
-          // Landed somewhere in direction 2
-          nextValue = nextSkip - firstStopSequence - 1;
-          nextSkip = nextValue;
-        } else if (firstStopSequence != 0) {
-          // Landed in direction 1 but the stop sequence is too large
-          nextValue = nextSkip - firstStopSequence;
-          nextSkip = nextValue;
-          break;
-        } else {
-          // Landed just right on direction 1 and stop sequence 1
-          return nextSkip;
-        }
-      }
-
-      totalTries -= 1;
-    }
-    throw Exception('Invalid bus service');
+      skip += 500;
+    } while (resultList.isNotEmpty);
+    await batch.commit(noResult: true);
+    await setBusServiceRoutesCached();
   }
 }

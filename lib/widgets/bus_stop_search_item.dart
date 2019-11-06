@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../routes/search_page.dart';
 import '../utils/bus_stop.dart';
-import '../utils/shared_preferences_utils.dart';
+import '../utils/database_utils.dart';
 
 class BusStopSearchItem extends StatefulWidget {
   const BusStopSearchItem({

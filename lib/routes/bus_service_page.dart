@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:stops_sg/utils/shared_preferences_utils.dart';
 
-import '../utils/bus_api.dart';
+import '../utils/bus_route.dart';
 import '../utils/bus_service.dart';
 import '../utils/bus_stop.dart';
 import 'bottom_sheet_page.dart';
@@ -18,35 +17,6 @@ class BusServicePage extends BottomSheetPage {
 }
 
 class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
-  @override
-  void initState() {
-    super.initState();
-    initializeEndpointBusStops().then((void a) {
-      setState(() {
-
-      });
-    });
-    BusAPI().getBusStopsInService(widget.service.number).then((Map<String, List<dynamic>> result) {
-      setState(() {
-        final List<List<BusStop>> routes = result['routes'];
-        final List<List<double>> distances = result['distances'];
-        assert(routes.length == widget.service.routes.length);
-        assert(routes.length == distances.length);
-        for (int i = 0; i < routes.length; i++) {
-          widget.service.routes[i].busStops = routes[i];
-          widget.service.routes[i].distances = distances[i];
-        }
-      });
-    });
-  }
-
-  Future<void> initializeEndpointBusStops() async {
-    for (BusServiceRoute route in widget.service.routes) {
-      route.origin = await getCachedBusStopWithCode(route.origin.code);
-      route.destination = await getCachedBusStopWithCode(route.destination.code);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final TabController tabController = TabController(length: 2, vsync: this);
@@ -65,7 +35,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                 ),
                 Tab(
                   text: 'To ${widget.service.destination[1].defaultName}',
-                )
+                ),
               ],
             ) : null,
           ),
