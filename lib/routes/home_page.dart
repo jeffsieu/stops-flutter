@@ -25,14 +25,20 @@ class StopsApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           accentColor: Colors.deepOrangeAccent,
           brightness: Brightness.light,
-          textTheme: TextTheme(headline: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent)),
+          textTheme: TextTheme(
+              display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
+              headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28.0),
+          ),
         ),
         darkTheme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
           accentColor: Colors.orangeAccent,
           brightness: Brightness.dark,
-          textTheme: TextTheme(headline: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent)),
+          textTheme: TextTheme(
+            display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
+            headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28.0),
+          ),
         ),
         home: HomePage(),
     );
@@ -172,7 +178,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.headline),
+                            Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.display1),
                             Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
                             Container(height: 16.0),
                             Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stops_sg/utils/database_utils.dart';
 
 import '../utils/bus_route.dart';
 import '../utils/bus_service.dart';
@@ -6,9 +7,9 @@ import '../utils/bus_stop.dart';
 import 'bottom_sheet_page.dart';
 
 class BusServicePage extends BottomSheetPage {
-  BusServicePage(this.service);
+  BusServicePage(this.serviceNumber);
 
-  final BusService service;
+  final String serviceNumber;
 
   @override
   State<StatefulWidget> createState() {
@@ -17,6 +18,21 @@ class BusServicePage extends BottomSheetPage {
 }
 
 class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
+  BusService service;
+  @override
+  void initState() {
+    super.initState();
+    initService();
+  }
+
+  Future<void> initService() async {
+    final BusService service = await getCachedBusServiceWithNumber(widget.serviceNumber);
+    service.routes ??= await getCachedBusRoutes(service);
+    setState(() {
+      this.service = service;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     buildSheet(isHomePage: false);
@@ -29,30 +45,35 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
 
   Widget _buildBody() {
     final TabController tabController = TabController(length: 2, vsync: this);
-    return widget.service.routes[0].busStops != null ? NestedScrollView(
+    return NestedScrollView(
       headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
         return <Widget>[
           SliverAppBar(
             pinned: true,
-            title: Text('${widget.service.number}'),
-            bottom: widget.service.directionCount > 1 ? TabBar(
+            title: Text(widget.serviceNumber),
+            bottom: (service?.directionCount ?? 0) > 1 ? TabBar(
               controller: tabController,
               tabs: <Widget>[
                 Tab(
-                  text: 'To ${widget.service.destination[0].defaultName}',
+                  text: 'To ${service.destination[0].defaultName}',
                 ),
                 Tab(
-                  text: 'To ${widget.service.destination[1].defaultName}',
+                  text: 'To ${service.destination[1].defaultName}',
                 ),
               ],
             ) : null,
           ),
         ];
       },
-      body: widget.service.directionCount == 1 ?
-      _buildRouteBusStops(widget.service.routes[0]) :
-      _buildPageView(widget.service, tabController),
-    ) : const Center(child: CircularProgressIndicator());
+      body: service != null ? (
+          service.directionCount == 1 ?
+            _buildRouteBusStops(service.routes[0])
+          :
+            _buildPageView(service, tabController)
+      ) : (
+          const Center(child: CircularProgressIndicator())
+      ),
+    );
   }
 
   Widget _buildRouteBusStops(BusServiceRoute route) {

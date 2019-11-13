@@ -144,6 +144,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     );
 
     return Material(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(16.0),
+        topRight: Radius.circular(16.0),
+      ),
       elevation: 16.0,
       child: scrollView,
     );
@@ -160,19 +164,14 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.only(
-        top: 16.0,
+        top: 32.0,
         left: 16.0,
         right: 8.0,
-        bottom: 16.0,
+        bottom: 32.0,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.start,
+      child: Stack(
         children: <Widget>[
-          // [Expanded], [IntrinsicHeight] and [SizedBox] widgets
-          // required to make the [Column] fill the parent [Row]
-          // to ensure left-alignment of text
-          Expanded(
+          Center(
             child: AnimatedSwitcher(
               duration: widget.fadeDuration,
               switchInCurve: Interval(1-widget.fadeInDurationFactor, 1),
@@ -180,68 +179,67 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
               transitionBuilder: (Widget child, Animation<double> animation) {
                 return FadeTransition(opacity: animation, child: child);
               },
-              child: IntrinsicHeight(
-                key: Key(_busStop.code),
-                child: SizedBox.expand(
-                  child: OverflowBox(
-                    child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(_busStop.displayName,
-                            style: Theme.of(context).textTheme.title),
-                        Text(_busStop.code,
-                            style: Theme.of(context).textTheme.subtitle),
-                      ],
-                    ),
-                  ),
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(_busStop.displayName,
+                      style: Theme.of(context).textTheme.headline),
+                  Text(_busStop.code,
+                      style: Theme.of(context).textTheme.subtitle),
+                ],
               ),
             ),
           ),
-          Row(
-            children: <Widget>[
-              _isStarEnabled && widget.isHomePage
-                  ? IconButton(
-                      icon: const Icon(Icons.edit),
-                      tooltip: 'Edit name',
-                      onPressed: () => _showEditNameDialog(),
-                    )
-                  : Container(),
-              IconButton(
-                tooltip: _isStarEnabled ? 'Unfavorite' : 'Favorite',
-                icon: Icon(_isStarEnabled ? Icons.star : Icons.star_border),
-                onPressed: () {
-                  if (!_isStarEnabled) {
-                    starBusStop(_busStop);
-                  } else {
-//                    CancelableOperation<thing >;
-//                    Future.delayed(duration).
-                  unstarBusStop(_busStop);
-                    Scaffold.of(context).showSnackBar(
+          Container(
+            alignment: Alignment.centerRight,
+            child: PopupMenuButton<String>(
+              onSelected: (String option) {
+                switch(option) {
+                  case 'edit':
+                    _showEditNameDialog();
+                    break;
+                  case 'star':
+                    setState(() {
+                      _isStarEnabled = !_isStarEnabled;
+                    });
+                    if (_isStarEnabled) {
+                      starBusStop(_busStop);
+                    } else {
+                      unstarBusStop(_busStop);
+                      Scaffold.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Bus stop unfavorited'),
 //                          action: SnackBarAction(
 //                          label: 'Undo',
 //                          onPressed: () {
-////                            //TODO(jeffsieu): Add undo functionality.
+                            //TODO(jeffsieu): Add undo functionality.
 //                          }),
-                      ),
-                    );
-                  }
-                  setState(() {
-                    _isStarEnabled = !_isStarEnabled;
-                  });
-                },
-              ),
-              IconButton(
-                tooltip: 'Open in Google Maps',
-                icon: const Icon(Icons.open_in_new),
-                onPressed: () => launch(
-                    'geo:${_busStop.latitude},${_busStop.longitude}?q=${_busStop.latitude},${_busStop.longitude}(Label+Name)'),
-              )
-            ],
-          )
+                        ),
+                      );
+                    }
+                    break;
+                  case 'gmaps':
+                    launch('geo:${_busStop.latitude},${_busStop.longitude}?q=${_busStop.defaultName} ${_busStop.code}');
+                    break;
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                if (_isStarEnabled && widget.isHomePage)
+                  const PopupMenuItem<String>(
+                    value: 'edit',
+                    child: Text('Edit'),
+                  ),
+                PopupMenuItem<String>(
+                  value: 'star',
+                  child: Text(_isStarEnabled ? 'Unfavorite' : 'Favorite'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'gmaps',
+                  child: Text('Open in Google Maps'),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
