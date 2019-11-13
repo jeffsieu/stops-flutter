@@ -81,23 +81,12 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
-    buildSheet(isHomePage: true);
+    buildSheet(hasAppBar: false);
 
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
     return Scaffold(
-      appBar: AppBar(
-        brightness: MediaQuery.of(context).platformBrightness,
-        titleSpacing: 8.0,
-        title: Container(
-          child: _buildSearchField(),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0.0,
-      ),
-      body: Center(
-        child: bottomSheetContainer,
-      ),
+      body: bottomSheetContainer,
     );
   }
 
@@ -107,7 +96,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       child: Material(
         clipBehavior: Clip.none,
         type: MaterialType.card,
-        elevation: 4.0,
+        elevation: 2.0,
         borderRadius: BorderRadius.circular(8.0),
         child: InkWell(
           borderRadius: BorderRadius.circular(8.0),
@@ -144,6 +133,15 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       child: CustomScrollView(
         scrollDirection: Axis.vertical,
         slivers: <Widget>[
+          SliverAppBar(
+            brightness: MediaQuery.of(context).platformBrightness,
+            titleSpacing: 8.0,
+            title: Container(
+              child: _buildSearchField(),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0.0,
+          ),
           _buildSuggestions(),
           BusStopOverviewList(),
         ],

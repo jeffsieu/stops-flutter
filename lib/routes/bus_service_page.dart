@@ -35,7 +35,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
 
   @override
   Widget build(BuildContext context) {
-    buildSheet(isHomePage: false);
+    buildSheet(hasAppBar: false);
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
     return Scaffold(

@@ -133,7 +133,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
-    buildSheet(isHomePage: false);
+    buildSheet(hasAppBar: false);
     _isMapCreated = false;
     if (_query.isEmpty)
       _clearIconAnimationController.reverse();

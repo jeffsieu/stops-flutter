@@ -12,13 +12,13 @@ import '../utils/database_utils.dart';
 import '../widgets/bus_timing_row.dart';
 
 class BusStopDetailSheet extends StatefulWidget {
-  BusStopDetailSheet({Key key, TickerProvider vsync, @required this.isHomePage})
+  BusStopDetailSheet({Key key, TickerProvider vsync, @required this.hasAppBar})
       : rubberAnimationController = RubberAnimationController(
           vsync: vsync,
           lowerBoundValue: AnimationControllerValue(percentage: 0),
           halfBoundValue: AnimationControllerValue(percentage: 0.5),
           upperBoundValue: AnimationControllerValue(percentage: 1),
-          duration: Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 200),
           springDescription: SpringDescription.withDampingRatio(
               mass: 1, ratio: DampingRatio.NO_BOUNCY, stiffness: Stiffness.LOW),
         ),
@@ -33,8 +33,8 @@ class BusStopDetailSheet extends StatefulWidget {
 
   final ScrollController scrollController;
   final RubberAnimationController rubberAnimationController;
-  final bool isHomePage;
-  final Duration fadeDuration = Duration(milliseconds: 500);
+  final bool hasAppBar;
+  final Duration fadeDuration = const Duration(milliseconds: 500);
   final double fadeInDurationFactor = 0.7;
   final double _sheetHalfBoundValue = 0.5;
 
@@ -118,7 +118,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     super.initState();
 
     fadeAnimationController =
-        AnimationController(vsync: this, duration: Duration(seconds: 1));
+        AnimationController(vsync: this, duration: const Duration(seconds: 1));
     fadeAnimation = CurvedAnimation(
       parent: fadeAnimationController,
       curve: Curves.ease,
@@ -162,13 +162,28 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.only(
-        top: 32.0,
-        left: 16.0,
-        right: 8.0,
-        bottom: 32.0,
-      ),
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    final double extraPadding = widget.hasAppBar ? 0 : statusBarHeight;
+
+    return AnimatedBuilder(
+      animation: widget.rubberAnimationController,
+      builder: (BuildContext context, Widget child) {
+        final double completed = widget.rubberAnimationController.upperBound;
+        final double dismissed = widget.rubberAnimationController.lowerBound;
+        final double animationRange = completed - dismissed;
+        const double animationStart = 0.8;
+        final double animationStartBound = dismissed + animationRange * animationStart;
+        final double paddingHeightScale = (widget.rubberAnimationController.value - animationStartBound) / animationRange;
+        return Container(
+          padding: EdgeInsets.only(
+            top: 32.0 + extraPadding * paddingHeightScale,
+            left: 16.0,
+            right: 8.0,
+            bottom: 32.0,
+          ),
+          child: child,
+        );
+      },
       child: Stack(
         children: <Widget>[
           Center(
@@ -184,8 +199,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                 children: <Widget>[
                   Text(_busStop.displayName,
                       style: Theme.of(context).textTheme.headline),
-                  Text(_busStop.code,
-                      style: Theme.of(context).textTheme.subtitle),
+                  Text('${_busStop.code} · ${_busStop.road}',
+                      style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
                 ],
               ),
             ),
@@ -223,8 +238,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                     break;
                 }
               },
-              itemBuilder: (BuildContext context) => [
-                if (_isStarEnabled && widget.isHomePage)
+              itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                if (_isStarEnabled)
                   const PopupMenuItem<String>(
                     value: 'edit',
                     child: Text('Edit'),
