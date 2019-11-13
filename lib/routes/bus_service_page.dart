@@ -19,9 +19,17 @@ class BusServicePage extends BottomSheetPage {
 class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   @override
   Widget build(BuildContext context) {
-    final TabController tabController = TabController(length: 2, vsync: this);
+    buildSheet(isHomePage: false);
+    final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
-    final Widget child = widget.service.routes[0].busStops != null ? NestedScrollView(
+    return Scaffold(
+      body: bottomSheetContainer,
+    );
+  }
+
+  Widget _buildBody() {
+    final TabController tabController = TabController(length: 2, vsync: this);
+    return widget.service.routes[0].busStops != null ? NestedScrollView(
       headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
         return <Widget>[
           SliverAppBar(
@@ -45,12 +53,6 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
       _buildRouteBusStops(widget.service.routes[0]) :
       _buildPageView(widget.service, tabController),
     ) : const Center(child: CircularProgressIndicator());
-
-    return Scaffold(
-      body: Container(
-        child: child,
-      ),
-    );
   }
 
   Widget _buildRouteBusStops(BusServiceRoute route) {

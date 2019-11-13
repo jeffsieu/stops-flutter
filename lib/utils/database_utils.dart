@@ -317,6 +317,13 @@ Future<List<BusService>> getCachedBusServices() async {
   return List<BusService>.generate(maps.length, (int i) => BusService.fromMap(maps[i]));
 }
 
+Future<BusService> getCachedBusServiceWithNumber(String serviceNumber) async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> maps = await database.query('bus_service', where: 'number = ?', whereArgs: <dynamic>[serviceNumber]);
+
+  return BusService.fromMap(maps.first);
+}
+
 Future<Batch> beginBatchTransaction() async {
   return (await _accessDatabase()).batch();
 }
