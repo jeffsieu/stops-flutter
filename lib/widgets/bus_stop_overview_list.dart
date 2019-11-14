@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
-import 'bus_stop_overview_item.dart';
+import '../widgets/bus_stop_overview_item.dart';
 
 class BusStopOverviewList extends StatefulWidget {
   @override
@@ -37,11 +37,20 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                   busStopList = _busStops;
                 else
                   busStopList = <BusStop>[];
-                return SliverList(
-                  delegate: SliverChildListDelegate(<Widget>[
-                      for (BusStop busStop in busStopList)
-                        BusStopOverviewItem(busStop, key: Key(busStop.code))
-                    ],
+                return SliverToBoxAdapter(
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (BuildContext context, int position) {
+                        final BusStop busStop = busStopList[position];
+                        return BusStopOverviewItem(busStop, key: Key(busStop.code));
+                      },
+                      itemCount: busStopList.length,
+                      separatorBuilder: (BuildContext context, int position) => const Divider(height: 1),
+                    ),
                   ),
                 );
             }

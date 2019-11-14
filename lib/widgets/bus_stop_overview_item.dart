@@ -65,7 +65,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+              padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
               child: RichText(
                 text: TextSpan(
                   text: '$name',
@@ -76,81 +76,53 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                           .textTheme
                           .title
                           .copyWith(color: Theme.of(context).hintColor),
-                    )
+                    ),
                   ],
                   style: Theme.of(context).textTheme.title,
                 ),
               ),
             ),
-            Container(
-              height: 8.0,
-            ),
-            ConstrainedBox(
-              constraints: const BoxConstraints(
-                minHeight: 0.0,
-                maxHeight: 48.0,
-              ),
-              child: StreamBuilder<String>(
-                  initialData: _latestData,
-                  stream: _busArrivalStream,
-                  builder:
-                      (BuildContext context, AsyncSnapshot<String> snapshot) {
-                    switch (snapshot.connectionState) {
-                      case ConnectionState.none:
-                        return const Center(
-                            child: Text(BusAPI.kNoInternetError));
-                      case ConnectionState.active:
-                      case ConnectionState.waiting:
-                        if (snapshot.data == null)
-                          return const Center(
-                              child: Text(BusAPI.kLoadingMessage));
-                        continue done;
-                      done:
-                      case ConnectionState.done:
-                        _latestData = snapshot.data;
-                        _buses = jsonDecode(_latestData)['Services'];
-                        _buses.sort((dynamic a, dynamic b) =>
-                            compareBusNumber(a['ServiceNo'], b['ServiceNo']));
-                        return _buses.isNotEmpty ?
-                          ShaderMask(
-                            blendMode: BlendMode.dstOut,
-                            shaderCallback: (Rect bounds) {
-                              final double margin = 16.0 / bounds.width;
-                              return LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                stops: <double> [0.0, margin, 1-margin, 1.0],
-                                colors: <Color>[Colors.black, Colors.transparent, Colors.transparent, Colors.black],
-                                tileMode: TileMode.clamp,
-                              ).createShader(Rect.fromLTRB(0, 0, bounds.width, bounds.height));
-                            },
-                            child: Container(
-                              child: ListView.separated(
-                                padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                                physics: const BouncingScrollPhysics(),
-                                shrinkWrap: true,
-                                scrollDirection: Axis.horizontal,
-                                itemBuilder: (BuildContext context,
-                                    int position) =>
-                                    BusTimingChip(
-                                        serviceNumber: _buses[position]
-                                        ['ServiceNo'],
-                                        nextBus: _buses[position]['NextBus']),
-                                separatorBuilder:
-                                    (BuildContext context, int position) =>
-                                    Container(
-                                      color: Colors.transparent,
-                                      width: 16.0,
-                                    ),
-                                itemCount: _buses.length,
+            StreamBuilder<String>(
+              initialData: _latestData,
+              stream: _busArrivalStream,
+              builder:
+                  (BuildContext context, AsyncSnapshot<String> snapshot) {
+                switch (snapshot.connectionState) {
+                  case ConnectionState.none:
+                    return const Center(
+                        child: Text(BusAPI.kNoInternetError));
+                  case ConnectionState.active:
+                  case ConnectionState.waiting:
+                    if (snapshot.data == null)
+                      return const Center(
+                          child: Text(BusAPI.kLoadingMessage));
+                    continue done;
+                  done:
+                  case ConnectionState.done:
+                    _latestData = snapshot.data;
+                    _buses = jsonDecode(_latestData)['Services'];
+                    _buses.sort((dynamic a, dynamic b) =>
+                        compareBusNumber(a['ServiceNo'], b['ServiceNo']));
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+                      child: _buses.isNotEmpty ?
+                        Wrap(
+                          spacing: 16.0,
+                          direction: Axis.horizontal,
+                          children: <Widget>[
+                            for (dynamic bs in _buses)
+                              BusTimingChip(
+                                serviceNumber: bs['ServiceNo'],
+                                nextBus: bs['NextBus']
                               ),
-                            )
+                          ],
                         ) : const Center(
-                          child: Text(BusAPI.kNoBusesError),
-                        );
-                    }
-                    throw Exception('Something terribly wrong has happened');
-                  }),
+                        child: Text(BusAPI.kNoBusesError),
+                      ),
+                    );
+                }
+                throw Exception('Something terribly wrong has happened');
+              },
             ),
           ],
         ),
@@ -178,7 +150,6 @@ class _BusTimingChipState extends State<BusTimingChip> {
   @override
   Widget build(BuildContext context) {
     return Chip(
-
       elevation: 2.0,
       label: RichText(
         text: TextSpan(

@@ -34,8 +34,8 @@ class BusStopDetailSheet extends StatefulWidget {
   final ScrollController scrollController;
   final RubberAnimationController rubberAnimationController;
   final bool hasAppBar;
-  final Duration fadeDuration = const Duration(milliseconds: 500);
-  final double fadeInDurationFactor = 0.7;
+  final Duration fadeDuration = const Duration(milliseconds: 1000);
+  final double titleFadeInDurationFactor = 0.5;
   final double _sheetHalfBoundValue = 0.5;
 
   static BusStopDetailSheetState of(BuildContext context) =>
@@ -51,12 +51,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   List<dynamic> _buses = <dynamic>[];
   String _latestData;
   bool _isStarEnabled = false;
-  bool _isDismissed = true;
 
   Stream<String> _busArrivalStream;
 
-  AnimationController fadeAnimationController;
-  Animation<double> fadeAnimation;
+  AnimationController timingListAnimationController;
 
   BusStopChangeListener _busStopListener;
   TextEditingController textController;
@@ -79,10 +77,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       _latestData = BusAPI().busStopArrivalLatest(busStop);
       textController = TextEditingController(text: _busStop.displayName);
 
-      if (!_isDismissed)
-        fadeAnimationController.forward(from: 0);
-      _isDismissed = true;
-
+      timingListAnimationController.forward(from: 0);
       widget.rubberAnimationController.halfBoundValue =
           AnimationControllerValue(percentage: widget._sheetHalfBoundValue);
       widget.rubberAnimationController.halfExpand();
@@ -102,27 +97,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       });
     };
     registerBusStopListener(_busStop, _busStopListener);
-
-    Function listener;
-    listener = () {
-      if (widget.rubberAnimationController.isDismissed) {
-        widget.rubberAnimationController.removeListener(listener);
-        _isDismissed = true;
-      }
-    };
-    widget.rubberAnimationController.addListener(listener);
   }
 
   @override
   void initState() {
     super.initState();
-
-    fadeAnimationController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 1));
-    fadeAnimation = CurvedAnimation(
-      parent: fadeAnimationController,
-      curve: Curves.ease,
-    );
+    timingListAnimationController = AnimationController(duration: widget.fadeDuration, vsync: this);
   }
 
   @override
@@ -155,8 +135,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
 
   @override
   void dispose() {
-    fadeAnimationController.reverse(from: 1);
-    fadeAnimationController.dispose();
+    timingListAnimationController.dispose();
     unregisterBusStopListener(_busStop, _busStopListener);
     super.dispose();
   }
@@ -170,10 +149,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       builder: (BuildContext context, Widget child) {
         final double completed = widget.rubberAnimationController.upperBound;
         final double dismissed = widget.rubberAnimationController.lowerBound;
-        final double animationRange = completed - dismissed;
-        const double animationStart = 0.8;
-        final double animationStartBound = dismissed + animationRange * animationStart;
-        final double paddingHeightScale = (widget.rubberAnimationController.value - animationStartBound) / animationRange;
+        const double animationStart = 0.75;
+        final double animationRange = completed - animationStart;
+        final double animationStartBound = dismissed + (completed - dismissed) * animationStart;
+        final double paddingHeightScale = ((widget.rubberAnimationController.value - animationStartBound) / animationRange).clamp(0.0, 1.0);
         return Container(
           padding: EdgeInsets.only(
             top: 32.0 + extraPadding * paddingHeightScale,
@@ -188,13 +167,24 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
         children: <Widget>[
           Center(
             child: AnimatedSwitcher(
-              duration: widget.fadeDuration,
-              switchInCurve: Interval(1-widget.fadeInDurationFactor, 1),
-              switchOutCurve: Interval(widget.fadeInDurationFactor, 1),
+              duration: widget.fadeDuration * widget.titleFadeInDurationFactor,
+              switchInCurve: Interval(0.25, 1),
+              switchOutCurve: Interval(0.75, 1),
               transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(opacity: animation, child: child);
+                final bool entering = child.key == ValueKey<String>(_busStop.code);
+                final Animatable<double> curve = CurveTween(curve: entering ? Curves.easeOutCubic : Curves.linear);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: animation
+                        .drive(curve)
+                        .drive(Tween<Offset>(begin: Offset(0, 0.5 * (entering ? 1 : -1)), end: Offset.zero)),
+                    child: child,
+                  ),
+                );
               },
               child: Column(
+                key: Key(_busStop.code),
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Text(_busStop.displayName,
@@ -262,55 +252,78 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
 
   Widget _buildTimingList() {
     _latestData = BusAPI().busStopArrivalLatest(_busStop);
-    return AnimatedSwitcher(
-        duration: widget.fadeDuration,
-        switchInCurve: Interval(1-widget.fadeInDurationFactor, 1),
-        switchOutCurve: Interval(widget.fadeInDurationFactor, 1),
-        transitionBuilder:
-        (Widget child, Animation<double> animation) {
-      return FadeTransition(
-        child: child,
-        opacity: animation,
-      );
-    },
-    child: StreamBuilder<String>(
-      key: Key(_busStop.code),
-      initialData: _latestData,
-      stream: _busArrivalStream,
-      builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-        switch (snapshot.connectionState) {
-          case ConnectionState.none:
-            return _messageBox(BusAPI.kNoInternetError);
-          case ConnectionState.active:
-          case ConnectionState.waiting:
-            if (snapshot.data == null) {
-              return _messageBox(BusAPI.kLoadingMessage);
-            }
-            continue done;
-          done:
-          case ConnectionState.done:
-            if (snapshot.hasError)
-              return _messageBox('Error: ${snapshot.error}');
+    return Container(
+//      duration: widget.fadeDuration,
+//      switchInCurve: Interval(1-widget.fadeInDurationFactor, 1),
+//      switchOutCurve: Interval(widget.fadeInDurationFactor, 1),
+//      transitionBuilder: (Widget child, Animation<double> animation) {
+//        return FadeTransition(
+//          child: child,
+//          opacity: animation,
+//        );
+//      },
+      child: StreamBuilder<String>(
+        key: Key(_busStop.code),
+        initialData: _latestData,
+        stream: _busArrivalStream,
+        builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+          switch (snapshot.connectionState) {
+            case ConnectionState.none:
+              return _messageBox(BusAPI.kNoInternetError);
+            case ConnectionState.active:
+            case ConnectionState.waiting:
+              if (snapshot.data == null) {
+                return _messageBox(BusAPI.kLoadingMessage);
+              }
+              continue done;
+            done:
+            case ConnectionState.done:
+              if (snapshot.hasError)
+                return _messageBox('Error: ${snapshot.error}');
 
-            _buses = jsonDecode(snapshot.data)['Services'];
-            _buses.sort((dynamic a, dynamic b) =>
-                compareBusNumber(a['ServiceNo'], b['ServiceNo']));
-            _latestData = snapshot.data;
-            return _buses.isNotEmpty
-                ? ListView.builder(
-              shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (BuildContext context, int position) {
-                        return BusTimingRow(_busStop.code, _buses[position],
-                              key: Key(_busStop.code +
-                                  _buses[position]['ServiceNo']));
-                      },
-                    itemCount: _buses.length,
-                  )
-                : _messageBox(BusAPI.kNoBusesError);
-        }
-        return null;
-      }),
+              _buses = jsonDecode(snapshot.data)['Services'];
+              _buses.sort((dynamic a, dynamic b) =>
+                  compareBusNumber(a['ServiceNo'], b['ServiceNo']));
+              _latestData = snapshot.data;
+              return _buses.isNotEmpty
+                  ? MediaQuery.removePadding(
+                      context: context,
+                      removeTop: true,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemBuilder: (BuildContext context, int position) {
+                          const double duration = 0.4;
+                          const double offset = 0.075;
+                          final double startOffset = (position * offset).clamp(0.0, 1.0);
+                          final double endOffset = (position * offset + duration).clamp(0.0, 1.0);
+                          final Animation<double> animation = timingListAnimationController
+                              .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor-offset, 1))) // animate after previous code disappears
+                              .drive(CurveTween(curve: Interval(startOffset, endOffset))); // delay animation based on position
+                          return SlideTransition(
+                            position: animation
+                                .drive(CurveTween(curve: Curves.easeOutQuint))
+                                .drive(Tween<Offset>(
+                                        begin: const Offset(0, 0.5),
+                                        end: Offset.zero,
+                                )
+                            ),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: BusTimingRow(_busStop.code, _buses[position],
+                                      key: Key(_busStop.code +
+                                          _buses[position]['ServiceNo'])),
+                            ),
+                          );
+                        },
+                        itemCount: _buses.length,
+                      ),
+                    )
+                  : _messageBox(BusAPI.kNoBusesError);
+          }
+          return null;
+        },
+      ),
     );
   }
 
