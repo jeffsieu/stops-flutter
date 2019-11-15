@@ -1,7 +1,8 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../routes/bus_service_page.dart';
-import '../utils/bus_service.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/notification_utils.dart';
@@ -13,6 +14,7 @@ class BusTimingRow extends StatefulWidget {
 
   final dynamic busInfo;
   final String busStopCode;
+  static const double height = 56.0;
 
   @override
   _BusTimingState createState() {
@@ -40,91 +42,105 @@ class _BusTimingState extends State<BusTimingRow> {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        _pushBusServiceRoute(serviceNumber);
-      },
-      child: Container(
-        child: Container(
-          padding: const EdgeInsets.only(
-            left: 16.0,
-            right: 8.0,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: Text(
-                      serviceNumber + ' '*(4-serviceNumber.length),
-                      style: Theme.of(context).textTheme.title.copyWith(fontFamily: 'B612 Mono'),
-                    ),
+      onTap: () => _pushBusServiceRoute(serviceNumber),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Text(
+                    serviceNumber + ' '*( 4-serviceNumber.length),
+                    style: Theme.of(context).textTheme.title.copyWith(fontFamily: 'B612 Mono'),
+                    textAlign: TextAlign.right,
                   ),
-                  _BusTimingItem(
-                      widget.busInfo['NextBus']['EstimatedArrival'],
-                      widget.busInfo['NextBus']['Type'],
-                      widget.busInfo['NextBus']['Load'],
-                      key: Key('${widget.busStopCode} $serviceNumber 1')
-                  ),
-                  _BusTimingItem(
-                      widget.busInfo['NextBus2']['EstimatedArrival'],
-                      widget.busInfo['NextBus2']['Type'],
-                      widget.busInfo['NextBus2']['Load'],
-                      key: Key('${widget.busStopCode} $serviceNumber 2')
-                  ),
-                  _BusTimingItem(
-                      widget.busInfo['NextBus3']['EstimatedArrival'],
-                      widget.busInfo['NextBus3']['Type'],
-                      widget.busInfo['NextBus3']['Load'],
-                      key: Key('${widget.busStopCode} $serviceNumber 3')
-                  ),
-                ],
-              ),
-              IconButton(
-                tooltip: 'Notify me when the bus arrives',
-                icon: Icon(_isBusFollowed
-                    ? Icons.notifications_active
-                    : Icons.notifications_none),
-                onPressed: () {
-                  if (_isBusFollowed) {
-                    unfollowBus(stop: widget.busStopCode, bus: serviceNumber);
-                  } else {
-                    BusFollowStatusListener listener;
-                    listener = (String stop, String code, bool isFollowed) {
-                      if (stop == widget.busStopCode &&
-                          code == serviceNumber &&
-                          !isFollowed) {
-                        setState(() {
-                          _isBusFollowed = !_isBusFollowed;
-                        });
-
-                        removeBusFollowStatusListener(widget.busStopCode, serviceNumber, listener);
-                      }
-                    };
-
-                    addBusFollowStatusListener(widget.busStopCode, serviceNumber, listener);
-
-                    final DateTime estimatedArrivalTime = DateTime.parse(widget.busInfo['NextBus']['EstimatedArrival']);
-                    final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
-
-                    followBus(stop: widget.busStopCode, bus: serviceNumber);
-                    final SnackBar snackBar = SnackBar(content: Text('You will be notified when $serviceNumber arrives'));
-
-                    Scaffold.of(context).showSnackBar(snackBar);
-                    // Add notification timer
-                    NotificationAPI().scheduleNotification(widget.busStopCode, serviceNumber, notificationTime);
-
-                    if (mounted)
+                ),
+                _buildBusTimingItems(),
+              ],
+            ),
+            IconButton(
+              tooltip: 'Notify me when the bus arrives',
+              icon: Icon(_isBusFollowed
+                  ? Icons.notifications_active
+                  : Icons.notifications_none),
+              onPressed: () {
+                if (_isBusFollowed) {
+                  unfollowBus(stop: widget.busStopCode, bus: serviceNumber);
+                } else {
+                  BusFollowStatusListener listener;
+                  listener = (String stop, String code, bool isFollowed) {
+                    if (stop == widget.busStopCode &&
+                        code == serviceNumber &&
+                        !isFollowed) {
                       setState(() {
                         _isBusFollowed = !_isBusFollowed;
                       });
-                  }
-                },
-              ),
-            ],
-          ),
+
+                      removeBusFollowStatusListener(widget.busStopCode, serviceNumber, listener);
+                    }
+                  };
+
+                  addBusFollowStatusListener(widget.busStopCode, serviceNumber, listener);
+
+                  final DateTime estimatedArrivalTime = DateTime.parse(widget.busInfo['NextBus']['EstimatedArrival']);
+                  final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
+
+                  followBus(stop: widget.busStopCode, bus: serviceNumber);
+                  final SnackBar snackBar = SnackBar(content: Text('You will be notified when $serviceNumber arrives'));
+
+                  Scaffold.of(context).showSnackBar(snackBar);
+                  // Add notification timer
+                  NotificationAPI().scheduleNotification(widget.busStopCode, serviceNumber, notificationTime);
+
+                  if (mounted)
+                    setState(() {
+                      _isBusFollowed = !_isBusFollowed;
+                    });
+                }
+              },
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBusTimingItems() {
+    final Function listLength = (dynamic busInfo) {
+      if (busInfo['NextBus3']['EstimatedArrival'].isNotEmpty)
+        return 3;
+      if (busInfo['NextBus2']['EstimatedArrival'].isNotEmpty)
+        return 2;
+      if (busInfo['NextBus']['EstimatedArrival'].isNotEmpty)
+        return 1;
+      return 0;
+    };
+    return Container(
+      height: BusTimingRow.height,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        itemBuilder: (BuildContext context, int position) {
+          dynamic busInfo;
+          if (position == 0)
+            busInfo = widget.busInfo['NextBus'];
+          else
+            busInfo = widget.busInfo['NextBus${position+1}'];
+          return _BusTimingItem(
+              busInfo['EstimatedArrival'],
+              busInfo['Type'],
+              busInfo['Load'],
+              key: Key('${widget.busStopCode} $serviceNumber $position')
+          );
+        },
+        separatorBuilder: (BuildContext context, int position) {
+          return const VerticalDivider();
+        },
+        itemCount: listLength(widget.busInfo),
       ),
     );
   }
@@ -138,9 +154,6 @@ class _BusTimingState extends State<BusTimingRow> {
 class _BusTimingItem extends StatefulWidget {
   const _BusTimingItem(this.timeArrival, this.busSize, this.busLoad, {Key key}) : super(key: key);
 
-  static const double boxSize = 56.0;
-  static const double paddingLeft = 4.0;
-  static const double paddingBottom = 4.0;
   final String timeArrival, busSize, busLoad;
 
   @override
@@ -167,7 +180,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
       setState(() {});
     });
     if (widget.timeArrival.isNotEmpty &&
-        getMinutesFromNow(widget.timeArrival) < 3)
+        getMinutesFromNow(widget.timeArrival) <= 1)
       _controller.forward();
   }
 
@@ -179,93 +192,30 @@ class _BusTimingItemState extends State<_BusTimingItem>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.timeArrival.isEmpty) {
-      return Container(
-          width: _BusTimingItem.boxSize + _BusTimingItem.paddingLeft);
-    }
-
     final Color busLoadColor = getBusLoadColor(widget.busLoad, Brightness.light);
-    const double offset = 0.5;
-    return FittedBox(
-      fit: BoxFit.fitHeight,
-        child:
-          Stack(
-            alignment: Alignment.bottomCenter,
-            children: <Widget>[
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (BuildContext context, Widget child) => Container(
-                    width: _BusTimingItem.boxSize,
-                    height: _BusTimingItem.boxSize,
-                    color: Color.lerp(busLoadColor, busLoadColor.withOpacity(0.5), _controller.value),
-                  ),
-            ),
-            Text.rich(
-              TextSpan(
-                text: getBusTypeVerbose(widget.busSize),
-                style: Theme.of(context).textTheme.overline.copyWith(shadows: <Shadow>[
-                  Shadow( // bottomLeft
-                      offset: const Offset(-offset, -offset),
-                      color: Theme.of(context).canvasColor,
-                  ),
-                  Shadow( // bottomRight
-                      offset: const Offset(offset, -offset),
-                    color: Theme.of(context).canvasColor,
-                  ),
-                  Shadow( // topRight
-                      offset: const Offset(offset, offset),
-                    color: Theme.of(context).canvasColor,
-                  ),
-                  Shadow( // topLeft
-                      offset: const Offset(-offset, offset),
-                    color: Theme.of(context).canvasColor,
-                  ),
-                ],
-                ),
-              ),
-              maxLines: 1,
-            ),
-            Container(
-              width: _BusTimingItem.boxSize,
-              height: _BusTimingItem.boxSize,
-              padding: const EdgeInsets.all(8.0),
-              child: FittedBox(
-                fit: BoxFit.contain,
-                  child: Text(
-                    widget.timeArrival.isNotEmpty
-                        ? getBusTimingShortened(
-                        getMinutesFromNow(widget.timeArrival))
-                        : '',
-                    style: Theme.of(context).textTheme.body1.copyWith(color: Colors.white)),
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: <Widget>[
+        Text(getBusTypeVerbose(widget.busSize)),
+        Container(
+          width: BusTimingRow.height,
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _controller.drive(CurveTween(curve: Curves.easeInOutExpo)),
+              builder: (BuildContext context, Widget child) {
+                return Transform.scale(scale: lerpDouble(1, 1.25, _controller.value), child: child);
+              },
+              child: Text(
+                widget.timeArrival.isNotEmpty
+                    ? getBusTimingShortened(
+                    getMinutesFromNow(widget.timeArrival))
+                    : '',
+                style: Theme.of(context).textTheme.title.copyWith(color: busLoadColor, fontSize: 24),
               ),
             ),
-          ]),
-        );
-  }
-}
-
-class TrapeziumPainter extends CustomPainter {
-  TrapeziumPainter(this.color);
-
-  Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Path path = Path();
-
-    path.moveTo(0, 0);
-    path.lineTo(size.width / 2, 0);
-    path.lineTo(size.width / 2 - size.height, size.height);
-    path.lineTo(0, size.height);
-
-    final Paint paint = Paint();
-    paint..color = color;
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return false;
+          ),
+        ),
+      ],
+    );
   }
 }

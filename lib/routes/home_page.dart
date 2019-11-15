@@ -156,15 +156,18 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
         return snapshot.hasData ? SliverToBoxAdapter(
           child: Container(
             height: 150,
-            child: PageView.builder(
+            child: ListView.builder(
+              physics: const BouncingScrollPhysics(),
               scrollDirection: Axis.horizontal,
               itemCount: 3,
               itemBuilder: (BuildContext context, int position) {
                 final BusStop busStop = snapshot.data['busStops'][position];
                 final double distanceInMeters = snapshot.data['distances'][position];
 
-                return Container(
-                  width: MediaQuery.of(context).size.width,
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: MediaQuery.of(context).size.width * 0.9,
+                  ),
                   child: Card(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                     margin: const EdgeInsets.all(8.0),

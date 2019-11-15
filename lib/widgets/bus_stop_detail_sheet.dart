@@ -124,6 +124,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     );
 
     return Material(
+      type: MaterialType.card,
       borderRadius: const BorderRadius.only(
         topLeft: Radius.circular(16.0),
         topRight: Radius.circular(16.0),
@@ -217,7 +218,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
 //                          action: SnackBarAction(
 //                          label: 'Undo',
 //                          onPressed: () {
-                            //TODO(jeffsieu): Add undo functionality.
+                            // TODO(jeffsieu): Add undo functionality.
 //                          }),
                         ),
                       );
@@ -289,7 +290,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                   ? MediaQuery.removePadding(
                       context: context,
                       removeTop: true,
-                      child: ListView.builder(
+                      child: ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemBuilder: (BuildContext context, int position) {
@@ -315,6 +316,9 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                                           _buses[position]['ServiceNo'])),
                             ),
                           );
+                        },
+                        separatorBuilder: (BuildContext context, int position) {
+                          return const Divider(height: 1);
                         },
                         itemCount: _buses.length,
                       ),

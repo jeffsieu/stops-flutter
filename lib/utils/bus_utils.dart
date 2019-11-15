@@ -38,9 +38,9 @@ String getBusTypeVerbose(String busTypeRaw) {
     case 'SD':
       return '';
     case 'DD':
-      return 'double';
+      return 'x2';
     case 'BD':
-      return 'bendy';
+      return 'x2';
     default:
       return '';
   }
