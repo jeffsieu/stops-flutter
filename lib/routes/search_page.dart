@@ -133,7 +133,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
-    buildSheet(isHomePage: false);
+    buildSheet(hasAppBar: false);
     _isMapCreated = false;
     if (_query.isEmpty)
       _clearIconAnimationController.reverse();
@@ -193,7 +193,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
                       _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
                     }
                     _isMapVisible = !_isMapVisible;
-
                   }),
                   label: const Text('Choose on map'),
                   icon: const Icon(Icons.map)
@@ -392,10 +391,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
                   padding: const EdgeInsets.only(
                       left: 16.0, top: 16.0, bottom: 8.0),
                   child: Text.rich(
-                      const TextSpan(text: 'Past searches'), style: Theme
-                      .of(context)
-                      .textTheme
-                      .headline),
+                      const TextSpan(text: 'Past searches'), style: Theme.of(context).textTheme.display1),
                 ),
               },
               FutureBuilder<List<String>>(
@@ -437,7 +433,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text('Services', style: Theme.of(context).textTheme.headline),
+            Text('Services', style: Theme.of(context).textTheme.display1),
             FlatButton(
               onPressed: _toggleShowServicesOnly,
               child: const Text('See all'),
@@ -453,7 +449,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       child: Padding(
         padding: const EdgeInsets.only(top: 8.0, left: 16.0),
         child:
-        Text('Bus stops', style: Theme.of(context).textTheme.headline),
+        Text('Bus stops', style: Theme.of(context).textTheme.display1),
       ),
     );
   }
@@ -552,9 +548,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     if (mounted)
       setState(() {
         _isDistanceLoaded = true;
-        if (_isMapCreated)
-          initializeGoogleMapCameraPosition();
       });
+    if (_isMapCreated)
+      initializeGoogleMapCameraPosition();
   }
 
   Future<void> initializeGoogleMapCameraPosition() async {
@@ -574,9 +570,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       if (mounted)
         setState(() {
           _busStops = List<BusStop>.from(busStops);
-          if (location != null && _filteredBusStops != null)
-            _updateBusStopDistances(location);
         });
+      if (location != null && _filteredBusStops != null)
+        _updateBusStopDistances(location);
     });
   }
 
@@ -635,9 +631,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     return metadata;
   }
 
-  Future<void> _pushBusServiceRoute(BusService busService) async {
-    busService.routes ??= await getCachedBusRoutes(busService);
-    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage(busService));
+  void _pushBusServiceRoute(BusService busService) {
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage(busService.number));
     pushHistory(_query); // add query to history
     Navigator.push(context, route);
   }

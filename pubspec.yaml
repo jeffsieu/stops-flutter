@@ -1,7 +1,7 @@
 name: stops_sg
 description: A Flutter application that displays live bus timings for bus stops in Singapore
 
-version: 0.2.1+4
+version: 0.2.2+5
 
 environment:
   sdk: ">=2.2.2 <3.0.0"
@@ -50,7 +50,10 @@ flutter:
         weight: 700
     - family: 'Source Sans Pro'
       fonts:
+      - asset: assets/fonts/SourceSansPro-Light.ttf
+        weight: 300
       - asset: assets/fonts/SourceSansPro-Regular.ttf
+        weight: 400
 
   assets:
     - assets/secrets.json

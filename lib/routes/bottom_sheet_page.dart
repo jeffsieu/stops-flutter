@@ -22,12 +22,12 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T> 
     super.dispose();
   }
 
-  void buildSheet({@required bool isHomePage}) {
+  void buildSheet({@required bool hasAppBar}) {
     /* Initialize rubber sheet */
     if (widget.bottomSheetKey.currentState == null) {
       busStopDetailSheet =
           BusStopDetailSheet(
-              key: widget.bottomSheetKey, vsync: this, isHomePage: isHomePage);
+              key: widget.bottomSheetKey, vsync: this, hasAppBar: hasAppBar);
       rubberAnimationController = busStopDetailSheet.rubberAnimationController;
       sheetScrollController = busStopDetailSheet.scrollController;
       initialized = true;

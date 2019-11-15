@@ -25,14 +25,20 @@ class StopsApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           accentColor: Colors.deepOrangeAccent,
           brightness: Brightness.light,
-          textTheme: TextTheme(headline: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent)),
+          textTheme: TextTheme(
+              display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
+              headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28.0),
+          ),
         ),
         darkTheme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
           accentColor: Colors.orangeAccent,
           brightness: Brightness.dark,
-          textTheme: TextTheme(headline: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent)),
+          textTheme: TextTheme(
+            display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
+            headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28.0),
+          ),
         ),
         home: HomePage(),
     );
@@ -75,23 +81,12 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
-    buildSheet(isHomePage: true);
+    buildSheet(hasAppBar: false);
 
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
     return Scaffold(
-      appBar: AppBar(
-        brightness: MediaQuery.of(context).platformBrightness,
-        titleSpacing: 8.0,
-        title: Container(
-          child: _buildSearchField(),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0.0,
-      ),
-      body: Center(
-        child: bottomSheetContainer,
-      ),
+      body: bottomSheetContainer,
     );
   }
 
@@ -101,7 +96,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       child: Material(
         clipBehavior: Clip.none,
         type: MaterialType.card,
-        elevation: 4.0,
+        elevation: 2.0,
         borderRadius: BorderRadius.circular(8.0),
         child: InkWell(
           borderRadius: BorderRadius.circular(8.0),
@@ -138,6 +133,15 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       child: CustomScrollView(
         scrollDirection: Axis.vertical,
         slivers: <Widget>[
+          SliverAppBar(
+            brightness: MediaQuery.of(context).platformBrightness,
+            titleSpacing: 8.0,
+            title: Container(
+              child: _buildSearchField(),
+            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0.0,
+          ),
           _buildSuggestions(),
           BusStopOverviewList(),
         ],
@@ -172,7 +176,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.headline),
+                            Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.display1),
                             Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
                             Container(height: 16.0),
                             Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),

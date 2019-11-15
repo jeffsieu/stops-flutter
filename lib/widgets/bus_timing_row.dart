@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../routes/bus_service_page.dart';
+import '../utils/bus_service.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/notification_utils.dart';
@@ -20,13 +22,13 @@ class BusTimingRow extends StatefulWidget {
 
 class _BusTimingState extends State<BusTimingRow> {
   bool _isBusFollowed = false;
-  String busCode;
+  String serviceNumber;
 
   @override
   void initState() {
     super.initState();
-    busCode = widget.busInfo['ServiceNo'];
-    isBusFollowed(stop: widget.busStopCode, bus: busCode)
+    serviceNumber = widget.busInfo['ServiceNo'];
+    isBusFollowed(stop: widget.busStopCode, bus: serviceNumber)
         .then((bool isFollowed) {
       if (mounted && _isBusFollowed != isFollowed)
         setState(() {
@@ -39,96 +41,97 @@ class _BusTimingState extends State<BusTimingRow> {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // TODO(jeffsieu): Do something with bus row is tapped (maybe open bus service page).
+        _pushBusServiceRoute(serviceNumber);
       },
       child: Container(
-        child: CustomPaint(
-//          painter: TrapeziumPainter(
-//              BusUtils.getOperatorColor(widget.busInfo['Operator'])),
-          child: Container(
-            padding: const EdgeInsets.only(
-              left: 16.0,
-              right: 8.0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: Text(
-                        busCode + ' '*(4-busCode.length),
-                        style: Theme.of(context).textTheme.title.copyWith(fontFamily: 'B612 Mono'),
-                      ),
+        child: Container(
+          padding: const EdgeInsets.only(
+            left: 16.0,
+            right: 8.0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: Text(
+                      serviceNumber + ' '*(4-serviceNumber.length),
+                      style: Theme.of(context).textTheme.title.copyWith(fontFamily: 'B612 Mono'),
                     ),
-                    _BusTimingItem(
-                        widget.busInfo['NextBus']['EstimatedArrival'],
-                        widget.busInfo['NextBus']['Type'],
-                        widget.busInfo['NextBus']['Load'],
-                        key: Key('${widget.busStopCode} $busCode 1')
-                    ),
-                    _BusTimingItem(
-                        widget.busInfo['NextBus2']['EstimatedArrival'],
-                        widget.busInfo['NextBus2']['Type'],
-                        widget.busInfo['NextBus2']['Load'],
-                        key: Key('${widget.busStopCode} $busCode 2')
-                    ),
-                    _BusTimingItem(
-                        widget.busInfo['NextBus3']['EstimatedArrival'],
-                        widget.busInfo['NextBus3']['Type'],
-                        widget.busInfo['NextBus3']['Load'],
-                        key: Key('${widget.busStopCode} $busCode 3')
-                    ),
-                  ],
-                ),
-                IconButton(
-                  tooltip: 'Notify me when the bus arrives',
-                  icon: Icon(_isBusFollowed
-                      ? Icons.notifications_active
-                      : Icons.notifications_none),
-                  onPressed: () {
-                    if (_isBusFollowed) {
-                      unfollowBus(stop: widget.busStopCode, bus: busCode);
-                    } else {
-                      BusFollowStatusListener listener;
-                      listener = (String stop, String code, bool isFollowed) {
-                        if (stop == widget.busStopCode &&
-                            code == busCode &&
-                            !isFollowed) {
-                          setState(() {
-                            _isBusFollowed = !_isBusFollowed;
-                          });
-
-                          removeBusFollowStatusListener(widget.busStopCode, busCode, listener);
-                        }
-                      };
-
-                      addBusFollowStatusListener(widget.busStopCode, busCode, listener);
-
-                      final DateTime estimatedArrivalTime = DateTime.parse(widget.busInfo['NextBus']['EstimatedArrival']);
-                      final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
-
-                      followBus(stop: widget.busStopCode, bus: busCode);
-                      final SnackBar snackBar = SnackBar(content: Text('You will be notified when $busCode arrives'));
-
-                      Scaffold.of(context).showSnackBar(snackBar);
-                      // Add notification timer
-                      NotificationAPI().scheduleNotification(widget.busStopCode, busCode, notificationTime);
-
-                      if (mounted)
+                  ),
+                  _BusTimingItem(
+                      widget.busInfo['NextBus']['EstimatedArrival'],
+                      widget.busInfo['NextBus']['Type'],
+                      widget.busInfo['NextBus']['Load'],
+                      key: Key('${widget.busStopCode} $serviceNumber 1')
+                  ),
+                  _BusTimingItem(
+                      widget.busInfo['NextBus2']['EstimatedArrival'],
+                      widget.busInfo['NextBus2']['Type'],
+                      widget.busInfo['NextBus2']['Load'],
+                      key: Key('${widget.busStopCode} $serviceNumber 2')
+                  ),
+                  _BusTimingItem(
+                      widget.busInfo['NextBus3']['EstimatedArrival'],
+                      widget.busInfo['NextBus3']['Type'],
+                      widget.busInfo['NextBus3']['Load'],
+                      key: Key('${widget.busStopCode} $serviceNumber 3')
+                  ),
+                ],
+              ),
+              IconButton(
+                tooltip: 'Notify me when the bus arrives',
+                icon: Icon(_isBusFollowed
+                    ? Icons.notifications_active
+                    : Icons.notifications_none),
+                onPressed: () {
+                  if (_isBusFollowed) {
+                    unfollowBus(stop: widget.busStopCode, bus: serviceNumber);
+                  } else {
+                    BusFollowStatusListener listener;
+                    listener = (String stop, String code, bool isFollowed) {
+                      if (stop == widget.busStopCode &&
+                          code == serviceNumber &&
+                          !isFollowed) {
                         setState(() {
                           _isBusFollowed = !_isBusFollowed;
                         });
-                    }
-                  },
-                ),
-              ],
-            ),
+
+                        removeBusFollowStatusListener(widget.busStopCode, serviceNumber, listener);
+                      }
+                    };
+
+                    addBusFollowStatusListener(widget.busStopCode, serviceNumber, listener);
+
+                    final DateTime estimatedArrivalTime = DateTime.parse(widget.busInfo['NextBus']['EstimatedArrival']);
+                    final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
+
+                    followBus(stop: widget.busStopCode, bus: serviceNumber);
+                    final SnackBar snackBar = SnackBar(content: Text('You will be notified when $serviceNumber arrives'));
+
+                    Scaffold.of(context).showSnackBar(snackBar);
+                    // Add notification timer
+                    NotificationAPI().scheduleNotification(widget.busStopCode, serviceNumber, notificationTime);
+
+                    if (mounted)
+                      setState(() {
+                        _isBusFollowed = !_isBusFollowed;
+                      });
+                  }
+                },
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  void _pushBusServiceRoute(String serviceNumber) {
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage(serviceNumber));
+    Navigator.push(context, route);
   }
 }
 
