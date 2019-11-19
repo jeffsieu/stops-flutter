@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'bus_service_arrival_result.dart';
+
 Color getBusOperatorColor(String operator) {
   switch(operator) {
     case 'SBST':
@@ -15,31 +17,34 @@ Color getBusOperatorColor(String operator) {
   }
 }
 
-Color getBusLoadColor(String loadRaw, Brightness brightness) {
-  switch(loadRaw) {
-    case 'SEA':
-      if (brightness == Brightness.light)
-        return Colors.green;
-      else
-        return Colors.green.shade300;
+Color getBusLoadColor(BusLoad load, Brightness brightness) {
+  MaterialColor color;
+  switch(load) {
+    case BusLoad.low:
+      color = Colors.green;
       break;
-    case 'SDA':
-      return Colors.orange;
+    case BusLoad.medium:
+      color = Colors.orange;
       break;
-    case 'LSD':
-      return Colors.red;
+    case BusLoad.high:
+      color = Colors.red;
+      break;
     default:
       return Colors.transparent;
   }
+  if (brightness == Brightness.light)
+    return color;
+  else
+    return color.shade300;
 }
 
-String getBusTypeVerbose(String busTypeRaw) {
-  switch(busTypeRaw) {
-    case 'SD':
+String getBusTypeVerbose(BusType type) {
+  switch(type) {
+    case BusType.single:
       return '';
-    case 'DD':
+    case BusType.double:
       return 'x2';
-    case 'BD':
+    case BusType.bendy:
       return 'x2';
     default:
       return '';

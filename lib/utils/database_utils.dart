@@ -16,6 +16,8 @@ import 'bus_stop.dart';
 typedef BusStopChangeListener = Function(BusStop busStop);
 /* Called when bus stop is followed/un-followed */
 typedef BusFollowStatusListener = void Function(String stop, String bus, bool isFollowed);
+/* Called when bus service is pinned/unpinned for a bus stop*/
+typedef BusPinStatusListener = void Function(String stop, String bus, bool isPinned);
 
 const String _isBusFollowedKey = 'BUS_FOLLOW';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
@@ -48,6 +50,12 @@ Future<Database> _accessDatabase() async {
           'busStopCode VARCHAR(5) NOT NULL,'
           'distance DOUBLE,'
           'PRIMARY KEY (serviceNumber, direction, busStopCode))');
+        db.execute('CREATE TABLE pinned_bus_service('
+            'busStopCode VARCHAR(5),'
+            'busServiceNumber VARCHAR(4),'
+            'PRIMARY KEY (busStopCode, busServiceNumber),'
+            'FOREIGN KEY (busStopCode) REFERENCES bus_stop(code),'
+            'FOREIGN KEY (busServiceNumber) REFERENCES bus_service(number))');
       },
       version: 1,
   );
@@ -137,7 +145,12 @@ Future<void> followBus({@required String stop, @required String bus}) async {
 
   final String key = _followerKey(stop, bus);
 
-  for (BusFollowStatusListener listener in _busFollowStatusListeners[key]) {
+  // To allow removal of listener while in iteration
+  // (as it is common behaviour for a listener to
+  // detach itself after a certain call)
+  final List<BusFollowStatusListener> listeners = List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]);
+
+  for (BusFollowStatusListener listener in listeners) {
     listener(stop, bus, true);
   }
 }
@@ -287,14 +300,10 @@ Future<void> cacheBusServices(List<BusService> busServices) async {
   for (final BusService busService in busServices) {
     _cacheBusService(busService, batch);
   }
-  batch.commit(noResult: true);
+  await batch.commit(noResult: true);
 
-  getCachedBusServices().then((List<BusService> bs) {
-    assert(bs.length == busServices.length);
-    SharedPreferences.getInstance().then((SharedPreferences prefs) {
-      prefs.setBool(_areBusServicesCachedKey, true);
-    });
-  });
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(_areBusServicesCachedKey, true);
 }
 
 void _cacheBusService(BusService busService, Batch batch) {
@@ -374,5 +383,50 @@ Future<List<BusServiceRoute>> getCachedBusRoutes(BusService busService) async {
     routes[direction].busStops.add(busStop);
     routes[direction].distances.add(distance);
   }
-  return routes.values.toList();
+  return routes.values.toList(growable: false);
+}
+
+Future<void> pinBusService(BusStop busStop, BusService busService) async {
+  final Database database = await _accessDatabase();
+  final Map<String, String> data = <String, String>{
+    'busStopCode': busStop.code,
+    'busServiceNumber':  busService.number,
+  };
+  await database.insert('pinned_bus_service', data);
+}
+
+Future<void> unpinBusService(BusStop busStop, BusService busService) async {
+  final Database database = await _accessDatabase();
+  await database.delete(
+      'pinned_bus_service',
+      where: 'busStopCode = ? and busServiceNumber = ?',
+      whereArgs: <String>[
+        busStop.code,
+        busService.number,
+      ],
+  );
+}
+
+Future<bool> isBusServicePinned(BusStop busStop, BusService busService) async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> result = await database.query(
+    'pinned_bus_service',
+    where: 'busStopCode = ? and busServiceNumber = ?',
+    whereArgs: <String>[
+      busStop.code,
+      busService.number,
+    ],
+  );
+  return result.isNotEmpty;
+}
+
+Future<List<String>> getPinnedBusServiceNumbersIn(BusStop busStop) async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> result = await database.query(
+      'pinned_bus_service',
+      where: 'busStopCode = ?',
+      whereArgs: <String>[busStop.code],
+  );
+
+  return result.map((Map<String, dynamic> json) => json['busServiceNumber'].toString()).toList(growable: false);
 }

@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
+import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
@@ -22,10 +22,9 @@ class BusStopOverviewItem extends StatefulWidget {
 }
 
 class BusStopOverviewItemState extends State<BusStopOverviewItem> {
-  String _latestData;
-  List<dynamic> _buses = <dynamic>[];
+  List<BusServiceArrivalResult> _latestData;
 
-  Stream<String> _busArrivalStream;
+  Stream<List<BusServiceArrivalResult>> _busArrivalStream;
   BusStopChangeListener _busStopListener;
 
   @override
@@ -52,12 +51,10 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
     final String code = widget.busStop.code;
     final String road = widget.busStop.road;
 
-    _latestData = BusAPI().busStopArrivalLatest(widget.busStop);
+    _latestData = BusAPI().getLatestArrival(widget.busStop);
 
     return InkWell(
-      onTap: () {
-        _showDetailSheet(context, widget.busStop);
-      },
+      onTap: _showDetailSheet,
       child: Container(
         padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
         child: Column(
@@ -65,7 +62,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
+              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
               child: RichText(
                 text: TextSpan(
                   text: '$name',
@@ -82,46 +79,12 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                 ),
               ),
             ),
-            StreamBuilder<String>(
-              initialData: _latestData,
-              stream: _busArrivalStream,
-              builder:
-                  (BuildContext context, AsyncSnapshot<String> snapshot) {
-                switch (snapshot.connectionState) {
-                  case ConnectionState.none:
-                    return const Center(
-                        child: Text(BusAPI.kNoInternetError));
-                  case ConnectionState.active:
-                  case ConnectionState.waiting:
-                    if (snapshot.data == null)
-                      return const Center(
-                          child: Text(BusAPI.kLoadingMessage));
-                    continue done;
-                  done:
-                  case ConnectionState.done:
-                    _latestData = snapshot.data;
-                    _buses = jsonDecode(_latestData)['Services'];
-                    _buses.sort((dynamic a, dynamic b) =>
-                        compareBusNumber(a['ServiceNo'], b['ServiceNo']));
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                      child: _buses.isNotEmpty ?
-                        Wrap(
-                          spacing: 16.0,
-                          direction: Axis.horizontal,
-                          children: <Widget>[
-                            for (dynamic bs in _buses)
-                              BusTimingChip(
-                                serviceNumber: bs['ServiceNo'],
-                                nextBus: bs['NextBus']
-                              ),
-                          ],
-                        ) : const Center(
-                        child: Text(BusAPI.kNoBusesError),
-                      ),
-                    );
-                }
-                throw Exception('Something terribly wrong has happened');
+            FutureBuilder<List<String>>(
+              future: getPinnedBusServiceNumbersIn(widget.busStop),
+              builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
+                if (snapshot.data == null)
+                  return Container();
+                return _buildPinnedServices(snapshot.data);
               },
             ),
           ],
@@ -130,17 +93,68 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
     );
   }
 
-  void _showDetailSheet(BuildContext context, BusStop busStop) {
+  Widget _buildPinnedServices(List<String> pinnedServiceNumbers) {
+    if (pinnedServiceNumbers.isEmpty)
+      return Container();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: StreamBuilder<List<BusServiceArrivalResult>>(
+        initialData: _latestData,
+        stream: _busArrivalStream,
+        builder: (BuildContext context, AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
+          switch (snapshot.connectionState) {
+            case ConnectionState.none:
+              return const Center(
+                  child: Text(BusAPI.kNoInternetError));
+            case ConnectionState.active:
+            case ConnectionState.waiting:
+              if (snapshot.data == null)
+                return const Center(
+                    child: Text(BusAPI.kLoadingMessage));
+              continue done;
+            done:
+            case ConnectionState.done:
+              final List<BusServiceArrivalResult> buses = snapshot.data
+                .where((BusServiceArrivalResult result) => pinnedServiceNumbers.contains(result.busService.number))
+                .toList(growable: false);
+              buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
+                compareBusNumber(a.busService.number, b.busService.number));
+              _latestData = snapshot.data;
+              return Padding(
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0),
+                child: buses.isNotEmpty ?
+                Wrap(
+                  spacing: 16.0,
+                  direction: Axis.horizontal,
+                  children: <Widget>[
+                    for (BusServiceArrivalResult arrivalResult in buses)
+                      BusTimingChip(
+                          serviceNumber: arrivalResult.busService.number,
+                          bus: arrivalResult.buses[0],
+                      ),
+                  ],
+                ) : const Center(
+                  child: Text(BusAPI.kNoBusesError),
+                ),
+              );
+          }
+          throw Exception('Something terribly wrong has happened');
+        },
+      ),
+    );
+  }
+
+  void _showDetailSheet() {
     FocusScope.of(context).requestFocus(FocusNode());
-    HomePage.of(context).showBusDetailSheet(busStop);
+    HomePage.of(context).showBusDetailSheet(widget.busStop);
   }
 }
 
 class BusTimingChip extends StatefulWidget {
-  const BusTimingChip({@required this.serviceNumber, @required this.nextBus});
+  const BusTimingChip({@required this.serviceNumber, @required this.bus});
 
   final String serviceNumber;
-  final dynamic nextBus;
+  final Bus bus;
 
   @override
   _BusTimingChipState createState() => _BusTimingChipState();
@@ -151,21 +165,30 @@ class _BusTimingChipState extends State<BusTimingChip> {
   Widget build(BuildContext context) {
     return Chip(
       elevation: 2.0,
+      backgroundColor: Theme.of(context).cardColor,
       label: RichText(
         text: TextSpan(
           children: <TextSpan>[
             TextSpan(
               text: '${widget.serviceNumber}',
-              style: Theme.of(context).textTheme.body1.copyWith(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'B612 Mono', color: getBusLoadColor(widget.nextBus['Load'], MediaQuery.of(context).platformBrightness)),
+              style: Theme.of(context).textTheme.body1.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontFamily: 'B612 Mono',
+                  color: getBusLoadColor(widget.bus.load, MediaQuery.of(context).platformBrightness),
+              ),
             ),
             TextSpan(
-              text:  ' · ${getBusTimingVerbose(getMinutesFromNow(widget.nextBus['EstimatedArrival']))}',
-              style: Theme.of(context).textTheme.body1.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: getBusLoadColor(widget.nextBus['Load'], MediaQuery.of(context).platformBrightness)),
+              text:  ' · ${getBusTimingVerbose(getMinutesFromNow(widget.bus.arrivalTime))}',
+              style: Theme.of(context).textTheme.body1.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: getBusLoadColor(widget.bus.load, MediaQuery.of(context).platformBrightness),
+              ),
             ),
           ],
         ),
       ),
-      backgroundColor: Theme.of(context).cardColor,
     );
   }
 }

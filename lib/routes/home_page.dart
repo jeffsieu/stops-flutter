@@ -23,6 +23,7 @@ class StopsApp extends StatelessWidget {
         theme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
+          toggleableActiveColor: Colors.deepOrangeAccent,
           accentColor: Colors.deepOrangeAccent,
           brightness: Brightness.light,
           textTheme: TextTheme(
@@ -33,6 +34,7 @@ class StopsApp extends StatelessWidget {
         darkTheme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
+          toggleableActiveColor: Colors.deepOrangeAccent,
           accentColor: Colors.orangeAccent,
           brightness: Brightness.dark,
           textTheme: TextTheme(

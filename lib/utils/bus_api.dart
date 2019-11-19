@@ -6,12 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../utils/bus_service.dart';
+import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
 
 class BusAPI {
   factory BusAPI() {
-    _singleton.loadAPIKey();
+    _singleton._loadAPIKey();
     return _singleton;
   }
 
@@ -32,12 +33,24 @@ class BusAPI {
   static const String kBusStopLatitudeKey = 'Latitude';
   static const String kBusStopLongitudeKey = 'Longitude';
   static const String kBusStopDistanceKey = 'Distance';
+  static const String kBusStopServicesKey = 'Services';
 
   static const String kBusServiceNumberKey = 'ServiceNo';
   static const String kBusServiceOperatorKey = 'Operator';
   static const String kBusServiceDirectionKey = 'Direction';
+  static const String kBusServiceLatitudeKey = 'Latitude';
+  static const String kBusServiceLongitudeKey = 'Longitude';
   static const String kBusServiceOriginKey = 'OriginCode';
   static const String kBusServiceDestinationKey = 'DestinationCode';
+  static const String kBusServiceTypeKey = 'Type';
+  static const String kBusServiceTypeSingle = 'SD';
+  static const String kBusServiceTypeDouble = 'DD';
+  static const String kBusServiceTypeBendy = 'BD';
+  static const String kBusServiceLoadKey = 'Load';
+  static const String kBusServiceLoadLow = 'SEA';
+  static const String kBusServiceLoadMedium = 'SDA';
+  static const String kBusServiceLoadHigh = 'LSD';
+  static const String kBusServiceArrivalTimeKey = 'EstimatedArrival';
 
   static const String kBusServiceRouteStopSequenceKey = 'StopSequence';
 
@@ -51,8 +64,8 @@ class BusAPI {
 
   final List<BusService> _busServices = <BusService>[];
   final List<BusStop> _busStops = <BusStop>[];
-  final Map<BusStop, StreamController<String>> _arrivalControllers = <BusStop, StreamController<String>>{};
-  final Map<BusStop, String> _arrivalCache = <BusStop, String>{};
+  final Map<BusStop, StreamController<List<BusServiceArrivalResult>>> _arrivalControllers = <BusStop, StreamController<List<BusServiceArrivalResult>>>{};
+  final Map<BusStop, List<BusServiceArrivalResult>> _arrivalCache = <BusStop, List<BusServiceArrivalResult>>{};
 
   bool _areBusStopsLoaded = false;
   bool _areBusServicesLoaded = false;
@@ -63,7 +76,7 @@ class BusAPI {
    * Load LTA API key from secrets.json file in root directory
    * and store in memory
    */
-  Future<void> loadAPIKey() async {
+  Future<void> _loadAPIKey() async {
     final String jsonString = await rootBundle.loadString('assets/secrets.json');
     _kApiKey = json.decode(jsonString)['lta_api_key'];
   }
@@ -134,23 +147,25 @@ class BusAPI {
     return controller.stream;
   }
 
-  String busStopArrivalLatest(BusStop busStop) {
+  List<BusServiceArrivalResult> getLatestArrival(BusStop busStop) {
     return _arrivalCache[busStop];
   }
 
-  Stream<String> busStopArrivalStream(BusStop busStop)  {
+  Stream<List<BusServiceArrivalResult>> busStopArrivalStream(BusStop busStop)  {
     if (busStop == null) {
       return null;
     } else if (_arrivalControllers.containsKey(busStop)) {
       return _arrivalControllers[busStop].stream;
     } else {
       Timer timer;
-      StreamController<String> controller;
+      StreamController<List<BusServiceArrivalResult>> controller;
 
       void fetchBusStops(Timer timer){
         _fetchBusStopArrivalList(busStop.code).then((String result) {
-          _arrivalCache[busStop] = result;
-          controller.add(result);
+          final List<dynamic> services = jsonDecode(result)[kBusStopServicesKey];
+          final List<BusServiceArrivalResult> arrivalResults = services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
+          _arrivalCache[busStop] = arrivalResults;
+          controller.add(arrivalResults);
         });
       }
 
@@ -165,7 +180,7 @@ class BusAPI {
         timer = null;
       }
 
-      controller = StreamController<String>.broadcast(
+      controller = StreamController<List<BusServiceArrivalResult>>.broadcast(
         onListen: startTimer,
         onCancel: onCancel,
       );
