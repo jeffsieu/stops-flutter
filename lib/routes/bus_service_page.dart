@@ -77,17 +77,21 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   }
 
   Widget _buildRouteBusStops(BusServiceRoute route) {
-    return ListView.builder(
-      itemBuilder: (BuildContext context, int position) {
-        final BusStop busStop = route.busStops[position];
-        return ListTile(
-          title: Text('${busStop.defaultName}'),
-          subtitle: Text('${busStop.code}'),
-          leading: Text('${route.distances[position]}\nKM'),
-          onTap: () => showBusDetailSheet(busStop),
-        );
-      },
-      itemCount: route.busStops.length,
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      child: ListView.builder(
+        itemBuilder: (BuildContext context, int position) {
+          final BusStop busStop = route.busStops[position];
+          return ListTile(
+            title: Text('${busStop.defaultName}'),
+            subtitle: Text('${busStop.code}'),
+            leading: Text('${route.distances[position]}\nKM'),
+            onTap: () => showBusDetailSheet(busStop),
+          );
+        },
+        itemCount: route.busStops.length,
+      ),
     );
   }
 

@@ -363,12 +363,12 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     if (_query.isEmpty && !_showServicesOnly) {
       _filteredBusServices = <BusService>[];
     } else {
-      _filteredBusServices = _filterBusServices(_busServices, _query).toList();
+      _filteredBusServices = _filterBusServices(_busServices, _query).toList(growable: false);
       _filteredBusServices.sort((BusService a, BusService b) =>
           compareBusNumber(a.number, b.number));
     }
 
-    _filteredBusStops = _filterBusStops(_busStops, _query).toList();
+    _filteredBusStops = _filterBusStops(_busStops, _query).toList(growable: false);
     final Iterable<dynamic> metadataIterable = _filteredBusStops.map<dynamic>((BusStop busStop) => <dynamic>[busStop, _calculateQueryMetadata(busStop, _query)]);
     _queryMetadata = Map<BusStop, dynamic>.fromIterable(metadataIterable, key: (dynamic item) => item[0], value: (dynamic item) => item[1]);
 

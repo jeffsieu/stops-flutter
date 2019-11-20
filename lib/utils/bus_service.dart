@@ -22,8 +22,8 @@ class BusService {
 
   List<BusServiceRoute> get routes => _routes;
   int get directionCount => _routes.length;
-  List<BusStop> get origin => _routes.map<BusStop>((BusServiceRoute route) => route.origin).toList();
-  List<BusStop> get destination => _routes.map<BusStop>((BusServiceRoute route) => route.destination).toList();
+  List<BusStop> get origin => _routes.map<BusStop>((BusServiceRoute route) => route.origin).toList(growable: false);
+  List<BusStop> get destination => _routes.map<BusStop>((BusServiceRoute route) => route.destination).toList(growable: false);
 
   static BusService fromJson(dynamic json) {
     return BusService._(
