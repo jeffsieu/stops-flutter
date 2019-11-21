@@ -14,13 +14,16 @@ import '../utils/time_utils.dart';
 import '../widgets/bus_stop_detail_sheet.dart';
 
 class BusTimingRow extends StatefulWidget {
-  const BusTimingRow(this.busStop, this.arrivalResult, this.isEditing, {Key key})
+  const BusTimingRow(this.busStop, this.busService, this.arrivalResult, this.isEditing, {Key key})
       : super(key: key);
 
   final BusStop busStop;
+  final BusService busService;
   final BusServiceArrivalResult arrivalResult;
   final bool isEditing;
   static const double height = 56.0;
+
+  bool get hasArrivals => arrivalResult != null;
 
   @override
   _BusTimingState createState() {
@@ -35,7 +38,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
-    service = widget.arrivalResult.busService;
+    service = widget.busService;
     isBusFollowed(stop: widget.busStop.code, bus: service.number)
         .then((bool isFollowed) {
       if (mounted && _isBusFollowed != isFollowed)
@@ -47,13 +50,15 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    final Widget item = InkWell(
       onTap: () => widget.isEditing ? null : _pushBusServiceRoute(service.number),
       child: Stack(
         alignment: Alignment.center,
         children: <Widget>[
+          if (widget.hasArrivals)
+            Center(child: _buildBusTimingItems()),
           Padding(
-            padding: const EdgeInsets.only(left: 8.0, right: 16.0),
+            padding: const EdgeInsets.only(left: 16.0, right: 16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -69,77 +74,97 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                         future: isBusServicePinned(widget.busStop, service),
                         builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
                           final bool isChecked = snapshot.data;
-                          if (!widget.isEditing)
-                            return Container();
-                          return Checkbox(
-                            value: isChecked,
-                            onChanged: (bool checked) => setState(() {
-                              if (checked)
-                                pinBusService(widget.busStop, service);
-                              else
-                                unpinBusService(widget.busStop, service);
-                            }),
-                          );
+                          if (widget.isEditing)
+                            return Checkbox(
+                              value: isChecked,
+                              onChanged: (bool checked) => setState(() {
+                                if (checked)
+                                  pinBusService(widget.busStop, service);
+                                else
+                                  unpinBusService(widget.busStop, service);
+                              }),
+                            );
+                          return Container();
                         },
                       ),
                     ),
-                    Text(
-                      service.number + ' ' * (4 - service.number.length),
-                      style: Theme.of(context).textTheme.title.copyWith(fontFamily: 'B612 Mono'),
-                      textAlign: TextAlign.right,
-                    ),
+                    if (widget.hasArrivals || widget.isEditing)
+                      Container(
+                        alignment: Alignment.centerLeft,
+                        height: BusTimingRow.height,
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(
+                          _padServiceNumber(service.number),
+                          style: widget.hasArrivals ?
+                            Theme.of(context).textTheme.title.copyWith(fontFamily: 'B612 Mono') :
+                            Theme.of(context).textTheme.title.copyWith(
+                              fontFamily: 'B612 Mono',
+                              color: Theme.of(context).hintColor,
+                            ),
+                        ),
+                      ),
                   ],
                 ),
-                AnimatedOpacity(
-                  duration: BusStopDetailSheet.editAnimationDuration,
-                  opacity: widget.isEditing ? 0 : 1,
-                  child: IconButton(
-                    tooltip: 'Notify me when the bus arrives',
-                    icon: Icon(_isBusFollowed
-                        ? Icons.notifications_active
-                        : Icons.notifications_none),
-                    onPressed: () {
-                      if (_isBusFollowed) {
-                        unfollowBus(stop: widget.busStop.code, bus: service.number);
-                      } else {
-                        BusFollowStatusListener listener;
-                        listener = (String stop, String code, bool isFollowed) {
-                          if (stop == widget.busStop.code &&
-                              code == service.number &&
-                              !isFollowed) {
-                            setState(() {
-                              _isBusFollowed = !_isBusFollowed;
-                            });
-
-                            removeBusFollowStatusListener(widget.busStop.code, service.number, listener);
-                          }
-                        };
-
-                        addBusFollowStatusListener(widget.busStop.code, service.number, listener);
-
-                        final DateTime estimatedArrivalTime = widget.arrivalResult.buses[0].arrivalTime;
-                        final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
-
-                        followBus(stop: widget.busStop.code, bus: service.number);
-                        final SnackBar snackBar = SnackBar(content: Text('You will be notified when ${service.number} arrives'));
-
-                        Scaffold.of(context).showSnackBar(snackBar);
-                        // Add notification timer
-                        NotificationAPI().scheduleNotification(widget.busStop.code, service.number, notificationTime);
-
-                        if (mounted)
-                          setState(() {
-                            _isBusFollowed = !_isBusFollowed;
-                          });
-                      }
-                    },
-                  ),
-                ),
+                if (widget.hasArrivals)
+                  _buildNotificationButton(),
               ],
             ),
           ),
-          Center(child: _buildBusTimingItems()),
         ],
+      ),
+    );
+    return AnimatedSize(
+      vsync: this,
+      duration: BusStopDetailSheet.editAnimationDuration * 2,
+      curve: Curves.easeInOutCirc,
+      child: item,
+    );
+  }
+
+  Widget _buildNotificationButton() {
+    return AnimatedOpacity(
+      duration: BusStopDetailSheet.editAnimationDuration,
+      opacity: widget.isEditing ? 0 : 1,
+      child: IconButton(
+        tooltip: 'Notify me when the bus arrives',
+        icon: Icon(_isBusFollowed
+            ? Icons.notifications_active
+            : Icons.notifications_none),
+        onPressed: () {
+          if (_isBusFollowed) {
+            unfollowBus(stop: widget.busStop.code, bus: service.number);
+          } else {
+            BusFollowStatusListener listener;
+            listener = (String stop, String code, bool isFollowed) {
+              if (stop == widget.busStop.code &&
+                  code == service.number &&
+                  !isFollowed) {
+                setState(() {
+                  _isBusFollowed = !_isBusFollowed;
+                });
+
+                removeBusFollowStatusListener(widget.busStop.code, service.number, listener);
+              }
+            };
+
+            addBusFollowStatusListener(widget.busStop.code, service.number, listener);
+
+            final DateTime estimatedArrivalTime = widget.arrivalResult.buses[0].arrivalTime;
+            final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
+
+            followBus(stop: widget.busStop.code, bus: service.number);
+            final SnackBar snackBar = SnackBar(content: Text('You will be notified when ${service.number} arrives'));
+
+            Scaffold.of(context).showSnackBar(snackBar);
+            // Add notification timer
+            NotificationAPI().scheduleNotification(widget.busStop.code, service.number, notificationTime);
+
+            if (mounted)
+              setState(() {
+                _isBusFollowed = !_isBusFollowed;
+              });
+          }
+        },
       ),
     );
   }
@@ -174,6 +199,17 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
   void _pushBusServiceRoute(String serviceNumber) {
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage(serviceNumber));
     Navigator.push(context, route);
+  }
+
+  String _padServiceNumber(String serviceNumber) {
+    // Service number contains letter
+    if (serviceNumber.contains(RegExp(r'\D'))) {
+      final String number = serviceNumber.substring(0, serviceNumber.length - 1);
+      final String letter = serviceNumber[serviceNumber.length - 1];
+      return number.padLeft(3) + letter;
+    } else {
+      return serviceNumber.padLeft(3).padRight(1);
+    }
   }
 }
 

@@ -37,6 +37,8 @@ class BusStopSearchItem extends StatefulWidget {
 class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerProviderStateMixin {
   bool _isStarEnabled = false;
 
+  BusStopChangeListener _busStopListener;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +48,21 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
           _isStarEnabled = contains;
         });
     });
+    _busStopListener = (BusStop busStop) {
+      isBusStopStarred(widget.busStop).then((bool contains) {
+        if (mounted)
+          setState(() {
+            _isStarEnabled = contains;
+          });
+      });
+    };
+    registerBusStopListener(widget.busStop, _busStopListener);
+  }
+
+  @override
+  void dispose() {
+    unregisterBusStopListener(widget.busStop, _busStopListener);
+    super.dispose();
   }
 
   @override

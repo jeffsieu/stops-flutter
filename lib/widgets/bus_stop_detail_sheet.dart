@@ -5,6 +5,7 @@ import 'package:rubber/rubber.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/bus_api.dart';
+import '../utils/bus_service.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
@@ -36,6 +37,7 @@ class BusStopDetailSheet extends StatefulWidget {
   final bool hasAppBar;
   static const Duration updateAnimationDuration = Duration(milliseconds: 1000);
   static const Duration editAnimationDuration = Duration(milliseconds: 250);
+  static const double _launchVelocity = 5.0;
   final double titleFadeInDurationFactor = 0.5;
   final double _sheetHalfBoundValue = 0.5;
 
@@ -52,6 +54,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   List<BusServiceArrivalResult> _latestData;
   bool _isStarEnabled = false;
   bool _isEditing = false;
+  bool _isAnimating = false;
 
   Stream<List<BusServiceArrivalResult>> _busArrivalStream;
 
@@ -82,7 +85,20 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       timingListAnimationController.forward(from: 0);
       widget.rubberAnimationController.halfBoundValue =
           AnimationControllerValue(percentage: widget._sheetHalfBoundValue);
-      widget.rubberAnimationController.halfExpand();
+      // Lock animation while animating, as pressing another bus stop item
+      // before the animation ends will cause the bottom sheet to be "dragged"
+      // to the finger
+      if (!_isAnimating) {
+        _isAnimating = true;
+        widget.rubberAnimationController.launchTo(
+          widget.rubberAnimationController.value,
+          widget.rubberAnimationController.halfBound,
+          velocity: BusStopDetailSheet._launchVelocity,
+        ).whenCompleteOrCancel(() {
+          _isAnimating = false;
+        });
+      }
+
       AnimationStatusListener statusListener;
       statusListener = (AnimationStatus status) {
         if (widget.rubberAnimationController.animationState.value ==
@@ -94,8 +110,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     });
 
     _busStopListener = (BusStop busStop) {
-      setState(() {
-        _busStop = busStop;
+      isBusStopStarred(busStop).then((bool contains) {
+        if (mounted)
+          setState(() {
+            _busStop = busStop;
+            _isStarEnabled = contains;
+          });
       });
     };
     registerBusStopListener(_busStop, _busStopListener);
@@ -112,16 +132,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     if (_busStop == null)
       return Container();
 
-    final Widget scrollView = CustomScrollView(
+    final Widget scrollView = ListView(
       physics: const NeverScrollableScrollPhysics(),
       controller: widget.scrollController,
-      slivers: <Widget>[
-        SliverToBoxAdapter(
-          child: _buildHeader(),
-        ),
-        SliverToBoxAdapter(
-          child: _buildTimingList(),
-        )
+      children: <Widget>[
+        _buildHeader(),
+        _buildServiceList(),
       ],
     );
 
@@ -169,32 +185,37 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       child: Stack(
         children: <Widget>[
           Center(
-            child: AnimatedSwitcher(
-              duration: BusStopDetailSheet.updateAnimationDuration * widget.titleFadeInDurationFactor,
-              switchInCurve: Interval(0.25, 1),
-              switchOutCurve: Interval(0.75, 1),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                final bool entering = child.key == ValueKey<String>(_busStop.code);
-                final Animatable<double> curve = CurveTween(curve: entering ? Curves.easeOutCubic : Curves.linear);
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: animation
-                        .drive(curve)
-                        .drive(Tween<Offset>(begin: Offset(0, 0.5 * (entering ? 1 : -1)), end: Offset.zero)),
-                    child: child,
-                  ),
-                );
-              },
-              child: Column(
-                key: Key(_busStop.code),
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(_busStop.displayName,
-                      style: Theme.of(context).textTheme.headline),
-                  Text('${_busStop.code} · ${_busStop.road}',
-                      style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
-                ],
+            child: Padding(
+              padding: const EdgeInsets.only(left: 56.0, right: 56.0),
+              child: AnimatedSwitcher(
+                duration: BusStopDetailSheet.updateAnimationDuration * widget.titleFadeInDurationFactor,
+                switchInCurve: Interval(0.25, 1),
+                switchOutCurve: Interval(0.75, 1),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  final bool entering = child.key == ValueKey<String>(_busStop.code);
+                  final Animatable<double> curve = CurveTween(curve: entering ? Curves.easeOutCubic : Curves.linear);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: animation
+                          .drive(curve)
+                          .drive(Tween<Offset>(begin: Offset(0, 0.5 * (entering ? 1 : -1)), end: Offset.zero)),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Column(
+                  key: Key(_busStop.code),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(_busStop.displayName,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headline),
+                    Text('${_busStop.code} · ${_busStop.road}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -236,6 +257,11 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           case 'edit':
             setState(() {
               _isEditing = !_isEditing;
+              if (widget.rubberAnimationController.value != widget.rubberAnimationController.upperBound)
+                widget.rubberAnimationController.launchTo(
+                    widget.rubberAnimationController.value,
+                    widget.rubberAnimationController.upperBound,
+                    velocity: BusStopDetailSheet._launchVelocity/2);
             });
             break;
           case 'star':
@@ -281,8 +307,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     );
   }
 
-  Widget _buildTimingList() {
-    _latestData = BusAPI().getLatestArrival(_busStop);
+  Widget _buildServiceList() {
     return Column(
       children: <Widget>[
         AnimatedSize(
@@ -298,80 +323,138 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                   style: Theme.of(context).textTheme.display1,
                 ),
                 Text(
-                  'Pin buses you usually take, their arrival will be displayed on the home screen',
+                  'Arrival times of pinned buses are displayed on the homepage',
+                  textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.body1.copyWith(color: Theme.of(context).hintColor),
                 )
               ],
             )
           ) : Container(),
         ),
-        StreamBuilder<List<BusServiceArrivalResult>>(
-          key: Key(_busStop.code),
-          initialData: _latestData,
-          stream: _busArrivalStream,
-          builder: (BuildContext context, AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
-            switch (snapshot.connectionState) {
-              case ConnectionState.none:
-                return _messageBox(BusAPI.kNoInternetError);
-              case ConnectionState.active:
-              case ConnectionState.waiting:
-                if (snapshot.data == null) {
-                  return _messageBox(BusAPI.kLoadingMessage);
-                }
-                continue done;
-              done:
-              case ConnectionState.done:
-                if (snapshot.hasError)
-                  return _messageBox('Error: ${snapshot.error}');
-
-                final List<BusServiceArrivalResult> buses = snapshot.data;
-                buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
-                    compareBusNumber(a.busService.number, b.busService.number));
-                _latestData = snapshot.data;
-                return buses.isNotEmpty
-                    ? MediaQuery.removePadding(
-                        context: context,
-                        removeTop: true,
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemBuilder: (BuildContext context, int position) {
-                            const double duration = 0.4;
-                            const double offset = 0.075;
-                            final double startOffset = (position * offset).clamp(0.0, 1.0);
-                            final double endOffset = (position * offset + duration).clamp(0.0, 1.0);
-                            final Animation<double> animation = timingListAnimationController
-                                .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor-offset, 1))) // animate after previous code disappears
-                                .drive(CurveTween(curve: Interval(startOffset, endOffset))); // delay animation based on position
-                            return SlideTransition(
-                              position: animation
-                                  .drive(CurveTween(curve: Curves.easeOutQuint))
-                                  .drive(Tween<Offset>(
-                                          begin: const Offset(0, 0.5),
-                                          end: Offset.zero,
-                                  )
-                              ),
-                              child: FadeTransition(
-                                opacity: animation,
-                                child: BusTimingRow(_busStop, buses[position], _isEditing,
-                                        key: Key(_busStop.code +
-                                            buses[position].busService.number)),
-                              ),
-                            );
-                          },
-                          separatorBuilder: (BuildContext context, int position) {
-                            return const Divider(height: 1);
-                          },
-                          itemCount: buses.length,
-                        ),
-                      )
-                    : _messageBox(BusAPI.kNoBusesError);
-            }
-            return null;
-          },
+        FutureBuilder<List<BusService>>(
+          initialData: const <BusService>[],
+          future: getServicesIn(_busStop),
+          builder: (BuildContext context, AsyncSnapshot<List<BusService>> snapshot) {
+            return _buildTimingList(snapshot.data);
+          }
         ),
       ],
     );
+  }
+
+  Widget _buildTimingList(List<BusService> allServices) {
+    _latestData = BusAPI().getLatestArrival(_busStop);
+    return StreamBuilder<List<BusServiceArrivalResult>>(
+        key: Key(_busStop.code),
+        initialData: _latestData,
+        stream: _busArrivalStream,
+        builder: (BuildContext context, AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
+          switch (snapshot.connectionState) {
+            case ConnectionState.none:
+              return _messageBox(BusAPI.kNoInternetError);
+            case ConnectionState.active:
+            case ConnectionState.waiting:
+              if (snapshot.data == null) {
+                return _messageBox(BusAPI.kLoadingMessage);
+              }
+              continue done;
+            done:
+            case ConnectionState.done:
+              if (snapshot.hasError)
+                return _messageBox('Error: ${snapshot.error}');
+
+              final List<BusServiceArrivalResult> buses = snapshot.data;
+              buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
+                  compareBusNumber(a.busService.number, b.busService.number));
+              _latestData = snapshot.data;
+
+              // Calculate the positions that the bus services will be displayed at
+              // If the bus service has no arrival timings, it will not show and
+              // will have a position of -1
+              final List<int> displayedPositions = List<int>(allServices.length);
+              displayedPositions.fillRange(0, allServices.length, -1);
+              for (int i = 0, j = 0; i < allServices.length && j < buses.length; i++) {
+                if (allServices[i] == buses[j].busService) {
+                  displayedPositions[i] = j;
+                  j++;
+                }
+              }
+
+              return Stack(
+                children: <Widget>[
+                  if (buses.isEmpty)
+                    AnimatedOpacity(
+                      duration: BusStopDetailSheet.editAnimationDuration,
+                      opacity: _isEditing ? 0 : 1,
+                      child: _messageBox(BusAPI.kNoBusesError),
+                    ),
+                  MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (BuildContext context, int position) {
+                        final int displayedPosition = displayedPositions[position];
+                        final bool isDisplayed = displayedPosition != -1;
+
+                        BusServiceArrivalResult arrivalResult;
+                        if (isDisplayed)
+                          arrivalResult = buses[displayedPosition];
+
+                        const double duration = 0.4;
+                        const double offset = 0.075;
+                        final double startOffset = (displayedPosition * offset).clamp(0.0, 1.0);
+                        final double endOffset = (displayedPosition * offset + duration).clamp(0.0, 1.0);
+                        final Animation<double> animation = timingListAnimationController
+                            .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor-offset, 1))) // animate after previous code disappears
+                            .drive(CurveTween(curve: Interval(startOffset, endOffset))); // delay animation based on position
+
+                        final Widget item = BusTimingRow(
+                            _busStop,
+                            allServices[position],
+                            arrivalResult,
+                            _isEditing,
+                            key: Key(_busStop.code +
+                                allServices[position].number),
+                        );
+
+                        // Animate if displayed
+                        if (isDisplayed)
+                          return SlideTransition(
+                            position: animation
+                                .drive(CurveTween(curve: Curves.easeOutQuint))
+                                .drive(Tween<Offset>(
+                                        begin: const Offset(0, 0.5),
+                                        end: Offset.zero,
+                                )
+                            ),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: item,
+                            ),
+                          );
+                        else
+                          return item;
+                      },
+                      separatorBuilder: (BuildContext context, int position) {
+                        // Checks if the item above and below the divider are both shown
+                        // If both are shown, show divider
+                        final int displayedPositionTop = displayedPositions[position];
+                        final int displayedPositionBottom = displayedPositions[position+1];
+                        final bool areTopAndBottomDisplayed = displayedPositionTop != -1 && displayedPositionBottom != -1;
+                        final bool isDisplayed = _isEditing || areTopAndBottomDisplayed;
+                        return isDisplayed ? const Divider(height: 1) : Container();
+                      },
+                      itemCount: allServices.length,
+                    ),
+                  ),
+                ],
+              );
+          }
+          return null;
+        },
+      );
   }
 
   Widget _messageBox(String text) {
@@ -386,38 +469,79 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
         builder: (BuildContext context) {
           textController.selection = TextSelection(
               baseOffset: 0, extentOffset: textController.text.length);
-          return AlertDialog(
-            title: const Text('Edit name'),
-            content: TextField(
-              onSubmitted: (String name) {
-                changeBusStopName(name);
-                Navigator.of(context).pop();
-              },
-              autofocus: true,
-              autocorrect: true,
-              controller: textController,
-              cursorColor: Theme.of(context).accentColor,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Bus stop name',
+          return Dialog(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0, left: 16.0),
+                    child: Text(
+                      'Edit name',
+                      style: Theme.of(context).textTheme.title,
+                    ),
+                  ),
+                  Container(height: 16.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextField(
+                      onSubmitted: (String name) {
+                        changeBusStopName(name);
+                        Navigator.of(context).pop();
+                      },
+                      autofocus: true,
+                      autocorrect: true,
+                      controller: textController,
+                      cursorColor: Theme.of(context).accentColor,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Bus stop name',
+                      ),
+                    ),
+                  ),
+                  Container(height: 28.0),
+                  ButtonTheme(
+                    minWidth: 0,
+                    height: 36,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    child: Row(
+                      children: <Widget>[
+                        FlatButton(
+                          textColor: Theme.of(context).accentColor,
+                          onPressed: () {
+                            textController.text = _busStop.defaultName;
+                            final String newName = textController.text;
+                            changeBusStopName(newName);
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                        ),
+                        Spacer(),
+                        FlatButton(
+                          textColor: Theme.of(context).accentColor,
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                        ),
+                        Container(width: 8.0),
+                        FlatButton(
+                          textColor: Theme.of(context).accentColor,
+                          onPressed: () {
+                            final String newName = textController.text;
+                            changeBusStopName(newName);
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                        )
+                      ],
+                    ),
+                  )
+                ],
               ),
             ),
-            actions: <Widget>[
-              FlatButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Cancel'),
-              ),
-              FlatButton(
-                onPressed: () {
-                  final String newName = textController.text;
-                  changeBusStopName(newName);
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Save'),
-              )
-            ],
           );
         });
   }

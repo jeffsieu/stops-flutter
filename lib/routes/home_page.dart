@@ -28,7 +28,7 @@ class StopsApp extends StatelessWidget {
           brightness: Brightness.light,
           textTheme: TextTheme(
               display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
-              headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28.0),
+              headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
           ),
         ),
         darkTheme: ThemeData(
@@ -39,7 +39,7 @@ class StopsApp extends StatelessWidget {
           brightness: Brightness.dark,
           textTheme: TextTheme(
             display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
-            headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28.0),
+            headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
           ),
         ),
         home: HomePage(),
@@ -89,6 +89,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
     return Scaffold(
       body: bottomSheetContainer,
+      resizeToAvoidBottomInset: false,
     );
   }
 

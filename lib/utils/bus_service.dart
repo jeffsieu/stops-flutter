@@ -45,4 +45,17 @@ class BusService {
       'operator': operator,
     };
   }
+
+  @override
+  bool operator ==(dynamic other) {
+    if (other.runtimeType != runtimeType)
+      return false;
+    final BusService otherBusService = other;
+    return number == otherBusService.number && operator == otherBusService.operator;
+  }
+
+  @override
+  int get hashCode {
+    return number.hashCode ^ operator.hashCode;
+  }
 }
