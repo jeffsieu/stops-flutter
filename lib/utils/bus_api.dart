@@ -57,6 +57,7 @@ class BusAPI {
   static const int _kRefreshInterval = 30;
 
   static const String kNoBusesError = 'No buses in service';
+  static const String kNoPinnedBusesError = 'No pinned buses in service';
   static const String kNoInternetError = 'No internet connection';
   static const String kLoadingMessage = 'Loading buses...';
 

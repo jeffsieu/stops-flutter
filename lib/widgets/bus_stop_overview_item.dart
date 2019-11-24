@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
+import '../utils/bus_service.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
@@ -79,9 +80,9 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                 ),
               ),
             ),
-            FutureBuilder<List<String>>(
-              future: getPinnedBusServiceNumbersIn(widget.busStop),
-              builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
+            FutureBuilder<List<BusService>>(
+              future: getPinnedServicesIn(widget.busStop),
+              builder: (BuildContext context, AsyncSnapshot<List<BusService>> snapshot) {
                 if (snapshot.data == null)
                   return Container();
                 return _buildPinnedServices(snapshot.data);
@@ -93,8 +94,8 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
     );
   }
 
-  Widget _buildPinnedServices(List<String> pinnedServiceNumbers) {
-    if (pinnedServiceNumbers.isEmpty)
+  Widget _buildPinnedServices(List<BusService> pinnedServices) {
+    if (pinnedServices.isEmpty)
       return Container();
     return Padding(
       padding: const EdgeInsets.only(top: 8.0),
@@ -115,7 +116,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
             done:
             case ConnectionState.done:
               final List<BusServiceArrivalResult> buses = snapshot.data
-                .where((BusServiceArrivalResult result) => pinnedServiceNumbers.contains(result.busService.number))
+                .where((BusServiceArrivalResult result) => pinnedServices.contains(result.busService))
                 .toList(growable: false);
               buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
                 compareBusNumber(a.busService.number, b.busService.number));
@@ -134,7 +135,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                       ),
                   ],
                 ) : const Center(
-                  child: Text(BusAPI.kNoBusesError),
+                  child: Text(BusAPI.kNoPinnedBusesError),
                 ),
               );
           }

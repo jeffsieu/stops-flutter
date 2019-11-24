@@ -8,13 +8,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:stops_sg/utils/bus_api.dart';
 import 'package:stops_sg/utils/bus_route.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
 
 import 'bus_service.dart';
 import 'bus_stop.dart';
 
-/* Called when bus stop name is changed */
-typedef BusStopChangeListener = Function(BusStop busStop);
-/* Called when bus stop is followed/un-followed */
+/* Called when a bus stop is modified */
+typedef BusStopChangeListener = void Function(BusStop busStop);
+/* Called when bus is followed/un-followed */
 typedef BusFollowStatusListener = void Function(String stop, String bus, bool isFollowed);
 /* Called when bus service is pinned/unpinned for a bus stop*/
 typedef BusPinStatusListener = void Function(String stop, String bus, bool isPinned);
@@ -101,14 +102,12 @@ Future<void> starBusStop(BusStop busStop) async {
     whereArgs: <dynamic>[busStop.code],
   );
 
-  if (_busStopListeners[busStop] != null)
-    for (BusStopChangeListener listener in _busStopListeners[busStop]) {
-      listener(busStop);
-    }
+  _updateBusStopListeners(busStop);
 }
 
 Future<void> unstarBusStop(BusStop busStop) async {
   final Database database = await _accessDatabase();
+  busStop.displayName = busStop.defaultName;
   final Map<String, dynamic> map = busStop.toMap();
   map['starred'] = 0;
   await database.update(
@@ -117,6 +116,8 @@ Future<void> unstarBusStop(BusStop busStop) async {
     where: 'code = ?',
     whereArgs: <dynamic>[busStop.code],
   );
+
+  _updateBusStopListeners(busStop);
 }
 
 Future<bool> isBusStopStarred(BusStop busStop) async {
@@ -137,6 +138,13 @@ void unregisterBusStopListener(BusStop busStop, BusStopChangeListener listener) 
     if (listeners.isEmpty)
       _busStopListeners.remove(busStop);
   }
+}
+
+void _updateBusStopListeners(BusStop busStop) {
+  if (_busStopListeners[busStop] != null)
+    for (BusStopChangeListener listener in _busStopListeners[busStop]) {
+      listener(busStop);
+    }
 }
 
 Future<void> followBus({@required String stop, @required String bus}) async {
@@ -257,12 +265,8 @@ Future<void> cacheBusStops(List<BusStop> busStops) async {
   }
   await batch.commit(noResult: true);
 
-  getCachedBusStops().then((List<BusStop> bs) {
-    assert(bs.length == busStops.length);
-    SharedPreferences.getInstance().then((SharedPreferences prefs) {
-      prefs.setBool(_areBusStopsCachedKey, true);
-    });
-  });
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(_areBusStopsCachedKey, true);
 }
 
 void _cacheBusStop(BusStop busStop, Batch batch) {
@@ -420,13 +424,29 @@ Future<bool> isBusServicePinned(BusStop busStop, BusService busService) async {
   return result.isNotEmpty;
 }
 
-Future<List<String>> getPinnedBusServiceNumbersIn(BusStop busStop) async {
+Future<List<BusService>> getPinnedServicesIn(BusStop busStop) async {
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> result = await database.query(
-      'pinned_bus_service',
-      where: 'busStopCode = ?',
-      whereArgs: <String>[busStop.code],
+  final List<Map<String, dynamic>> result = await database.rawQuery(
+      'SELECT * FROM pinned_bus_service INNER JOIN bus_service '
+      'ON pinned_bus_service.busServiceNumber = bus_service.number '
+      'WHERE pinned_bus_service.busStopCode = ?',
+      <String>[busStop.code],
   );
 
-  return result.map((Map<String, dynamic> json) => json['busServiceNumber'].toString()).toList(growable: false);
+  final List<BusService> services = result.map(BusService.fromMap).toList(growable: false);
+  services.sort((BusService a, BusService b) => compareBusNumber(a.number, b.number));
+  return services;
+}
+
+Future<List<BusService>> getServicesIn(BusStop busStop) async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> result = await database.rawQuery(
+    'SELECT * FROM (SELECT DISTINCT(serviceNumber) FROM bus_route WHERE busStopCode = ?) INNER JOIN bus_service '
+    'ON serviceNumber = bus_service.number',
+    <String>[busStop.code],
+  );
+
+  final List<BusService> services = result.map(BusService.fromMap).toList(growable: false);
+  services.sort((BusService a, BusService b) => compareBusNumber(a.number, b.number));
+  return services;
 }
