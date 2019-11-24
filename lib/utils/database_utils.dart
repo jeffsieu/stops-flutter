@@ -265,12 +265,8 @@ Future<void> cacheBusStops(List<BusStop> busStops) async {
   }
   await batch.commit(noResult: true);
 
-  getCachedBusStops().then((List<BusStop> bs) {
-    assert(bs.length == busStops.length);
-    SharedPreferences.getInstance().then((SharedPreferences prefs) {
-      prefs.setBool(_areBusStopsCachedKey, true);
-    });
-  });
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(_areBusStopsCachedKey, true);
 }
 
 void _cacheBusStop(BusStop busStop, Batch batch) {

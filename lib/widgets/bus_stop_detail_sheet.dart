@@ -133,6 +133,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       return Container();
 
     final Widget scrollView = ListView(
+      padding: const EdgeInsets.all(0),
       physics: const NeverScrollableScrollPhysics(),
       controller: widget.scrollController,
       children: <Widget>[
@@ -174,7 +175,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
         final double paddingHeightScale = ((widget.rubberAnimationController.value - animationStartBound) / animationRange).clamp(0.0, 1.0);
         return Container(
           padding: EdgeInsets.only(
-            top: 32.0 + extraPadding * paddingHeightScale,
+            top: 48.0 + extraPadding * paddingHeightScale,
             left: 16.0,
             right: 16.0,
             bottom: 32.0,
@@ -355,7 +356,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
             case ConnectionState.active:
             case ConnectionState.waiting:
               if (snapshot.data == null) {
-                return _messageBox(BusAPI.kLoadingMessage);
+                return const Center(child: CircularProgressIndicator());
               }
               continue done;
             done:

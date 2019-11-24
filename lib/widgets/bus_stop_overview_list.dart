@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/bus_api.dart';
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
 import '../widgets/bus_stop_overview_item.dart';
@@ -22,14 +23,14 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
         builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
             switch (snapshot.connectionState) {
               case ConnectionState.none:
-                return const SliverToBoxAdapter(child: Center(child: Text('Error')));
-              case ConnectionState.active:
-                return const SliverToBoxAdapter(child: Center(child: Text('Active')));
-              case ConnectionState.waiting:
-                if (snapshot.data == null)
-                  return const SliverToBoxAdapter(child: Center(child: Text('Loading buses...')));
+                return _messageBox(BusAPI.kNoInternetError);
+                case ConnectionState.active:
+                case ConnectionState.waiting:
+                  if (snapshot.data == null) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
                 continue done;
-              done:
+                done:
               case ConnectionState.done:
                 _busStops = snapshot.data;
                 List<BusStop> busStopList;
@@ -56,6 +57,14 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
             }
             return null;
           }
+    );
+  }
+
+  Widget _messageBox(String text) {
+    return SliverToBoxAdapter(
+      child: Center(
+        child: Text(text),
+      ),
     );
   }
 }
