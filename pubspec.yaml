@@ -1,7 +1,7 @@
 name: stops_sg
 description: A Flutter application that displays live bus timings for bus stops in Singapore
 
-version: 0.3.0+8
+version: 0.4.0+8
 
 environment:
   sdk: ">=2.2.2 <3.0.0"
@@ -57,3 +57,4 @@ flutter:
 
   assets:
     - assets/secrets.json
+    - assets/maps/map_style_dark.json

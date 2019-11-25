@@ -27,14 +27,14 @@ class StopsApp extends StatelessWidget {
           accentColor: Colors.deepOrangeAccent,
           brightness: Brightness.light,
           textTheme: TextTheme(
-              display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
-              headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
+            display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.deepOrangeAccent),
+            headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
           ),
         ),
         darkTheme: ThemeData(
           fontFamily: 'Source Sans Pro',
           primarySwatch: Colors.blue,
-          toggleableActiveColor: Colors.deepOrangeAccent,
+          toggleableActiveColor: Colors.orangeAccent,
           accentColor: Colors.orangeAccent,
           brightness: Brightness.dark,
           textTheme: TextTheme(
@@ -109,7 +109,8 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
               Container(
                 padding: const EdgeInsets.only(
                     left: 16.0, top: 8.0, right: 8.0, bottom: 8.0),
-                child: Icon(Icons.search, color: Theme.of(context).hintColor)),
+                child: Icon(Icons.search, color: Theme.of(context).hintColor),
+              ),
               Expanded(
                 child: TextField(
                   enabled: false,
@@ -122,6 +123,11 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                     Theme.of(context).hintColor),
                   ),
                 ),
+              ),
+              IconButton(
+                tooltip: 'Search on map',
+                icon: Icon(Icons.map, color: Theme.of(context).hintColor),
+                onPressed: _pushSearchRouteWithMap,
               ),
             ],
           ),
@@ -212,12 +218,18 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Future<void> refreshLocation() async {
-    setState(() { });
+    setState(() {  });
   }
 
   void _pushSearchRoute() {
     busStopDetailSheet.rubberAnimationController.animateTo(to: busStopDetailSheet.rubberAnimationController.lowerBound);
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage());
+    Navigator.push(context, route);
+  }
+
+  void _pushSearchRouteWithMap() {
+    busStopDetailSheet.rubberAnimationController.animateTo(to: busStopDetailSheet.rubberAnimationController.lowerBound);
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage(showMap: true));
     Navigator.push(context, route);
   }
 }

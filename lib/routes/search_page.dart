@@ -23,9 +23,10 @@ import 'home_page.dart';
 
 
 class SearchPage extends BottomSheetPage {
-  final double _mapHeight = 300.0;
+  SearchPage({this.showMap = false});
   final int _furthestBusStopDistanceMeters = 1000;
   final int offsetDistance = 300;
+  final bool showMap;
 
   @override
   State<StatefulWidget> createState() {
@@ -40,13 +41,19 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   // The number of pixels to offset the FAB by animates out
   // via a fade down
   final double _fabTopOffset = 128;
+  final double _resultsSheetCollapsedHeight = 72;
 
   List<BusService> _busServices = <BusService>[];
   List<BusService> _filteredBusServices;
   List<BusStop> _busStops = <BusStop>[];
   List<BusStop> _filteredBusStops;
 
-  String _query = '';
+  String _queryString = '';
+  String get _query => _queryString;
+  set _query(String query) {
+    _queryString = query;
+    _textController?.text = _queryString;
+  }
   Map<BusStop, dynamic> _queryMetadata = <BusStop, dynamic>{};
   final Map<BusStop, double> _distanceMetadata = <BusStop, double>{};
 
@@ -55,8 +62,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   LocationData location;
   bool _isDistanceLoaded = false;
   bool _showServicesOnly = false;
-  bool _isMapVisible = false;
-  bool _isMapCreated = false;
+  bool _isMapVisible;
 
   Animation<double> _clearIconAnimation;
   AnimationController _clearIconAnimationController;
@@ -64,10 +70,12 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   AnimationController _mapClipperAnimationController;
   Animation<double> _mapClipperAnimation;
+  Animation<double> _fabScaleAnimation;
 
   ScrollController _scrollController;
 
   GoogleMap _googleMap;
+  String _googleMapDarkStyle;
 
   final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
 
@@ -83,14 +91,23 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     _clearIconAnimation = CurvedAnimation(parent: _clearIconAnimationController, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
 
     _mapClipperAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 500),
       vsync: this,
+      duration: const Duration(milliseconds: 500),
     );
 
     _mapClipperAnimation = CurvedAnimation(
       parent: _mapClipperAnimationController,
-      curve: Curves.easeInOutQuart,
-      reverseCurve: Curves.easeInToLinear,
+      curve: Curves.easeInOutCubic,
+      reverseCurve: Curves.easeInOutCubic,
+    );
+
+    final Animation<double> fabScaleAnimationNoCurve = CurvedAnimation(parent: _mapClipperAnimationController, curve: Interval(0, 0.7), reverseCurve: Interval(0.3, 1))
+        .drive(Tween<double>(begin: 1.0, end: 0.0));
+
+    _fabScaleAnimation = CurvedAnimation(
+      parent: fabScaleAnimationNoCurve,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeOutCubic,
     );
 
     /* Retrieve user location then sort bus stops accordingly */
@@ -99,10 +116,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       if (_filteredBusStops != null)
         _updateBusStopDistances(location);
     } else {
-      LocationUtils
-          .getLocation()
-          .then((LocationData location) {
-        this.location = location;
+      LocationUtils.getLocation().then((LocationData location) {
+        setState(() {
+          this.location = location;
+        });
         if (location != null && _filteredBusStops != null)
           _updateBusStopDistances(location);
       });
@@ -116,9 +133,15 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     });
 
     _scrollController = ScrollController();
-    _scrollController.addListener(() {
-      FocusScope.of(context).requestFocus(FocusNode());
+
+    rootBundle.loadString('assets/maps/map_style_dark.json').then((String style) {
+      _googleMapDarkStyle = style;
     });
+
+    _isMapVisible = widget.showMap;
+    if (_isMapVisible) {
+      _mapClipperAnimationController.value = 1;
+    }
   }
 
   @override
@@ -130,75 +153,64 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     super.dispose();
   }
 
+  Future<bool> _onWillPop() async {
+    if (_isMapVisible) {
+      setState(() {
+        _isMapVisible = false;
+      });
+      return false;
+    }
+    if (_query.isNotEmpty) {
+      setState(() {
+        _query = '';
+      });
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
     buildSheet(hasAppBar: false);
-    _isMapCreated = false;
     if (_query.isEmpty)
       _clearIconAnimationController.reverse();
     else
       _clearIconAnimationController.forward();
 
-    /* Initialize google map */
-    CameraPosition _initialCameraPosition = const CameraPosition(
-        bearing: 192.8334901395799,
-        target: LatLng(37.43296265331129, -122.08832357078792),
-        tilt: 59.440717697143555,
-        zoom: 19.151926040649414);
-
-    if (location != null)
-      _initialCameraPosition = CameraPosition(
-          bearing: 192.8334901395799,
-          target: LatLng(location.latitude, location.longitude),
-          tilt: 59.440717697143555,
-          zoom: 19.151926040649414);
-
-    _googleMap = GoogleMap(
-      scrollGesturesEnabled: true,
-      zoomGesturesEnabled: true,
-      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{}
-        ..add(Factory<PanGestureRecognizer>(() => PanGestureRecognizer()))
-        ..add(Factory<ScaleGestureRecognizer>(() => ScaleGestureRecognizer()))
-        ..add(Factory<VerticalDragGestureRecognizer>(() => VerticalDragGestureRecognizer())),
-      initialCameraPosition: _initialCameraPosition,
-      onMapCreated: (GoogleMapController controller ) {
-        if (!_googleMapController.isCompleted)
-          _googleMapController.complete(controller);
-        _isMapCreated = true;
-        if (_isDistanceLoaded)
-          initializeGoogleMapCameraPosition();
-      },
-      markers: _buildMapMarkers(location),
-    );
-
+    if (_isMapVisible) {
+      _mapClipperAnimationController.forward();
+    }
+    else {
+      _mapClipperAnimationController.reverse();
+    }
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Material(child: bottomSheetContainer),
-      floatingActionButton: Opacity(
-        opacity: _isMapVisible || rubberAnimationController.value > rubberAnimationController.lowerBound ? 0 : 1,
-        child: AnimatedBuilder(
-          builder: (BuildContext context, Widget child) {
-            return Transform.translate(
-              offset: Offset(0, _fabTopOffset * min(rubberAnimationController.value, 0.5)),
-              child: FloatingActionButton.extended(
-                  onPressed: () => setState(() {
-                    if (_isMapVisible) {
-                      _mapClipperAnimationController.reverse();
-                    }
-                    else {
-                      _mapClipperAnimationController.forward();
-                      _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
-                    }
-                    _isMapVisible = !_isMapVisible;
-                  }),
-                  label: const Text('Choose on map'),
-                  icon: const Icon(Icons.map)
-              ),
-            );
-          }, animation: rubberAnimationController,
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Material(child: bottomSheetContainer),
+        floatingActionButton: ScaleTransition(
+          scale: _fabScaleAnimation,
+          child: AnimatedBuilder(
+            animation: rubberAnimationController,
+            builder: (BuildContext context, Widget child) {
+              return Transform.translate(
+                offset: Offset(0, _fabTopOffset * rubberAnimationController.value.clamp(0.0, 0.5)),
+                child: FloatingActionButton.extended(
+                    onPressed: () => setState(() {
+                      _isMapVisible = !_isMapVisible;
+                      if (_isMapVisible)
+                        _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
+                      _hideKeyboard();
+                    }),
+                    label: const Text('Choose on map'),
+                    icon: const Icon(Icons.map)
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -206,18 +218,22 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildSearchCard() {
     final TextField searchField = TextField(
-      autofocus: true,
+      autofocus: !widget.showMap,
       controller: _textController,
       onChanged: (String newText) {
         setState(() {
-          _query = newText;
+          _queryString = newText;
         });
+        _scrollController.jumpTo(0);
       },
       onTap: () {
         rubberAnimationController.animateTo(to: rubberAnimationController.lowerBound);
+        setState(() {
+          _isMapVisible = false;
+        });
       },
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.all(16.0),
+        contentPadding: const EdgeInsets.only(left: 64.0, top: 16.0, right: 16.0, bottom: 16.0),
         border: InputBorder.none,
         hintText: 'Search for bus stops and buses',
       ),
@@ -226,30 +242,37 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     return Hero(
       tag: 'searchField',
       child: Material(
-        clipBehavior: Clip.none,
         type: MaterialType.card,
         elevation: 2.0,
         borderRadius: BorderRadius.circular(8.0),
-        child: Row(
+        child: Stack(
+          alignment: Alignment.center,
           children: <Widget>[
-           IconButton(
-            color: Theme.of(context).hintColor,
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () {
-                Navigator.of(context).pop();
-            }),
-            Expanded(child: searchField),
-            ScaleTransition(
-              scale: _clearIconAnimation,
-              child: IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  _textController.clear();
-                  setState(() {
-                    _query = '';
-                  });
-                },
-              ),
+            searchField,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                IconButton(
+                  color: Theme.of(context).hintColor,
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ScaleTransition(
+                  scale: _clearIconAnimation,
+                  child: IconButton(
+                    color: Theme.of(context).hintColor,
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      setState(() {
+                        _query = '';
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -258,30 +281,43 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   }
 
   Widget _buildBody() {
-    _filterLists();
+    _generateQueryResults();
     final List<Widget> slivers = <Widget>[
-      SliverAppBar(
-        brightness: MediaQuery.of(context).platformBrightness,
-        backgroundColor: Colors.transparent,
-        leading: null,
-        automaticallyImplyLeading: false,
-        titleSpacing: 8.0,
-        elevation: 0.0,
-        title: _buildSearchCard(),
-        bottom: _showServicesOnly ? PreferredSize(
-            preferredSize: AppBar().preferredSize,
-            child: Row(
-              children: <Widget>[
-                const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.filter_list)),
-                Chip(label: const Text('Services'), onDeleted: () => _toggleShowServicesOnly()),
-              ],
-            )
-        ) : null,
+      SliverToBoxAdapter(
+        child: Container(
+          alignment: Alignment.topCenter,
+          height: 64.0 + MediaQuery.of(context).padding.top,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _isMapVisible = false;
+              });
+            },
+            child: Container(
+              height: _resultsSheetCollapsedHeight,
+              child: FadeTransition(
+                opacity: _mapClipperAnimation,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Icon(Icons.keyboard_arrow_up, color: Theme.of(context).accentColor,),
+                    ),
+                    Text(
+                      'Hide map',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).accentColor, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        )
       ),
-
       if (_query.isEmpty)
           _buildHistory(),
-      SliverToBoxAdapter(child: _buildMapWidget()),
       if (!_showServicesOnly && _filteredBusServices.isNotEmpty)
         _buildBusServicesSliverHeader(),
       _buildBusServiceList(),
@@ -293,31 +329,89 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       },
     ];
 
-    final Widget body = CustomScrollView(
-        controller: _scrollController,
-        slivers: slivers,
+    final Widget body = Stack(
+      children: <Widget>[
+        _buildMapWidget(),
+        AnimatedBuilder(
+          animation: _mapClipperAnimation,
+          builder: (BuildContext context, Widget child) {
+            return Transform.translate(offset: Offset(0, (MediaQuery.of(context).size.height - _resultsSheetCollapsedHeight) * _mapClipperAnimation.value), child: child);
+          },
+          child: Material(
+            elevation: 4.0,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification notification) {
+                if (notification is ScrollStartNotification && notification.dragDetails != null) {
+                  _hideKeyboard();
+                  return true;
+                }
+                return false;
+              },
+              child: CustomScrollView(
+                physics: _isMapVisible ? const NeverScrollableScrollPhysics() : const ScrollPhysics(),
+                controller: _scrollController,
+                slivers: slivers,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: AppBar(
+            brightness: MediaQuery.of(context).platformBrightness,
+            backgroundColor: Colors.transparent,
+            leading: null,
+            automaticallyImplyLeading: false,
+            titleSpacing: 8.0,
+            elevation: 0.0,
+            title: _buildSearchCard(),
+            bottom: _showServicesOnly ? PreferredSize(
+                preferredSize: AppBar().preferredSize,
+                child: Row(
+                  children: <Widget>[
+                    const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.filter_list)),
+                    Chip(label: const Text('Services'), onDeleted: () => _toggleShowServicesOnly()),
+                  ],
+                )
+            ) : null,
+          ),
+        ),
+      ],
     );
 
     return body;
   }
 
   Widget _buildMapWidget() {
-    return AnimatedBuilder(
-      animation: _mapClipperAnimation,
-      builder: (BuildContext context, Widget child) {
-        return SizedOverflowBox(
-          alignment: Alignment.topCenter,
-          size: Size.fromHeight(_mapClipperAnimation.value * widget._mapHeight),
-          child: ClipRect(
-            clipper: _MapClipper(_mapClipperAnimation.value),
-            child: child,
-          ),
-        );
+    /* Initialize google map */
+    final CameraPosition initialCameraPosition = _getCameraPositionFromLocation();
+
+    _googleMap = GoogleMap(
+      padding: EdgeInsets.only(top: 100 + MediaQuery.of(context).padding.top),
+      scrollGesturesEnabled: true,
+      zoomGesturesEnabled: true,
+      initialCameraPosition: initialCameraPosition,
+      onMapCreated: (GoogleMapController controller) {
+        if (!_googleMapController.isCompleted)
+          _googleMapController.complete(controller);
+        if (_isDistanceLoaded)
+          controller.moveCamera(CameraUpdate.newCameraPosition(_getCameraPositionFromLocation()));
+        if (MediaQuery.of(context).platformBrightness == Brightness.dark)
+          controller.setMapStyle(_googleMapDarkStyle);
       },
-      child: Container(
-        height: widget._mapHeight,
+      markers: _buildMapMarkers(location),
+    );
+    return Container(
         child: _googleMap,
-      ),
+    );
+  }
+
+  CameraPosition _getCameraPositionFromLocation() {
+    return CameraPosition(
+      target: LatLng(location?.latitude ?? 1.3521, location?.longitude ?? 103.8198),
+      zoom: 18,
     );
   }
 
@@ -329,7 +423,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     }
 
     markers.add(Marker(
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
       markerId: MarkerId('you_are_here'),
       position: LatLng(
           location.latitude,
@@ -338,12 +432,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       infoWindow: const InfoWindow(title: 'You are here', snippet: ''),
     ));
 
-
-
     for (BusStop busStop in _busStops) {
       if (_distanceMetadata[busStop] > widget._furthestBusStopDistanceMeters)
         break;
       markers.add(Marker(
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
         markerId: MarkerId('${busStop.code}'),
         position: LatLng(
             busStop.latitude,
@@ -359,7 +452,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     return markers;
   }
 
-  void _filterLists() {
+  void _generateQueryResults() {
     if (_query.isEmpty && !_showServicesOnly) {
       _filteredBusServices = <BusService>[];
     } else {
@@ -513,6 +606,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     );
   }
 
+  void _hideKeyboard() {
+    FocusScope.of(context).requestFocus(FocusNode());
+  }
 
   @override
   void showBusDetailSheet(BusStop busStop) {
@@ -549,20 +645,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       setState(() {
         _isDistanceLoaded = true;
       });
-    if (_isMapCreated)
-      initializeGoogleMapCameraPosition();
-  }
-
-  Future<void> initializeGoogleMapCameraPosition() async {
-    final GoogleMapController controller = await _googleMapController.future;
-    final latlong.LatLng latLng =  latlong.LatLng(location.latitude, location.longitude);
-    final latlong.LatLng northeast = const latlong.Distance().offset(latLng, widget.offsetDistance, 45);
-    final latlong.LatLng southwest = const latlong.Distance().offset(latLng, widget.offsetDistance, 225);
-
-    final LatLng ne = LatLng(northeast.latitude, northeast.longitude);
-    final LatLng sw = LatLng(southwest.latitude, southwest.longitude);
-
-    controller.moveCamera(CameraUpdate.newLatLngBounds(LatLngBounds(southwest: sw, northeast: ne), 10.0));
   }
 
   Future<void> _fetchBusStops() async {
@@ -571,8 +653,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         setState(() {
           _busStops = List<BusStop>.from(busStops);
         });
-      if (location != null && _filteredBusStops != null)
+      if (location != null && _filteredBusStops != null) {
         _updateBusStopDistances(location);
+      }
     });
   }
 
@@ -636,21 +719,4 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     pushHistory(_query); // add query to history
     Navigator.push(context, route);
   }
-}
-
-class _MapClipper extends CustomClipper<Rect> {
-  _MapClipper(this.heightFactor);
-
-  final double heightFactor;
-
-  @override
-  Rect getClip(Size size) {
-    return const Offset(0, 0) & Size(size.width, size.height * heightFactor);
-  }
-
-  @override
-  bool shouldReclip(_MapClipper oldClipper) {
-    return oldClipper.heightFactor != heightFactor;
-  }
-
 }

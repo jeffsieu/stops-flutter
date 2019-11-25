@@ -142,14 +142,17 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       ],
     );
 
-    return Material(
-      type: MaterialType.card,
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(16.0),
-        topRight: Radius.circular(16.0),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Material(
+        type: MaterialType.card,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16.0),
+          topRight: Radius.circular(16.0),
+        ),
+        elevation: 16.0,
+        child: scrollView,
       ),
-      elevation: 16.0,
-      child: scrollView,
     );
   }
 
@@ -158,6 +161,22 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     timingListAnimationController.dispose();
     unregisterBusStopListener(_busStop, _busStopListener);
     super.dispose();
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_isEditing) {
+      setState(() {
+        _isEditing = false;
+      });
+      return false;
+    }
+
+    if (widget.rubberAnimationController.value != 0) {
+      widget.rubberAnimationController.animateTo(to: 0);
+      return false;
+    }
+
+    return true;
   }
 
   Widget _buildHeader() {
