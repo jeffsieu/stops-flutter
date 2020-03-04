@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:location/location.dart';
 
 import 'package:quick_actions/quick_actions.dart';
-import 'package:stops_sg/utils/location_utils.dart';
 
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
+import '../utils/location_utils.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import 'bottom_sheet_page.dart';
 import 'search_page.dart';
@@ -162,7 +162,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _getNearestBusStops(),
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-        return snapshot.hasData ? SliverToBoxAdapter(
+        return snapshot.hasData && snapshot.data['busStops'].length == 3 ? SliverToBoxAdapter(
           child: Container(
             height: 150,
             child: ListView.builder(

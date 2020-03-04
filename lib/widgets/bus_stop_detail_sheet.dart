@@ -616,9 +616,6 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           textColor: Theme.of(context).accentColor,
                           onPressed: () {
                             textController.text = _busStop.defaultName;
-                            final String newName = textController.text;
-                            changeBusStopName(newName);
-                            Navigator.of(context).pop();
                           },
                           child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                         ),

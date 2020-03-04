@@ -197,7 +197,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
   }
 
   void _pushBusServiceRoute(String serviceNumber) {
-    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage(serviceNumber));
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage.withBusStop(serviceNumber, widget.busStop));
     Navigator.push(context, route);
   }
 
