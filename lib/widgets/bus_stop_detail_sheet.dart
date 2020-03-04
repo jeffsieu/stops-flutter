@@ -139,6 +139,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       children: <Widget>[
         _buildHeader(),
         _buildServiceList(),
+        _buildFooter(context),
       ],
     );
 
@@ -480,6 +481,89 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   Widget _messageBox(String text) {
     return Center(
         child: Text(text),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    final Brightness brightness = MediaQuery.of(context).platformBrightness;
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).dividerColor,
+          ),
+          borderRadius: const BorderRadius.all(
+            Radius.circular(16.0),
+          ),
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Wrap(
+          direction: Axis.vertical,
+          spacing: 16,
+          children: <Widget>[
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(Icons.info_outline, color: Theme.of(context).textTheme.display1.color),
+                Container(width: 8.0),
+                Text(
+                  'Legend',
+                  style: Theme.of(context).textTheme.display1
+                ),
+              ],
+            ),
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 48,
+                  height: 16,
+                  margin: const EdgeInsets.only(right: 8.0),
+                  color: getBusLoadColor(BusLoad.low, brightness),
+                ),
+                const Text('Many seats'),
+              ],
+            ),
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 48,
+                  height: 16,
+                  margin: const EdgeInsets.only(right: 8.0),
+                  color: getBusLoadColor(BusLoad.medium, brightness),
+                ),
+                const Text('Some seats'),
+              ],
+            ),
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 48,
+                  height: 16,
+                  margin: const EdgeInsets.only(right: 8.0),
+                  color: getBusLoadColor(BusLoad.high, brightness),
+                ),
+                const Text('Few seats'),
+              ],
+            ),
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 48,
+                  margin: const EdgeInsets.only(right: 8.0),
+                  child: Center(
+                    child: Text(
+                      getBusTypeVerbose(BusType.double),
+                      style: Theme.of(context).textTheme.title,
+                    ),
+                  ),
+                ),
+                const Text('Double-decker/Long'),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
