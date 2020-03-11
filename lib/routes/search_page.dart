@@ -171,7 +171,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
+    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(Theme.of(context).brightness));
     buildSheet(hasAppBar: false);
     if (_query.isEmpty)
       _clearIconAnimationController.reverse();
@@ -360,7 +360,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
           left: 0,
           right: 0,
           child: AppBar(
-            brightness: MediaQuery.of(context).platformBrightness,
+            brightness: Theme.of(context).brightness,
             backgroundColor: Colors.transparent,
             leading: null,
             automaticallyImplyLeading: false,

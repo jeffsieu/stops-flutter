@@ -15,12 +15,15 @@ import '../widgets/bus_stop_detail_sheet.dart';
 
 class BusTimingRow extends StatefulWidget {
   const BusTimingRow(this.busStop, this.busService, this.arrivalResult, this.isEditing, {Key key})
-      : super(key: key);
+      : showNotificationButton = true, super(key: key);
+  const BusTimingRow.unfocusable(this.busStop, this.busService, this.arrivalResult, {Key key})
+      : isEditing = false, showNotificationButton = false, super(key: key);
 
   final BusStop busStop;
   final BusService busService;
   final BusServiceArrivalResult arrivalResult;
   final bool isEditing;
+  final bool showNotificationButton;
   static const double height = 56.0;
 
   bool get hasArrivals => arrivalResult != null;
@@ -105,7 +108,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                       ),
                   ],
                 ),
-                if (widget.hasArrivals)
+                if (widget.hasArrivals && widget.showNotificationButton)
                   _buildNotificationButton(),
               ],
             ),
@@ -127,9 +130,8 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
       opacity: widget.isEditing ? 0 : 1,
       child: IconButton(
         tooltip: 'Notify me when the bus arrives',
-        icon: Icon(_isBusFollowed
-            ? Icons.notifications_active
-            : Icons.notifications_none),
+        icon: _isBusFollowed ? Icon(Icons.notifications_active)
+            : Icon(Icons.notifications_none, color: Theme.of(context).hintColor),
         onPressed: () {
           if (_isBusFollowed) {
             unfollowBus(stop: widget.busStop.code, bus: service.number);
