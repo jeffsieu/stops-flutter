@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:stops_sg/widgets/bus_timing_row.dart';
 
 import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
@@ -64,20 +65,28 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-              child: RichText(
-                text: TextSpan(
-                  text: '$name',
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: ' · $code · $road',
-                      style: Theme.of(context)
-                          .textTheme
-                          .title
-                          .copyWith(color: Theme.of(context).hintColor),
-                    ),
+              child: Center(
+//                child: RichText(
+//                  text: TextSpan(
+//                    text: '$name',
+//                    children: <TextSpan>[
+//                      TextSpan(
+//                        text: ' · $code · $road',
+//                        style: Theme.of(context)
+//                            .textTheme
+//                            .title
+//                            .copyWith(color: Theme.of(context).hintColor),
+//                      ),
+//                    ],
+//                    style: Theme.of(context).textTheme.title,
+//                  ),
+//                ),
+                child: Column(
+                  children: <Widget>[
+                    Text(name, style: Theme.of(context).textTheme.title),
+                    Text('$code · $road', style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
                   ],
-                  style: Theme.of(context).textTheme.title,
-                ),
+                )
               ),
             ),
             FutureBuilder<List<BusService>>(
@@ -115,25 +124,25 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
               continue done;
             done:
             case ConnectionState.done:
-              final List<BusServiceArrivalResult> buses = snapshot.data
+              final List<BusServiceArrivalResult> busArrivals = snapshot.data
                 .where((BusServiceArrivalResult result) => pinnedServices.contains(result.busService))
                 .toList(growable: false);
-              buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
+              busArrivals.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
                 compareBusNumber(a.busService.number, b.busService.number));
               _latestData = snapshot.data;
               return Padding(
                 padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                child: buses.isNotEmpty ?
-                Wrap(
-                  spacing: 16.0,
-                  direction: Axis.horizontal,
-                  children: <Widget>[
-                    for (BusServiceArrivalResult arrivalResult in buses)
-                      BusTimingChip(
-                          serviceNumber: arrivalResult.busService.number,
-                          bus: arrivalResult.buses[0],
-                      ),
-                  ],
+                child: busArrivals.isNotEmpty ?
+                AbsorbPointer(
+                  absorbing: true,
+                  child: Wrap(
+                    spacing: 16.0,
+                    direction: Axis.horizontal,
+                    children: <Widget>[
+                      for (BusServiceArrivalResult arrivalResult in busArrivals)
+                        BusTimingRow.unfocusable(widget.busStop, arrivalResult.busService, arrivalResult)
+                    ],
+                  ),
                 ) : const Center(
                   child: Text(BusAPI.kNoPinnedBusesError),
                 ),

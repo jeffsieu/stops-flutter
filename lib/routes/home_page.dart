@@ -3,57 +3,81 @@ import 'package:flutter/services.dart';
 import 'package:location/location.dart';
 
 import 'package:quick_actions/quick_actions.dart';
-import 'package:stops_sg/utils/location_utils.dart';
 
+import '../routes/settings_page.dart';
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
+import '../utils/location_utils.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import 'bottom_sheet_page.dart';
 import 'search_page.dart';
 
-void main() => runApp(StopsApp());
+Future<void> main() async {
+  final ThemeMode themeMode = await getThemeMode();
+  runApp(StopsApp(themeMode));
+}
 
-class StopsApp extends StatelessWidget {
-  // This widget is the root of your application.
+class StopsApp extends StatefulWidget {
+  const StopsApp(this._themeMode);
+  final ThemeMode _themeMode;
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Stops SG',
-        theme: ThemeData(
-          fontFamily: 'Source Sans Pro',
-          primarySwatch: Colors.blue,
-          toggleableActiveColor: Colors.deepOrangeAccent,
-          accentColor: Colors.deepOrangeAccent,
-          brightness: Brightness.light,
-          textTheme: TextTheme(
-              display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
-              headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
-          ),
-        ),
-        darkTheme: ThemeData(
-          fontFamily: 'Source Sans Pro',
-          primarySwatch: Colors.blue,
-          toggleableActiveColor: Colors.deepOrangeAccent,
-          accentColor: Colors.orangeAccent,
-          brightness: Brightness.dark,
-          textTheme: TextTheme(
-            display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
-            headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
-          ),
-        ),
-        home: HomePage(),
-    );
+  State createState() {
+    return StopsAppState(_themeMode);
   }
 
+  static StopsAppState of(BuildContext context) => context.ancestorStateOfType(const TypeMatcher<StopsAppState>());
+
   static SystemUiOverlayStyle overlayStyleWithBrightness(Brightness brightness) {
-    return SystemUiOverlayStyle(
+    final SystemUiOverlayStyle templateStyle = brightness == Brightness.light ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light;
+    return templateStyle.copyWith(
       systemNavigationBarDividerColor: Colors.transparent,
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
       statusBarBrightness: brightness,
       systemNavigationBarColor: brightness == Brightness.light ? ThemeData.light().canvasColor : ThemeData.dark().canvasColor,
       systemNavigationBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
+    );
+  }
+}
+
+class StopsAppState extends State<StopsApp> {
+  StopsAppState(this.themeMode);
+  ThemeMode themeMode;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Stops SG',
+      themeMode: themeMode,
+      home: HomePage(),
+      theme: ThemeData(
+        fontFamily: 'Source Sans Pro',
+        primarySwatch: Colors.deepOrange,
+        toggleableActiveColor: Colors.deepOrangeAccent,
+        accentColor: Colors.deepOrangeAccent,
+        textSelectionColor: Colors.deepOrangeAccent,
+        textSelectionHandleColor: Colors.deepOrangeAccent,
+        brightness: Brightness.light,
+        textTheme: TextTheme(
+          display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.deepOrangeAccent),
+          headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
+        ),
+      ),
+      darkTheme: ThemeData(
+        fontFamily: 'Source Sans Pro',
+        primarySwatch: Colors.orange,
+        toggleableActiveColor: Colors.orangeAccent,
+        accentColor: Colors.orangeAccent,
+        textSelectionColor: Colors.deepOrangeAccent,
+        textSelectionHandleColor: Colors.orangeAccent,
+        brightness: Brightness.dark,
+        textTheme: TextTheme(
+          display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
+          headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
+        ),
+      ),
     );
   }
 }
@@ -82,8 +106,8 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(MediaQuery.of(context).platformBrightness));
     buildSheet(hasAppBar: false);
+    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(Theme.of(context).brightness));
 
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
@@ -109,7 +133,8 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
               Container(
                 padding: const EdgeInsets.only(
                     left: 16.0, top: 8.0, right: 8.0, bottom: 8.0),
-                child: Icon(Icons.search, color: Theme.of(context).hintColor)),
+                child: Icon(Icons.search, color: Theme.of(context).hintColor),
+              ),
               Expanded(
                 child: TextField(
                   enabled: false,
@@ -118,10 +143,30 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                     contentPadding: const EdgeInsets.all(16.0),
                     border: InputBorder.none,
                     hintText: 'Search for bus stops and buses',
-                    hintStyle: TextStyle().copyWith(color:
+                    hintStyle: const TextStyle().copyWith(color:
                     Theme.of(context).hintColor),
                   ),
                 ),
+              ),
+              IconButton(
+                tooltip: 'Search on map',
+                icon: Icon(Icons.map, color: Theme.of(context).hintColor),
+                onPressed: _pushSearchRouteWithMap,
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Search on map',
+                icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
+                onSelected: (String item) {
+                  if (item == 'Settings') {
+                    _pushSettingsRoute();
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                  const PopupMenuItem<String>(
+                    child: Text('Settings'),
+                    value: 'Settings',
+                  ),
+                ],
               ),
             ],
           ),
@@ -137,7 +182,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
         scrollDirection: Axis.vertical,
         slivers: <Widget>[
           SliverAppBar(
-            brightness: MediaQuery.of(context).platformBrightness,
+            brightness: Theme.of(context).brightness,
             titleSpacing: 8.0,
             title: Container(
               child: _buildSearchField(),
@@ -156,7 +201,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _getNearestBusStops(),
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-        return snapshot.hasData ? SliverToBoxAdapter(
+        return snapshot.hasData && snapshot.data['busStops'].length == 3 ? SliverToBoxAdapter(
           child: Container(
             height: 150,
             child: ListView.builder(
@@ -212,12 +257,23 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Future<void> refreshLocation() async {
-    setState(() { });
+    setState(() {  });
   }
 
   void _pushSearchRoute() {
     busStopDetailSheet.rubberAnimationController.animateTo(to: busStopDetailSheet.rubberAnimationController.lowerBound);
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage());
+    Navigator.push(context, route);
+  }
+
+  void _pushSearchRouteWithMap() {
+    busStopDetailSheet.rubberAnimationController.animateTo(to: busStopDetailSheet.rubberAnimationController.lowerBound);
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage(showMap: true));
+    Navigator.push(context, route);
+  }
+
+  void _pushSettingsRoute() {
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SettingsPage());
     Navigator.push(context, route);
   }
 }

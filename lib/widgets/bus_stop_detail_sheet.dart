@@ -10,6 +10,7 @@ import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
+import '../widgets/bus_stop_legend_card.dart';
 import '../widgets/bus_timing_row.dart';
 
 class BusStopDetailSheet extends StatefulWidget {
@@ -139,17 +140,21 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       children: <Widget>[
         _buildHeader(),
         _buildServiceList(),
+        _buildFooter(context),
       ],
     );
 
-    return Material(
-      type: MaterialType.card,
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(16.0),
-        topRight: Radius.circular(16.0),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Material(
+        type: MaterialType.card,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16.0),
+          topRight: Radius.circular(16.0),
+        ),
+        elevation: 16.0,
+        child: scrollView,
       ),
-      elevation: 16.0,
-      child: scrollView,
     );
   }
 
@@ -158,6 +163,22 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     timingListAnimationController.dispose();
     unregisterBusStopListener(_busStop, _busStopListener);
     super.dispose();
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_isEditing) {
+      setState(() {
+        _isEditing = false;
+      });
+      return false;
+    }
+
+    if (widget.rubberAnimationController.value != 0) {
+      widget.rubberAnimationController.animateTo(to: 0);
+      return false;
+    }
+
+    return true;
   }
 
   Widget _buildHeader() {
@@ -464,6 +485,13 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     );
   }
 
+  Widget _buildFooter(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: BusStopLegendCard(),
+    );
+  }
+
   void _showEditNameDialog() {
     showDialog<void>(
         context: context,
@@ -513,9 +541,6 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           textColor: Theme.of(context).accentColor,
                           onPressed: () {
                             textController.text = _busStop.defaultName;
-                            final String newName = textController.text;
-                            changeBusStopName(newName);
-                            Navigator.of(context).pop();
                           },
                           child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                         ),

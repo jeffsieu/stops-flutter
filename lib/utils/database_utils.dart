@@ -1,15 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:latlong/latlong.dart' as latlong;
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:stops_sg/utils/bus_api.dart';
-import 'package:stops_sg/utils/bus_route.dart';
-import 'package:stops_sg/utils/bus_utils.dart';
 
+import '../utils/bus_api.dart';
+import '../utils/bus_route.dart';
+import '../utils/bus_utils.dart';
 import 'bus_service.dart';
 import 'bus_stop.dart';
 
@@ -20,6 +21,7 @@ typedef BusFollowStatusListener = void Function(String stop, String bus, bool is
 /* Called when bus service is pinned/unpinned for a bus stop*/
 typedef BusPinStatusListener = void Function(String stop, String bus, bool isPinned);
 
+const String _themeModeKey = 'THEME_OPTION';
 const String _isBusFollowedKey = 'BUS_FOLLOW';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
 const String _searchHistoryKey = 'SEARCH_HISTORY';
@@ -60,6 +62,17 @@ Future<Database> _accessDatabase() async {
       },
       version: 1,
   );
+}
+
+Future<ThemeMode> getThemeMode() async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final int themeModeIndex = prefs.containsKey(_themeModeKey) ? prefs.getInt(_themeModeKey) : ThemeMode.system.index;
+  return ThemeMode.values[themeModeIndex];
+}
+
+Future<void> setThemeMode(ThemeMode themeMode) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  prefs.setInt(_themeModeKey, themeMode.index);
 }
 
 Future<Map<String, dynamic>> getNearestBusStops(double latitude, double longitude) async {
