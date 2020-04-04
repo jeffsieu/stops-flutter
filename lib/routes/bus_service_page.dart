@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:stops_sg/utils/database_utils.dart';
 
 import '../utils/bus_route.dart';
 import '../utils/bus_service.dart';
 import '../utils/bus_stop.dart';
+import '../utils/database_utils.dart';
+import '../utils/user_route.dart';
 import 'bottom_sheet_page.dart';
 
 class BusServicePage extends BottomSheetPage {
@@ -106,13 +107,13 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
               title: Text('${busStop.defaultName}', style: Theme.of(context).textTheme.title.copyWith(color: Theme.of(context).accentColor)),
               subtitle: Text('${busStop.code}', style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).accentColor)),
               leading: Text('${route.distances[position]}\nKM'),
-              onTap: () => showBusDetailSheet(busStop),
+              onTap: () => showBusDetailSheet(busStop, UserRoute.home),
             );
           return ListTile(
             title: Text('${busStop.defaultName}'),
             subtitle: Text('${busStop.code}'),
             leading: Text('${route.distances[position]}\nKM'),
-            onTap: () => showBusDetailSheet(busStop),
+            onTap: () => showBusDetailSheet(busStop, UserRoute.home),
           );
         },
         itemCount: route.busStops.length,

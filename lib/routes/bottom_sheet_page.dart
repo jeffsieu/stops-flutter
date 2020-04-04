@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:rubber/rubber.dart';
 
 import '../utils/bus_stop.dart';
+import '../utils/user_route.dart';
 import '../widgets/bus_stop_detail_sheet.dart';
 
 abstract class BottomSheetPage extends StatefulWidget {
@@ -44,7 +45,12 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T> 
   }
 
   @mustCallSuper
-  void showBusDetailSheet(BusStop busStop) {
-    widget.bottomSheetKey.currentState.updateWith(busStop);
+  void showBusDetailSheet(BusStop busStop, UserRoute route) {
+    widget.bottomSheetKey.currentState.updateWith(busStop, route);
+  }
+
+  @mustCallSuper
+  void hideBusDetailSheet() {
+    rubberAnimationController.animateTo(to: rubberAnimationController.lowerBound);
   }
 }

@@ -12,6 +12,7 @@ import '../utils/database_utils.dart';
 import '../utils/notification_utils.dart';
 import '../utils/time_utils.dart';
 import '../widgets/bus_stop_detail_sheet.dart';
+import '../widgets/route_model.dart';
 
 class BusTimingRow extends StatefulWidget {
   const BusTimingRow(this.busStop, this.busService, this.arrivalResult, this.isEditing, {Key key})
@@ -74,7 +75,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                       curve: Curves.easeInOutCirc,
                       child: FutureBuilder<bool>(
                         initialData: false,
-                        future: isBusServicePinned(widget.busStop, service),
+                        future: isBusServicePinned(widget.busStop, service, RouteModel.of(context).route),
                         builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
                           final bool isChecked = snapshot.data;
                           if (widget.isEditing)
@@ -82,9 +83,9 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                               value: isChecked,
                               onChanged: (bool checked) => setState(() {
                                 if (checked)
-                                  pinBusService(widget.busStop, service);
+                                  pinBusService(widget.busStop, service, RouteModel.of(context).route);
                                 else
-                                  unpinBusService(widget.busStop, service);
+                                  unpinBusService(widget.busStop, service, RouteModel.of(context).route);
                               }),
                             );
                           return Container();
@@ -190,7 +191,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
             );
           },
           separatorBuilder: (BuildContext context, int position) {
-            return const VerticalDivider(width: 1);
+            return const VerticalDivider(width: 1, indent: 8.0, endIndent: 8.0);
           },
           itemCount: 3,
         ),
@@ -243,8 +244,6 @@ class _BusTimingItemState extends State<_BusTimingItem>
       }
       setState(() {});
     });
-    if (getMinutesFromNow(widget.bus.arrivalTime) <= 1)
-      _controller.forward();
   }
 
   @override
@@ -255,6 +254,12 @@ class _BusTimingItemState extends State<_BusTimingItem>
 
   @override
   Widget build(BuildContext context) {
+    if (getMinutesFromNow(widget.bus.arrivalTime) <= 1) {
+      if (!_controller.isAnimating)
+        _controller.forward();
+    }
+    else
+      _controller.reset();
     final Color busLoadColor = getBusLoadColor(widget.bus.load, MediaQuery.of(context).platformBrightness);
     return Stack(
       alignment: Alignment.bottomCenter,

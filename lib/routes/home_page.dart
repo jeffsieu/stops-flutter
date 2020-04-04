@@ -1,95 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:location/location.dart';
 
+import 'package:location/location.dart';
 import 'package:quick_actions/quick_actions.dart';
 
+import '../routes/add_route_page.dart';
+import '../routes/route_page.dart';
 import '../routes/settings_page.dart';
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
 import '../utils/location_utils.dart';
+import '../utils/reorder_status_notification.dart';
+import '../utils/user_route.dart';
 import '../widgets/bus_stop_overview_list.dart';
+import '../widgets/card_app_bar.dart';
+import '../widgets/home_page_content_switcher.dart';
+import '../widgets/never_focus_node.dart';
+import '../widgets/route_list.dart';
+import '../widgets/route_list_item.dart';
+import '../widgets/route_model.dart';
 import 'bottom_sheet_page.dart';
+import 'fade_page_route.dart';
 import 'search_page.dart';
-
-Future<void> main() async {
-  final ThemeMode themeMode = await getThemeMode();
-  runApp(StopsApp(themeMode));
-}
-
-class StopsApp extends StatefulWidget {
-  const StopsApp(this._themeMode);
-  final ThemeMode _themeMode;
-
-  @override
-  State createState() {
-    return StopsAppState(_themeMode);
-  }
-
-  static StopsAppState of(BuildContext context) => context.ancestorStateOfType(const TypeMatcher<StopsAppState>());
-
-  static SystemUiOverlayStyle overlayStyleWithBrightness(Brightness brightness) {
-    final SystemUiOverlayStyle templateStyle = brightness == Brightness.light ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light;
-    return templateStyle.copyWith(
-      systemNavigationBarDividerColor: Colors.transparent,
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
-      statusBarBrightness: brightness,
-      systemNavigationBarColor: brightness == Brightness.light ? ThemeData.light().canvasColor : ThemeData.dark().canvasColor,
-      systemNavigationBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
-    );
-  }
-}
-
-class StopsAppState extends State<StopsApp> {
-  StopsAppState(this.themeMode);
-  ThemeMode themeMode;
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Stops SG',
-      themeMode: themeMode,
-      home: HomePage(),
-      theme: ThemeData(
-        fontFamily: 'Source Sans Pro',
-        primarySwatch: Colors.deepOrange,
-        toggleableActiveColor: Colors.deepOrangeAccent,
-        accentColor: Colors.deepOrangeAccent,
-        textSelectionColor: Colors.deepOrangeAccent,
-        textSelectionHandleColor: Colors.deepOrangeAccent,
-        brightness: Brightness.light,
-        textTheme: TextTheme(
-          display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.deepOrangeAccent),
-          headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
-        ),
-      ),
-      darkTheme: ThemeData(
-        fontFamily: 'Source Sans Pro',
-        primarySwatch: Colors.orange,
-        toggleableActiveColor: Colors.orangeAccent,
-        accentColor: Colors.orangeAccent,
-        textSelectionColor: Colors.deepOrangeAccent,
-        textSelectionHandleColor: Colors.orangeAccent,
-        brightness: Brightness.dark,
-        textTheme: TextTheme(
-          display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
-          headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
-        ),
-      ),
-    );
-  }
-}
+import 'stops_app.dart';
 
 class HomePage extends BottomSheetPage {
   @override
   _HomePageState createState() => _HomePageState();
 
-  static _HomePageState of(BuildContext context) => context.ancestorStateOfType(const TypeMatcher<_HomePageState>());
+  static _HomePageState of(BuildContext context) => context.findAncestorStateOfType<_HomePageState>();
 }
 
 class _HomePageState extends BottomSheetPageState<HomePage> {
+  Widget _busStopOverviewList;
+  int _bottomNavIndex;
+  Map<String, dynamic> _nearestBusStops;
+  ScrollController _scrollController;
+  bool canScroll;
+  AnimationController _fabScaleAnimationController;
+  UserRoute _activeRoute;
+
   @override
   void initState() {
     super.initState();
@@ -102,75 +52,128 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     quickActions.setShortcutItems(<ShortcutItem>[
       const ShortcutItem(type: 'action_search', localizedTitle: 'Search', icon: 'icon_search'),
     ]);
+
+    _bottomNavIndex = 0;
+    _busStopOverviewList = BusStopOverviewList();
+    _scrollController = ScrollController();
+    _fabScaleAnimationController = AnimationController(vsync: this, duration: HomePageContentSwitcher.animationDuration);
+    canScroll = true;
   }
 
   @override
   Widget build(BuildContext context) {
     buildSheet(hasAppBar: false);
-    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleWithBrightness(Theme.of(context).brightness));
+    SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
 
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
 
-    return Scaffold(
-      body: bottomSheetContainer,
-      resizeToAvoidBottomInset: false,
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        body: bottomSheetContainer,
+        resizeToAvoidBottomInset: false,
+        floatingActionButton: ScaleTransition(
+          scale: CurvedAnimation(parent: _fabScaleAnimationController, curve: const Interval(0.5, 1.0, curve: Curves.easeOutCubic)),
+          child: FloatingActionButton.extended(
+            heroTag: null,
+            onPressed: _pushAddRouteRoute,
+            label: const Text('Add new route'),
+            icon: Icon(Icons.add),
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        bottomNavigationBar: BottomNavigationBar(
+          elevation: 8.0,
+          currentIndex: _bottomNavIndex,
+          onTap: (int index) {
+            if (index == 0)
+              _fabScaleAnimationController.reverse();
+            else
+              _fabScaleAnimationController.forward();
+            setState(() {
+              _bottomNavIndex = index;
+
+              // Return back to the first page no matter which tab I'm on
+              _activeRoute = null;
+            });
+            hideBusDetailSheet();
+          },
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              title: const Text('Home'),
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.directions),
+              title: const Text('Routes'),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_activeRoute != null) {
+      setState(() {
+        _activeRoute = null;
+      });
+      _fabScaleAnimationController.forward();
+      return false;
+    }
+    if (_bottomNavIndex == 1) {
+      setState(() {
+        _bottomNavIndex = 0;
+      });
+      return false;
+    }
+    return true;
   }
 
   Widget _buildSearchField() {
     return Hero(
       tag: 'searchField',
-      child: Material(
-        clipBehavior: Clip.none,
-        type: MaterialType.card,
+      child: CardAppBar(
         elevation: 2.0,
-        borderRadius: BorderRadius.circular(8.0),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8.0),
-          onTap: _pushSearchRoute,
-          child: Row(
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.only(
-                    left: 16.0, top: 8.0, right: 8.0, bottom: 8.0),
-                child: Icon(Icons.search, color: Theme.of(context).hintColor),
-              ),
-              Expanded(
-                child: TextField(
-                  enabled: false,
-                  focusNode: _NeverFocusNode(),
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.all(16.0),
-                    border: InputBorder.none,
-                    hintText: 'Search for bus stops and buses',
-                    hintStyle: const TextStyle().copyWith(color:
-                    Theme.of(context).hintColor),
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Search on map',
-                icon: Icon(Icons.map, color: Theme.of(context).hintColor),
-                onPressed: _pushSearchRouteWithMap,
-              ),
-              PopupMenuButton<String>(
-                tooltip: 'Search on map',
-                icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
-                onSelected: (String item) {
-                  if (item == 'Settings') {
-                    _pushSettingsRoute();
-                  }
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                  const PopupMenuItem<String>(
-                    child: Text('Settings'),
-                    value: 'Settings',
-                  ),
-                ],
+        onTap: _pushSearchRoute,
+        leading: Container(
+          padding: const EdgeInsets.only(
+              left: 16.0, top: 8.0, right: 8.0, bottom: 8.0),
+          child: Icon(Icons.search, color: Theme.of(context).hintColor),
+        ),
+        title: TextField(
+          enabled: false,
+          focusNode: NeverFocusNode(),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.all(16.0),
+            border: InputBorder.none,
+            hintText: 'Search for bus stops and buses',
+            hintStyle: const TextStyle().copyWith(color:
+            Theme.of(context).hintColor),
+          ),
+        ),
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'Search on map',
+            icon: Icon(Icons.map, color: Theme.of(context).hintColor),
+            onPressed: _pushSearchRouteWithMap,
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
+            onSelected: (String item) {
+              if (item == 'Settings') {
+                _pushSettingsRoute();
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+              const PopupMenuItem<String>(
+                child: Text('Settings'),
+                value: 'Settings',
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -179,9 +182,13 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     return RefreshIndicator(
       onRefresh: refreshLocation,
       child: CustomScrollView(
+        controller: _scrollController,
         scrollDirection: Axis.vertical,
+        physics: canScroll ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
         slivers: <Widget>[
           SliverAppBar(
+            floating: true,
+            pinned: true,
             brightness: Theme.of(context).brightness,
             titleSpacing: 8.0,
             title: Container(
@@ -190,8 +197,12 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             backgroundColor: Colors.transparent,
             elevation: 0.0,
           ),
-          _buildSuggestions(),
-          BusStopOverviewList(),
+          SliverToBoxAdapter(
+            child: HomePageContentSwitcher(
+              scrollController: _scrollController,
+              child: _buildContent(),
+            ),
+          ),
         ],
       ),
     );
@@ -200,50 +211,106 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   Widget _buildSuggestions() {
     return FutureBuilder<Map<String, dynamic>>(
       future: _getNearestBusStops(),
+      initialData: _nearestBusStops,
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-        return snapshot.hasData && snapshot.data['busStops'].length == 3 ? SliverToBoxAdapter(
-          child: Container(
-            height: 150,
-            child: ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              scrollDirection: Axis.horizontal,
-              itemCount: 3,
-              itemBuilder: (BuildContext context, int position) {
-                final BusStop busStop = snapshot.data['busStops'][position];
-                final double distanceInMeters = snapshot.data['distances'][position];
+        if (snapshot.hasData)
+          _nearestBusStops = snapshot.data;
+        return snapshot.hasData && snapshot.data['busStops'].length == 3 ? Container(
+          height: 150,
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            scrollDirection: Axis.horizontal,
+            itemCount: 3,
+            itemBuilder: (BuildContext context, int position) {
+              final BusStop busStop = snapshot.data['busStops'][position];
+              final double distanceInMeters = snapshot.data['distances'][position];
 
-                return ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minWidth: MediaQuery.of(context).size.width * 0.9,
-                  ),
-                  child: Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                    margin: const EdgeInsets.all(8.0),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(8.0),
-                      onTap: () => showBusDetailSheet(busStop),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.display1),
-                            Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
-                            Container(height: 16.0),
-                            Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),
-                            Text('${busStop.code} · ${busStop.road}', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
-                          ],
-                        ),
+              return ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: MediaQuery.of(context).size.width * 0.9,
+                ),
+                child: Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                  margin: const EdgeInsets.all(8.0),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8.0),
+                    onTap: () => showBusDetailSheet(busStop, UserRoute.home),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.display1),
+                          Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
+                          Container(height: 16.0),
+                          Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),
+                          Text('${busStop.code} · ${busStop.road}', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
+                        ],
                       ),
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
-        ) : const SliverToBoxAdapter();
+        ) : Container();
       },
     );
+  }
+
+  Widget _buildContent() {
+    if (_bottomNavIndex == 1 && _activeRoute != null) {
+      return RoutePage(_activeRoute);
+    } else {
+      return MediaQuery.removePadding(
+        key: ValueKey<int>(_bottomNavIndex),
+        context: context,
+        removeTop: true,
+        child: RouteModel(
+          route: UserRoute.home,
+          child: NotificationListener<ReorderStatusNotification>(
+            onNotification: (ReorderStatusNotification notification) {
+              setState(() {
+                canScroll = !notification.isReordering;
+              });
+              return true;
+            },
+            child: ListView(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              children: _bottomNavIndex == 0 ? _buildHomeItems() : _buildRoutesItems(),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  List<Widget> _buildHomeItems() {
+    return <Widget>[
+      _buildSuggestions(),
+      const Divider(height: 32.0, indent: 8.0, endIndent: 8.0),
+      _busStopOverviewList,
+    ];
+  }
+
+  List<Widget> _buildRoutesItems() {
+    return <Widget>[
+      NotificationListener<RouteActionNotification>(
+        onNotification: (RouteActionNotification notification) {
+          if (notification.action == RouteAction.select) {
+            _pushRoutePageRoute(notification.route);
+            return true;
+          }
+          if (notification.action == RouteAction.edit) {
+            _pushEditRouteRoute(notification.route);
+          }
+
+          return false;
+        },
+        child: RouteList(),
+      ),
+    ];
   }
 
   Future<Map<String, dynamic>> _getNearestBusStops() async {
@@ -257,17 +324,39 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Future<void> refreshLocation() async {
-    setState(() {  });
+    setState(() {});
+  }
+
+  Future<void> _pushAddRouteRoute() async {
+    final Route<void> route = FadePageRoute<UserRoute>(child: const AddRoutePage());
+    final UserRoute userRoute = await Navigator.push(context, route);
+
+    if (userRoute != null)
+      storeUserRoute(userRoute);
+  }
+
+  void _pushRoutePageRoute(UserRoute route) {
+    _fabScaleAnimationController.reverse();
+    setState(() {
+      _activeRoute = route;
+    });
+  }
+
+  Future<void> _pushEditRouteRoute(UserRoute route) async {
+    final UserRoute editedRoute = await Navigator.push(context, FadePageRoute<UserRoute>(child: AddRoutePage.edit(route)));
+    if (editedRoute != null) {
+      updateUserRoute(editedRoute);
+    }
   }
 
   void _pushSearchRoute() {
-    busStopDetailSheet.rubberAnimationController.animateTo(to: busStopDetailSheet.rubberAnimationController.lowerBound);
+    hideBusDetailSheet();
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage());
     Navigator.push(context, route);
   }
 
   void _pushSearchRouteWithMap() {
-    busStopDetailSheet.rubberAnimationController.animateTo(to: busStopDetailSheet.rubberAnimationController.lowerBound);
+    hideBusDetailSheet();
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage(showMap: true));
     Navigator.push(context, route);
   }
@@ -275,12 +364,5 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   void _pushSettingsRoute() {
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SettingsPage());
     Navigator.push(context, route);
-  }
-}
-
-class _NeverFocusNode extends FocusNode {
-  @override
-  bool get hasFocus {
-    return false;
   }
 }

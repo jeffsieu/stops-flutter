@@ -1,16 +1,18 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
 import 'package:latlong/latlong.dart' as latlong;
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqlite_api.dart';
 
 import '../utils/bus_api.dart';
 import '../utils/bus_route.dart';
 import '../utils/bus_utils.dart';
+import '../utils/user_route.dart';
 import 'bus_service.dart';
 import 'bus_stop.dart';
 
@@ -21,6 +23,8 @@ typedef BusFollowStatusListener = void Function(String stop, String bus, bool is
 /* Called when bus service is pinned/unpinned for a bus stop*/
 typedef BusPinStatusListener = void Function(String stop, String bus, bool isPinned);
 
+const int defaultRouteId = -1;
+const String defaultRouteName = 'Home';
 const String _themeModeKey = 'THEME_OPTION';
 const String _isBusFollowedKey = 'BUS_FOLLOW';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
@@ -35,33 +39,67 @@ Map<BusStop, List<BusStopChangeListener>> _busStopListeners = <BusStop, List<Bus
 Future<Database> _accessDatabase() async {
   return openDatabase(
       join(await getDatabasesPath(), 'busstop_database.db'),
-      onCreate: (Database db, int version) {
-        db.execute('CREATE TABLE bus_stop('
-          'code VARCHAR(5) PRIMARY KEY,'
-          'displayName TEXT,'
-          'defaultName TEXT,'
-          'road TEXT,'
-          'latitude DOUBLE,'
-          'longitude DOUBLE,'
-          'starred BOOLEAN DEFAULT 0)');
-        db.execute('CREATE TABLE bus_service('
-          'number VARCHAR(4) PRIMARY KEY,'
-          'operator TEXT)');
-        db.execute('CREATE TABLE bus_route('
-          'serviceNumber VARCHAR(4) NOT NULL,'
-          'direction INTEGER NOT NULL,'
-          'busStopCode VARCHAR(5) NOT NULL,'
-          'distance DOUBLE,'
-          'PRIMARY KEY (serviceNumber, direction, busStopCode))');
-        db.execute('CREATE TABLE pinned_bus_service('
-            'busStopCode VARCHAR(5),'
-            'busServiceNumber VARCHAR(4),'
-            'PRIMARY KEY (busStopCode, busServiceNumber),'
-            'FOREIGN KEY (busStopCode) REFERENCES bus_stop(code),'
-            'FOREIGN KEY (busServiceNumber) REFERENCES bus_service(number))');
+      onUpgrade: (Database db, int oldVersion, int newVersion) async {
+        if (oldVersion == 1 && newVersion == 2) {
+          final Batch batch = db.batch();
+          batch.execute('DROP TABLE pinned_bus_service');
+          batch.execute('DROP TABLE bus_stop');
+          await batch.commit(noResult: true);
+          await _initializeDatabase(db);
+
+          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool(_areBusStopsCachedKey, false);
+        }
       },
-      version: 1,
+      onCreate: (Database db, int version) async {
+        await _initializeDatabase(db);
+      },
+      onConfigure: (Database db) async {
+        await db.execute('PRAGMA foreign_keys = ON');
+      },
+      version: 2,
   );
+}
+
+Future<void> _initializeDatabase(Database db) async {
+  final Batch batch = db.batch();
+  batch.execute('CREATE TABLE bus_stop('
+      'code VARCHAR(5) PRIMARY KEY,'
+      'displayName TEXT,'
+      'defaultName TEXT,'
+      'road TEXT,'
+      'latitude DOUBLE,'
+      'longitude DOUBLE)');
+  batch.execute('CREATE TABLE bus_service('
+      'number VARCHAR(4) PRIMARY KEY,'
+      'operator TEXT)');
+  batch.execute('CREATE TABLE bus_route('
+      'serviceNumber VARCHAR(4) NOT NULL,'
+      'direction INTEGER NOT NULL,'
+      'busStopCode VARCHAR(5) NOT NULL,'
+      'distance DOUBLE,'
+      'PRIMARY KEY (serviceNumber, direction, busStopCode))');
+  batch.execute('CREATE TABLE user_route('
+      'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+      'name TEXT,'
+      'color INTEGER,'
+      'position INTEGER NOT NULL)');
+  batch.execute('CREATE TABLE user_route_bus_stop('
+      'routeId INTEGER DEFAULT -1,'
+      'busStopCode VARCHAR(5),'
+      'position INTEGER NOT NULL,'
+      'PRIMARY KEY (routeId, busStopCode),'
+      'FOREIGN KEY (routeId) REFERENCES user_route(id) ON DELETE CASCADE,'
+      'FOREIGN KEY (busStopCode) REFERENCES bus_stop(code))');
+  batch.execute('CREATE TABLE pinned_bus_service('
+      'routeId INTEGER,'
+      'busStopCode VARCHAR(5),'
+      'busServiceNumber VARCHAR(4),'
+      'PRIMARY KEY (routeId, busStopCode, busServiceNumber),'
+      'FOREIGN KEY (routeId, busStopCode) REFERENCES user_route_bus_stop(routeId, busStopCode) ON DELETE CASCADE,'
+      'FOREIGN KEY (busServiceNumber) REFERENCES bus_service(number))');
+  await batch.commit(noResult: true);
+  await db.insert('user_route', <String, dynamic>{'id': defaultRouteId, 'name': defaultRouteName, 'color': 0, 'position': -1});
 }
 
 Future<ThemeMode> getThemeMode() async {
@@ -96,47 +134,159 @@ Future<Map<String, dynamic>> getNearestBusStops(double latitude, double longitud
   return <String, dynamic> {'busStops': busStops, 'distances': distances};
 }
 
-Future<List<BusStop>> getStarredBusStops() async {
+Future<void> updateBusStop(BusStop busStop) async {
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> result = await database.query('bus_stop', where: 'starred = 1');
+  await database.update('bus_stop', busStop.toMap(), where: 'code = ?', whereArgs: <String>[busStop.code]);
+}
+
+Future<List<BusStop>> getBusStopsInRoute(UserRoute route) async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> result = await database.rawQuery('SELECT * FROM bus_stop JOIN user_route_bus_stop ON code = busStopCode WHERE routeId = ${route.id} ORDER BY position');
   final List<BusStop> busStops = List<BusStop>.generate(result.length, (int i) => BusStop.fromMap(result[i]));
+
+  for (BusStop busStop in busStops) {
+    busStop.pinnedServices = await getPinnedServicesIn(busStop, route);
+  }
 
   return busStops;
 }
 
-Future<void> starBusStop(BusStop busStop) async {
+Future<void> addBusStopToRoute(BusStop busStop, UserRoute route) async {
   final Database database = await _accessDatabase();
-  final Map<String, dynamic> map = busStop.toMap();
-  map['starred'] = 1;
-  await database.update(
-    'bus_stop',
-    map,
-    where: 'code = ?',
-    whereArgs: <dynamic>[busStop.code],
-  );
+  final int newBusStopPosition = (await database.rawQuery('SELECT COUNT(busStopCode) as count FROM user_route_bus_stop WHERE routeId = $defaultRouteId'))[0]['count'];
+  final Map<String, dynamic> entry = <String, dynamic>{
+    'routeId': route.id,
+    'busStopCode': busStop.code,
+    'position': newBusStopPosition,
+  };
+  await database.insert('user_route_bus_stop', entry);
 
   _updateBusStopListeners(busStop);
 }
 
-Future<void> unstarBusStop(BusStop busStop) async {
+Future<void> removeBusStopFromRoute(BusStop busStop, UserRoute route) async {
   final Database database = await _accessDatabase();
-  busStop.displayName = busStop.defaultName;
-  final Map<String, dynamic> map = busStop.toMap();
-  map['starred'] = 0;
-  await database.update(
-    'bus_stop',
-    map,
-    where: 'code = ?',
-    whereArgs: <dynamic>[busStop.code],
-  );
+  final int position = (await database.query('user_route_bus_stop', where: 'routeId = ? AND busStopCode = ?', whereArgs: <dynamic>[route.id, busStop.code])).first['position'];
+  await database.delete('user_route_bus_stop', where: 'routeId = ? AND busStopCode = ?', whereArgs: <dynamic>[route.id, busStop.code]);
+  await database.rawUpdate('UPDATE user_route_bus_stop SET position = position - 1 WHERE routeId = ? AND position > ?', <dynamic>[route.id, position]);
 
   _updateBusStopListeners(busStop);
 }
 
-Future<bool> isBusStopStarred(BusStop busStop) async {
+Future<bool> isBusStopInRoute(BusStop busStop, UserRoute route) async {
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> result = await database.query('bus_stop', where: 'starred = 1 and code = ?', whereArgs: <dynamic>[busStop.code]);
+  final List<Map<String, dynamic>> result = await database.query('user_route_bus_stop', where: 'routeId = ? AND busStopCode = ?', whereArgs: <dynamic>[route.id, busStop.code]);
   return result.isNotEmpty;
+}
+
+Future<void> storeUserRoute(UserRoute route) async {
+  final Database database = await _accessDatabase();
+  final int newRoutePosition = (await database.rawQuery('SELECT COUNT(*) as count FROM user_route'))[0]['count'] - 1;
+  final Map<String, dynamic> routeEntry = route.toMap()..putIfAbsent('position', () => newRoutePosition);
+  final int newRouteId = await database.insert('user_route', routeEntry);
+  final Batch batch = database.batch();
+  int position = 0;
+  for (BusStop busStop in route.busStops) {
+    final Map<String, dynamic> busStopEntry = <String, dynamic>{
+      'routeId': newRouteId,
+      'busStopCode': busStop.code,
+      'position': position,
+    };
+    batch.insert('user_route_bus_stop', busStopEntry);
+    position++;
+  }
+  await batch.commit(noResult: true);
+}
+
+Future<void> updateUserRoute(UserRoute route) async {
+  assert(route.id != null);
+  final Database database = await _accessDatabase();
+  final Map<String, dynamic> routeEntry = route.toMap();
+  await database.update('user_route', routeEntry, where: 'id = ?', whereArgs: <int>[route.id]);
+  final List<Map<String, dynamic>> oldBusStops = List<Map<String, dynamic>>.from(await database.query('user_route_bus_stop', where: 'routeId = ?', whereArgs: <int>[route.id]));
+
+  for (BusStop busStop in route.busStops) {
+    oldBusStops.removeWhere((dynamic stop) => stop['busStopCode'] == busStop.code);
+  }
+
+  // Delete removed bus stops from database
+  final Batch deleteBatch = database.batch();
+  for (dynamic deletedBusStop in oldBusStops) {
+    deleteBatch.delete('user_route_bus_stop', where: 'routeId = ? AND busStopCode = ?', whereArgs: <dynamic>[route.id, deletedBusStop['busStopCode']]);
+  }
+  deleteBatch.commit(noResult: true);
+
+  final Batch batch = database.batch();
+  int position = 0;
+  for (BusStop busStop in route.busStops) {
+    final Map<String, dynamic> busStopEntry = <String, dynamic>{
+      'routeId': route.id,
+      'busStopCode': busStop.code,
+      'position': position,
+    };
+    batch.insert('user_route_bus_stop', busStopEntry, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.update('user_route_bus_stop', busStopEntry, where: 'routeId = ? AND busStopCode = ?', whereArgs: <dynamic>[route.id, busStop.code]);
+    position++;
+  }
+  await batch.commit(noResult: true);
+}
+
+Future<List<UserRoute>> getUserRoutes() async {
+  final Database database = await _accessDatabase();
+  final List<Map<String, dynamic>> result = await database.query('user_route', where: 'id != $defaultRouteId', orderBy: 'position');
+  final List<UserRoute> routes = result.map<UserRoute>(UserRoute.fromMap).toList();
+  for (UserRoute route in routes) {
+    final List<Map<String, dynamic>> busStops = await database.query('user_route_bus_stop', where: 'routeId = ?', whereArgs: <int>[route.id], orderBy: 'position');
+    for (Map<String, dynamic> entry in busStops) {
+      final BusStop busStop = await getCachedBusStopWithCode(entry['busStopCode']);
+      busStop.pinnedServices = await getPinnedServicesIn(busStop, route);
+      route.busStops.add(busStop);
+    }
+  }
+  return routes;
+}
+
+Future<void> deleteUserRoute(UserRoute userRoute) async {
+  final Database database = await _accessDatabase();
+  final int position = (await database.query('user_route', where: 'id = ?', whereArgs: <int>[userRoute.id])).first['position'];
+  await database.delete('user_route', where: 'id = ?', whereArgs: <int>[userRoute.id]);
+  await database.rawUpdate('UPDATE user_route SET position = position - 1 WHERE position > ?', <int>[position]);
+}
+
+Future<void> moveUserRoutePosition(int from, int to) async {
+  final Database database = await _accessDatabase();
+  final int direction = (to - from).sign;
+  final Batch batch = database.batch();
+
+  // Change from's position to -2
+  batch.update('user_route', <String, dynamic>{'position': -2}, where: 'position = ?', whereArgs: <int>[from]);
+
+  // Shift everything after 'from' one step closer to 'from'
+  for (int i = from; i != to; i += direction) {
+    batch.update('user_route', <String, dynamic>{'position': i}, where: 'position = ?', whereArgs: <int>[i + direction]);
+  }
+
+  // Change from's position to to
+  batch.update('user_route', <String, dynamic>{'position': to}, where: 'position = ?', whereArgs: <int>[-2]);
+  await batch.commit(noResult: true);
+}
+
+Future<void> moveBusStopPositionInRoute(int from, int to, UserRoute route) async {
+  final Database database = await _accessDatabase();
+  final Batch batch = database.batch();
+  final int direction = (to - from).sign;
+
+  // Change from's position to -2
+  batch.update('user_route_bus_stop', <String, dynamic>{'position': -2}, where: 'routeId = ? AND position = ?', whereArgs: <dynamic>[route.id, from]);
+
+  // Shift everything after 'from' one step closer to 'from'
+  for (int i = from; i != to; i += direction) {
+    batch.update('user_route_bus_stop', <String, dynamic>{'position': i}, where: 'routeId = ? AND position = ?', whereArgs: <dynamic>[route.id, i + direction]);
+  }
+
+  // Change from's position to to
+  batch.update('user_route_bus_stop', <String, dynamic>{'position': to}, where: 'routeId = ? AND position = ?', whereArgs: <dynamic>[route.id, -2]);
+  await batch.commit(noResult: true);
 }
 
 void registerBusStopListener(BusStop busStop, BusStopChangeListener listener) {
@@ -403,33 +553,37 @@ Future<List<BusServiceRoute>> getCachedBusRoutes(BusService busService) async {
   return routes.values.toList(growable: false);
 }
 
-Future<void> pinBusService(BusStop busStop, BusService busService) async {
+Future<void> pinBusService(BusStop busStop, BusService busService, UserRoute route) async {
   final Database database = await _accessDatabase();
-  final Map<String, String> data = <String, String>{
+  final Map<String, dynamic> data = <String, dynamic>{
+    'routeId': route.id,
     'busStopCode': busStop.code,
     'busServiceNumber':  busService.number,
   };
   await database.insert('pinned_bus_service', data);
 }
 
-Future<void> unpinBusService(BusStop busStop, BusService busService) async {
+Future<void> unpinBusService(BusStop busStop, BusService busService, UserRoute route) async {
   final Database database = await _accessDatabase();
   await database.delete(
       'pinned_bus_service',
-      where: 'busStopCode = ? and busServiceNumber = ?',
-      whereArgs: <String>[
+      where: 'routeId = ? and busStopCode = ? and busServiceNumber = ?',
+      whereArgs: <dynamic>[
+        route.id,
         busStop.code,
         busService.number,
       ],
   );
 }
 
-Future<bool> isBusServicePinned(BusStop busStop, BusService busService) async {
+Future<bool> isBusServicePinned(BusStop busStop, BusService busService, UserRoute route) async {
   final Database database = await _accessDatabase();
+  final int routeId = route?.id ?? defaultRouteId;
   final List<Map<String, dynamic>> result = await database.query(
     'pinned_bus_service',
-    where: 'busStopCode = ? and busServiceNumber = ?',
-    whereArgs: <String>[
+    where: 'routeId = ? and busStopCode = ? and busServiceNumber = ?',
+    whereArgs: <dynamic>[
+      routeId,
       busStop.code,
       busService.number,
     ],
@@ -437,13 +591,14 @@ Future<bool> isBusServicePinned(BusStop busStop, BusService busService) async {
   return result.isNotEmpty;
 }
 
-Future<List<BusService>> getPinnedServicesIn(BusStop busStop) async {
+Future<List<BusService>> getPinnedServicesIn(BusStop busStop, UserRoute route) async {
   final Database database = await _accessDatabase();
+  final int routeId = route.id;
   final List<Map<String, dynamic>> result = await database.rawQuery(
       'SELECT * FROM pinned_bus_service INNER JOIN bus_service '
       'ON pinned_bus_service.busServiceNumber = bus_service.number '
-      'WHERE pinned_bus_service.busStopCode = ?',
-      <String>[busStop.code],
+      'WHERE routeId = ? and pinned_bus_service.busStopCode = ?',
+      <dynamic>[routeId, busStop.code],
   );
 
   final List<BusService> services = result.map(BusService.fromMap).toList(growable: false);
