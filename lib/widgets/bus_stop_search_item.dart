@@ -2,9 +2,9 @@ import 'package:meta/meta.dart';
 
 import 'package:flutter/material.dart';
 
-import '../routes/search_page.dart';
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
+import '../utils/user_route.dart';
 
 class BusStopSearchItem extends StatefulWidget {
   const BusStopSearchItem({
@@ -17,6 +17,7 @@ class BusStopSearchItem extends StatefulWidget {
     @required this.nameEnd,
     @required this.distance,
     @required this.busStop,
+    this.onTap
   }) : super (key: key);
 
   final String codeStart;
@@ -27,6 +28,7 @@ class BusStopSearchItem extends StatefulWidget {
   final String nameEnd;
   final String distance;
   final BusStop busStop;
+  final Function onTap;
 
   @override
   State<StatefulWidget> createState() {
@@ -42,14 +44,14 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
   @override
   void initState() {
     super.initState();
-    isBusStopStarred(widget.busStop).then((bool contains) {
+    isBusStopInRoute(widget.busStop, UserRoute.home).then((bool contains) {
       if (mounted)
         setState(() {
           _isStarEnabled = contains;
         });
     });
     _busStopListener = (BusStop busStop) {
-      isBusStopStarred(widget.busStop).then((bool contains) {
+      isBusStopInRoute(widget.busStop, UserRoute.home).then((bool contains) {
         if (mounted)
           setState(() {
             _isStarEnabled = contains;
@@ -68,7 +70,7 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: () => _showDetailSheet(context, widget.busStop),
+      onTap: widget.onTap,
       leading: Text(widget.distance),
       title: RichText(
         text: TextSpan(
@@ -118,27 +120,18 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
       ),
       trailing: IconButton(
         icon: Icon(_isStarEnabled ? Icons.star : Icons.star_border),
-        tooltip: _isStarEnabled ? 'Unfavorite' : 'Favorite',
+        tooltip: _isStarEnabled ? 'Unpin from home' : 'Pin to home',
         onPressed: () {
           setState(() {
             _isStarEnabled = !_isStarEnabled;
           });
           if (_isStarEnabled) {
-            starBusStop(widget.busStop);
+            addBusStopToRoute(widget.busStop, UserRoute.home);
           } else {
-            unstarBusStop(widget.busStop);
+            removeBusStopFromRoute(widget.busStop, UserRoute.home);
           }
         },
       ),
-    );
-  }
-
-  void _showDetailSheet(BuildContext context, BusStop busStop) {
-    // add to history
-    FocusScope.of(context).unfocus();
-    Future<void>.delayed(const Duration(milliseconds: 100), () {
-        SearchPage.of(context).showBusDetailSheet(busStop);
-      }
     );
   }
 }

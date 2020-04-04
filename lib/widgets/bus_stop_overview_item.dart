@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:stops_sg/widgets/bus_timing_row.dart';
 
 import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
@@ -11,6 +10,8 @@ import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/time_utils.dart';
+import '../widgets/bus_timing_row.dart';
+import '../widgets/route_model.dart';
 
 class BusStopOverviewItem extends StatefulWidget {
   const BusStopOverviewItem(this.busStop, {Key key}) : super(key: key);
@@ -66,21 +67,6 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
             Padding(
               padding: const EdgeInsets.only(left: 16.0, right: 16.0),
               child: Center(
-//                child: RichText(
-//                  text: TextSpan(
-//                    text: '$name',
-//                    children: <TextSpan>[
-//                      TextSpan(
-//                        text: ' · $code · $road',
-//                        style: Theme.of(context)
-//                            .textTheme
-//                            .title
-//                            .copyWith(color: Theme.of(context).hintColor),
-//                      ),
-//                    ],
-//                    style: Theme.of(context).textTheme.title,
-//                  ),
-//                ),
                 child: Column(
                   children: <Widget>[
                     Text(name, style: Theme.of(context).textTheme.title),
@@ -89,14 +75,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                 )
               ),
             ),
-            FutureBuilder<List<BusService>>(
-              future: getPinnedServicesIn(widget.busStop),
-              builder: (BuildContext context, AsyncSnapshot<List<BusService>> snapshot) {
-                if (snapshot.data == null)
-                  return Container();
-                return _buildPinnedServices(snapshot.data);
-              },
-            ),
+            _buildPinnedServices(widget.busStop.pinnedServices),
           ],
         ),
       ),
@@ -143,8 +122,8 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                         BusTimingRow.unfocusable(widget.busStop, arrivalResult.busService, arrivalResult)
                     ],
                   ),
-                ) : const Center(
-                  child: Text(BusAPI.kNoPinnedBusesError),
+                ) : Center(
+                  child: Text(BusAPI.kNoPinnedBusesError, style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).hintColor)),
                 ),
               );
           }
@@ -156,7 +135,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
 
   void _showDetailSheet() {
     FocusScope.of(context).requestFocus(FocusNode());
-    HomePage.of(context).showBusDetailSheet(widget.busStop);
+    HomePage.of(context).showBusDetailSheet(widget.busStop, RouteModel.of(context).route);
   }
 }
 

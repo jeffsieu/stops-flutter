@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
+import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
+import 'package:implicitly_animated_reorderable_list/transitions.dart';
+
 import '../utils/bus_api.dart';
 import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
+import '../utils/reorder_status_notification.dart';
+import '../utils/user_route.dart';
 import '../widgets/bus_stop_overview_item.dart';
+import '../widgets/custom_handle.dart';
+import '../widgets/route_model.dart';
 
 class BusStopOverviewList extends StatefulWidget {
   @override
@@ -13,50 +20,107 @@ class BusStopOverviewList extends StatefulWidget {
 }
 
 class BusStopOverviewListState extends State<BusStopOverviewList> {
-  List<BusStop> _busStops = <BusStop>[];
+  List<BusStop> _busStops;
+
+  @override
+  void initState() {
+    super.initState();
+    _busStops = <BusStop>[];
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<BusStop>>(
-        initialData: _busStops,
-        future: getStarredBusStops(),
-        builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
-            switch (snapshot.connectionState) {
-              case ConnectionState.none:
-                return _messageBox(BusAPI.kNoInternetError);
-                case ConnectionState.active:
-                case ConnectionState.waiting:
-                  if (snapshot.data == null) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                continue done;
-                done:
-              case ConnectionState.done:
-                _busStops = snapshot.data;
-                List<BusStop> busStopList;
-                if (snapshot.hasData)
-                  busStopList = _busStops;
-                else
-                  busStopList = <BusStop>[];
-                return SliverToBoxAdapter(
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeTop: true,
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (BuildContext context, int position) {
-                        final BusStop busStop = busStopList[position];
-                        return BusStopOverviewItem(busStop, key: Key(busStop.code));
-                      },
-                      itemCount: busStopList.length,
-                      separatorBuilder: (BuildContext context, int position) => const Divider(height: 1),
-                    ),
+      initialData: _busStops,
+      future: getBusStopsInRoute(UserRoute.home),
+      builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
+        switch (snapshot.connectionState) {
+          case ConnectionState.none:
+            return _messageBox(BusAPI.kNoInternetError);
+            case ConnectionState.active:
+            case ConnectionState.waiting:
+              if (snapshot.data == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+            continue done;
+            done:
+          case ConnectionState.done:
+            if (snapshot.hasData && _busStops != snapshot.data) {
+              if (snapshot.data.isEmpty)
+                return Container(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Center(
+                    child: Text('Pinned bus stops appear here.\n\nTap the star next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.', style: Theme.of(context).textTheme.display1.copyWith(color: Theme.of(context).hintColor)),
                   ),
                 );
+              else {
+                // Only update list when database is updated, otherwise the list is updated with old positions
+                if (snapshot.connectionState == ConnectionState.done) {
+                  _busStops..clear()..addAll(snapshot.data);
+                }
+              }
             }
-            return null;
-          }
+            return MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: ImplicitlyAnimatedReorderableList<BusStop>(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                items: _busStops,
+                areItemsTheSame: (BusStop busStop, BusStop otherBusStop) => busStop == otherBusStop,
+                onReorderStarted: (BusStop busStop, int position) {
+                  ReorderStatusNotification(true).dispatch(context);
+                },
+                onReorderFinished: (BusStop busStop, int from, int to, List<BusStop> newBusStops) async {
+                  ReorderStatusNotification(false).dispatch(context);
+                  _busStops..clear()..addAll(newBusStops);
+                  await moveBusStopPositionInRoute(from, to, RouteModel.of(context).route);
+                  setState(() {});
+                },
+                itemBuilder: (BuildContext context, Animation<double> itemAnimation, BusStop busStop, int position) {
+                  return Reorderable(
+                    key: Key(busStop.code),
+                    builder: (BuildContext context, Animation<double> dragAnimation, bool inDrag) {
+                      const double initialElevation = 0.0;
+                      final Color materialColor = Color.lerp(Theme.of(context).scaffoldBackgroundColor, Colors.white, dragAnimation.value / 10);
+                      final double elevation = Tween<double>(begin: initialElevation, end: 10.0).animate(CurvedAnimation(parent: dragAnimation, curve: Curves.easeOutCubic)).value;
+
+                      Widget busStopItem = BusStopOverviewItem(busStop, key: Key(busStop.code));
+
+                      if (position > 0)
+                        busStopItem = Column(
+                          children: <Widget>[
+                            Divider(height: 1 - dragAnimation.value),
+                            busStopItem,
+                          ],
+                        );
+
+                      final Widget child = CustomHandle(
+                        delay: const Duration(milliseconds: 500),
+                        child: Material(
+                          color: materialColor,
+                          elevation: elevation,
+                          child: busStopItem,
+                        ),
+                      );
+
+                      if (dragAnimation.value > 0.0)
+                        return child;
+
+                      return SizeFadeTransition(
+                        sizeFraction: 0.75,
+                        curve: Curves.easeInOut,
+                        animation: itemAnimation,
+                        child: child,
+                      );
+                    },
+                  );
+                },
+              ),
+            );
+        }
+        return null;
+      }
     );
   }
 

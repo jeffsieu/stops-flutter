@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'bus_api.dart';
+import 'bus_service.dart';
 
 class BusStop {
   BusStop({
@@ -18,6 +19,7 @@ class BusStop {
   String road;
   double latitude;
   double longitude;
+  List<BusService> pinnedServices;
 
   static BusStop fromJson(dynamic json) {
     return BusStop(

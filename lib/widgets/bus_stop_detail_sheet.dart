@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import 'package:rubber/rubber.dart';
+import 'package:stops_sg/routes/home_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/bus_api.dart';
@@ -10,8 +12,10 @@ import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
+import '../utils/user_route.dart';
 import '../widgets/bus_stop_legend_card.dart';
 import '../widgets/bus_timing_row.dart';
+import '../widgets/route_model.dart';
 
 class BusStopDetailSheet extends StatefulWidget {
   BusStopDetailSheet({Key key, TickerProvider vsync, @required this.hasAppBar})
@@ -38,12 +42,14 @@ class BusStopDetailSheet extends StatefulWidget {
   final bool hasAppBar;
   static const Duration updateAnimationDuration = Duration(milliseconds: 1000);
   static const Duration editAnimationDuration = Duration(milliseconds: 250);
+  static const double rowAnimationDuration = 0.4;
+  static const double rowAnimationOffset = 0.075;
   static const double _launchVelocity = 5.0;
   final double titleFadeInDurationFactor = 0.5;
   final double _sheetHalfBoundValue = 0.5;
 
   static BusStopDetailSheetState of(BuildContext context) =>
-      context.ancestorStateOfType(const TypeMatcher<BusStopDetailSheetState>());
+      context.findAncestorStateOfType<BusStopDetailSheetState>();
 
   @override
   State<StatefulWidget> createState() => BusStopDetailSheetState();
@@ -52,6 +58,7 @@ class BusStopDetailSheet extends StatefulWidget {
 class BusStopDetailSheetState extends State<BusStopDetailSheet>
     with TickerProviderStateMixin {
   BusStop _busStop;
+  UserRoute _route;
   List<BusServiceArrivalResult> _latestData;
   bool _isStarEnabled = false;
   bool _isEditing = false;
@@ -69,14 +76,15 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
    *
    * Called externally from the parent containing this widget
    */
-  Future<void> updateWith(BusStop busStop) async {
-    final bool starred = await isBusStopStarred(busStop);
+  Future<void> updateWith(BusStop busStop, UserRoute route) async {
+    final bool starred = await isBusStopInRoute(busStop, route);
     setState(() {
       if (_busStopListener != null) {
         unregisterBusStopListener(_busStop, _busStopListener);
       }
 
       _busStop = busStop;
+      _route = route;
       _isStarEnabled = starred;
       _isEditing = false;
       _busArrivalStream = BusAPI().busStopArrivalStream(busStop);
@@ -111,7 +119,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     });
 
     _busStopListener = (BusStop busStop) {
-      isBusStopStarred(busStop).then((bool contains) {
+      isBusStopInRoute(busStop, _route).then((bool contains) {
         if (mounted)
           setState(() {
             _busStop = busStop;
@@ -153,7 +161,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           topRight: Radius.circular(16.0),
         ),
         elevation: 16.0,
-        child: scrollView,
+        child: RouteModel(route: _route, child: scrollView),
       ),
     );
   }
@@ -209,34 +217,48 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           Center(
             child: Padding(
               padding: const EdgeInsets.only(left: 56.0, right: 56.0),
-              child: AnimatedSwitcher(
-                duration: BusStopDetailSheet.updateAnimationDuration * widget.titleFadeInDurationFactor,
-                switchInCurve: Interval(0.25, 1),
-                switchOutCurve: Interval(0.75, 1),
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  final bool entering = child.key == ValueKey<String>(_busStop.code);
-                  final Animatable<double> curve = CurveTween(curve: entering ? Curves.easeOutCubic : Curves.linear);
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: animation
-                          .drive(curve)
-                          .drive(Tween<Offset>(begin: Offset(0, 0.5 * (entering ? 1 : -1)), end: Offset.zero)),
-                      child: child,
-                    ),
-                  );
-                },
-                child: Column(
-                  key: Key(_busStop.code),
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(_busStop.displayName,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headline),
-                    Text('${_busStop.code} · ${_busStop.road}',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
-                  ],
+              child: AnimatedSize(
+                alignment: Alignment.topCenter,
+                vsync: this,
+                duration: BusStopDetailSheet.updateAnimationDuration * 0.1,
+                child: AnimatedSwitcher(
+                  duration: BusStopDetailSheet.updateAnimationDuration * widget.titleFadeInDurationFactor,
+                  switchInCurve: const Interval(0.25, 1),
+                  switchOutCurve: const Interval(0.75, 1),
+                  layoutBuilder: (Widget currentChild, List<Widget> previousChildren) {
+                    return Stack(
+                      children: <Widget>[
+                        ...previousChildren,
+                        if (currentChild != null) currentChild,
+                      ],
+                      alignment: Alignment.topCenter,
+                    );
+                  },
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    final bool entering = child.key == ValueKey<String>(_busStop.code);
+                    final Animatable<double> curve = CurveTween(curve: entering ? Curves.easeOutCubic : Curves.linear);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: animation
+                            .drive(curve)
+                            .drive(Tween<Offset>(begin: Offset(0, 0.5 * (entering ? 1 : -1)), end: Offset.zero)),
+                        child: entering ? child : Align(alignment: Alignment.topCenter, heightFactor: 1 - animation.value, child: child),
+                      ),
+                    );
+                  },
+                  child: Column(
+                    key: Key(_busStop.code),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Text(_busStop.displayName,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headline),
+                      Text('${_busStop.code} · ${_busStop.road}',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -247,8 +269,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
               opacity: _isEditing ? 1 : 0,
               duration: BusStopDetailSheet.editAnimationDuration,
               child: IconButton(
-                tooltip: 'Edit name',
-                icon: Icon(Icons.edit),
+                tooltip: 'Rename',
+                icon: const Icon(Icons.edit),
                 onPressed: _isEditing ? _showEditNameDialog : null,
               ),
             )
@@ -273,10 +295,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           });
         },
       );
-    return PopupMenuButton<String>(
-      onSelected: (String option) {
+    return PopupMenuButton<_MenuOption>(
+      onSelected: (_MenuOption option) {
         switch(option) {
-          case 'edit':
+          case _MenuOption.edit:
             setState(() {
               _isEditing = !_isEditing;
               if (widget.rubberAnimationController.value != widget.rubberAnimationController.upperBound)
@@ -286,43 +308,54 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                     velocity: BusStopDetailSheet._launchVelocity/2);
             });
             break;
-          case 'star':
+          case _MenuOption.rename:
+            _showEditNameDialog();
+            break;
+          case _MenuOption.favorite:
             setState(() {
               _isStarEnabled = !_isStarEnabled;
             });
             if (_isStarEnabled) {
-              starBusStop(_busStop);
+              addBusStopToRoute(_busStop, _route).then((_) {
+                setState(() {});
+                HomePage.of(context).refreshLocation();
+              });
             } else {
-              unstarBusStop(_busStop);
+              removeBusStopFromRoute(_busStop, _route).then((_) {
+                setState(() {});
+                HomePage.of(context).refreshLocation();
+              });
               Scaffold.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('Bus stop unfavorited'),
-//                          action: SnackBarAction(
-//                          label: 'Undo',
-//                          onPressed: () {
-                  // TODO(jeffsieu): Add undo functionality.
-//                          }),
+                  content: Text('Bus stop unpinned from ${_route == UserRoute.home ? "home" : _route.name}'),
                 ),
               );
             }
             break;
-          case 'gmaps':
+          case _MenuOption.googleMaps:
             launch('geo:${_busStop.latitude},${_busStop.longitude}?q=${_busStop.defaultName} ${_busStop.code}');
             break;
         }
       },
-      itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-        if (_isStarEnabled)
-          const PopupMenuItem<String>(
-            value: 'edit',
-            child: Text('Edit'),
-          ),
-        PopupMenuItem<String>(
-          value: 'star',
-          child: Text(_isStarEnabled ? 'Unfavorite' : 'Favorite'),
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<_MenuOption>>[
+        const PopupMenuItem<_MenuOption>(
+          value: _MenuOption.rename,
+          child: Text('Rename'),
         ),
-        const PopupMenuItem<String>(
-          value: 'gmaps',
+        if (_isStarEnabled)
+          const PopupMenuDivider(),
+        if (_isStarEnabled)
+          const PopupMenuItem<_MenuOption>(
+            value: _MenuOption.edit,
+            child: Text('Pin/unpin services'),
+          ),
+        PopupMenuItem<_MenuOption>(
+          value: _MenuOption.favorite,
+          child: Text(_isStarEnabled ? _route == UserRoute.home ? 'Unpin from home' : 'Remove from route' : 'Pin to home'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<_MenuOption>(
+          value: _MenuOption.googleMaps,
           child: Text('Open in Google Maps'),
         ),
       ],
@@ -345,7 +378,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                   style: Theme.of(context).textTheme.display1,
                 ),
                 Text(
-                  'Arrival times of pinned buses are displayed on the homepage',
+                  'Arrival times of pinned buses are displayed on the ${_route == UserRoute.home ? 'homepage' : 'route page'}',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.body1.copyWith(color: Theme.of(context).hintColor),
                 )
@@ -424,12 +457,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                         if (isDisplayed)
                           arrivalResult = buses[displayedPosition];
 
-                        const double duration = 0.4;
-                        const double offset = 0.075;
-                        final double startOffset = (displayedPosition * offset).clamp(0.0, 1.0);
-                        final double endOffset = (displayedPosition * offset + duration).clamp(0.0, 1.0);
+                        final double startOffset = (displayedPosition * BusStopDetailSheet.rowAnimationOffset).clamp(0.0, 1.0);
+                        final double endOffset = (displayedPosition * BusStopDetailSheet.rowAnimationOffset + BusStopDetailSheet.rowAnimationDuration).clamp(0.0, 1.0);
                         final Animation<double> animation = timingListAnimationController
-                            .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor-offset, 1))) // animate after previous code disappears
+                            .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor - BusStopDetailSheet.rowAnimationOffset, 1))) // animate after previous code disappears
                             .drive(CurveTween(curve: Interval(startOffset, endOffset))); // delay animation based on position
 
                         final Widget item = BusTimingRow(
@@ -460,13 +491,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           return item;
                       },
                       separatorBuilder: (BuildContext context, int position) {
-                        // Checks if the item above and below the divider are both shown
-                        // If both are shown, show divider
-                        final int displayedPositionTop = displayedPositions[position];
+                        // Checks if the item below the divider is shown, and not the first item
+                        // If it is, then show the divider
                         final int displayedPositionBottom = displayedPositions[position+1];
-                        final bool areTopAndBottomDisplayed = displayedPositionTop != -1 && displayedPositionBottom != -1;
-                        final bool isDisplayed = _isEditing || areTopAndBottomDisplayed;
-                        return isDisplayed ? const Divider(height: 1) : Container();
+                        final bool isBottomDisplayed = displayedPositionBottom > 0;
+                        final bool isDisplayed = _isEditing || isBottomDisplayed;
+                        return isDisplayed ? const Divider(height: 4.0) : Container();
                       },
                       itemCount: allServices.length,
                     ),
@@ -481,19 +511,37 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
 
   Widget _messageBox(String text) {
     return Center(
-        child: Text(text),
+        child: Text(text, style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).hintColor)),
     );
   }
 
   Widget _buildFooter(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: BusStopLegendCard(),
+    final int rowCount = _latestData?.length ?? 0;
+    final double startOffset = (rowCount * BusStopDetailSheet.rowAnimationOffset).clamp(0.0, 1.0);
+    final double endOffset = (rowCount * BusStopDetailSheet.rowAnimationOffset + BusStopDetailSheet.rowAnimationDuration).clamp(0.0, 1.0);
+    final Animation<double> animation = timingListAnimationController
+        .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor-BusStopDetailSheet.rowAnimationOffset, 1))) // animate after previous code disappears
+        .drive(CurveTween(curve: Interval(startOffset, endOffset))); // delay animation based on position
+    return SlideTransition(
+      position: animation
+          .drive(CurveTween(curve: Curves.easeOutQuint))
+          .drive(Tween<Offset>(
+        begin: const Offset(0, 0.5),
+        end: Offset.zero,
+      )
+      ),
+      child: FadeTransition(
+        opacity: animation,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: BusStopLegendCard(),
+        ),
+      ),
     );
   }
 
-  void _showEditNameDialog() {
-    showDialog<void>(
+  Future<void> _showEditNameDialog() async {
+    final String newName = await showDialog<String>(
         context: context,
         builder: (BuildContext context) {
           textController.selection = TextSelection(
@@ -508,7 +556,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0, left: 16.0),
                     child: Text(
-                      'Edit name',
+                      'Rename bus stop',
                       style: Theme.of(context).textTheme.title,
                     ),
                   ),
@@ -518,13 +566,13 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                     child: TextField(
                       onSubmitted: (String name) {
                         changeBusStopName(name);
-                        Navigator.of(context).pop();
+                        Navigator.pop(context);
                       },
                       autofocus: true,
                       autocorrect: true,
                       controller: textController,
                       cursorColor: Theme.of(context).accentColor,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: 'Bus stop name',
                       ),
@@ -544,11 +592,11 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           },
                           child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                         ),
-                        Spacer(),
+                        const Spacer(),
                         FlatButton(
                           textColor: Theme.of(context).accentColor,
                           onPressed: () {
-                            Navigator.of(context).pop();
+                            Navigator.pop(context);
                           },
                           child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                         ),
@@ -557,8 +605,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           textColor: Theme.of(context).accentColor,
                           onPressed: () {
                             final String newName = textController.text;
-                            changeBusStopName(newName);
-                            Navigator.of(context).pop();
+                            Navigator.pop(context, newName);
                           },
                           child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                         )
@@ -570,10 +617,19 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
             ),
           );
         });
+    if (newName != null) {
+      changeBusStopName(newName);
+    }
   }
 
   void changeBusStopName(String newName) {
-    _busStop.displayName = newName;
-    starBusStop(_busStop);
+    setState(() {
+      _busStop.displayName = newName;
+    });
+    updateBusStop(_busStop);
   }
+}
+
+enum _MenuOption {
+  edit, favorite, googleMaps, rename
 }

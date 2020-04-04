@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:stops_sg/routes/home_page.dart';
-import 'package:stops_sg/utils/database_utils.dart';
+
+import '../utils/database_utils.dart';
+import 'stops_app.dart';
 
 class SettingsPage extends StatefulWidget {
   static const String _kThemeLabelSystem = 'System';

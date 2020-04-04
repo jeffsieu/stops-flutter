@@ -4,17 +4,28 @@
 Stops is an app built with Flutter that displays live bus timings for bus stops in Singapore.
 It uses live data exposed by [LTA Datamall](https://www.mytransport.sg/content/mytransport/home/dataMall.html)'s API.
 
-## Screenshots
-| Homepage | Search page | Light mode |
-|---------|---------|---------|
-|![](assets/images/screenshots/screenshot1.png) | ![](assets/images/screenshots/screenshot2.png) | ![](assets/images/screenshots/screenshot3.png)|
-
 ## Features
- - Set favorite bus stops by starring them
+ - Pin your favorite bus stops
  - Search bus stops by their name or code
+ - Rename bus stops as you wish
+ - Light/dark mode options
+ - Add routes to easily organize bus stops you frequent
  - Get notified when bus is arriving soon
- - Automatic light/dark mode according to system-wide toggle
- 
+
+
+## Screenshots
+
+### Light vs Dark
+<img src="https://user-images.githubusercontent.com/8487294/78435346-e3ffd900-76a8-11ea-8e07-4a10348a53c5.png" width=300>
+<img src="https://user-images.githubusercontent.com/8487294/78457074-44f3d500-76da-11ea-8ee6-0cdebb52fc2a.png" width=300>
+
+### Homepage
+<img src="https://user-images.githubusercontent.com/8487294/78438056-abacca80-76a9-11ea-81ca-e13061e2687a.png" width=300>
+
+### Others
+<img src="https://user-images.githubusercontent.com/8487294/78457073-432a1180-76da-11ea-874f-2a0c8912179f.png" width=300>
+<img src="https://user-images.githubusercontent.com/8487294/78438029-a9e30700-76a9-11ea-94f4-bfcc55cb8f16.png" width=300>
+<img src="https://user-images.githubusercontent.com/8487294/78438042-ab143400-76a9-11ea-8613-261acdb7293f.png" width=300>
 
 ## Getting Started
  ```
