@@ -1,5 +1,5 @@
 # Stops
-<img src="assets/images/icon/icon_squircle.png" width="200" height="200" />
+![Stops Banner](https://user-images.githubusercontent.com/8487294/79123170-1ce82e00-7dcc-11ea-860d-1a0ba9a1f5e6.png)
 
 Stops is an app built with Flutter that displays live bus timings for bus stops in Singapore.
 It uses live data exposed by [LTA Datamall](https://www.mytransport.sg/content/mytransport/home/dataMall.html)'s API.
