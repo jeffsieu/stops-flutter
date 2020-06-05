@@ -168,7 +168,7 @@ class _BusTimingChipState extends State<BusTimingChip> {
               ),
             ),
             TextSpan(
-              text:  ' · ${getBusTimingVerbose(getMinutesFromNow(widget.bus.arrivalTime))}',
+              text:  ' · ${getBusTimingVerbose(widget.bus.arrivalTime.getMinutesFromNow())}',
               style: Theme.of(context).textTheme.body1.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,

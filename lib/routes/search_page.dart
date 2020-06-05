@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:edit_distance/edit_distance.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -30,8 +31,10 @@ class SearchPage extends BottomSheetPage {
 
   final int _furthestBusStopDistanceMeters = 1000;
   final int offsetDistance = 300;
+  final double searchDifferenceThreshold = 0.25;
   final bool showMap;
   final bool isSimpleMode;
+
 
   @override
   State<StatefulWidget> createState() {
@@ -52,6 +55,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   List<BusService> _filteredBusServices;
   List<BusStop> _busStops = <BusStop>[];
   List<BusStop> _filteredBusStops;
+  JaroWinkler jw = JaroWinkler();
 
   String _queryString = '';
   String get _query => _queryString;
@@ -205,18 +209,19 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         builder: (BuildContext context, Widget child) {
           return Transform.translate(
             offset: Offset(0, _fabTopOffset * rubberAnimationController.value.clamp(0.0, 0.5)),
-            child: FloatingActionButton.extended(
-                onPressed: () => setState(() {
-                  _isMapVisible = !_isMapVisible;
-                  if (_isMapVisible)
-                    _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
-                  _hideKeyboard();
-                }),
-                label: const Text('Choose on map'),
-                icon: const Icon(Icons.map)
-            ),
+            child: child,
           );
         },
+        child: FloatingActionButton.extended(
+            onPressed: () => setState(() {
+              _isMapVisible = !_isMapVisible;
+              if (_isMapVisible)
+                _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
+              _hideKeyboard();
+            }),
+            label: const Text('Choose on map'),
+            icon: const Icon(Icons.map)
+        ),
       ),
     );
 
@@ -459,12 +464,44 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     if (_query.isEmpty && !_showServicesOnly) {
       _filteredBusServices = <BusService>[];
     } else {
-      _filteredBusServices = _filterBusServices(_busServices, _query).toList(growable: false);
+      _filteredBusServices =
+          _filterBusServices(_busServices, _query).toList(growable: false);
       _filteredBusServices.sort((BusService a, BusService b) =>
           compareBusNumber(a.number, b.number));
     }
 
-    _filteredBusStops = _filterBusStops(_busStops, _query).toList(growable: false);
+    if (_query.isNotEmpty) {
+      final bool isQueryAllNumbers = num.tryParse(_queryString) != null;
+      final num Function(BusStop) distanceFunction = (BusStop busStop) {
+        final String busStopName = busStop.displayName.toLowerCase();
+        final List<String> busStopNameParts = busStopName.split(RegExp(r'( |/)'));
+        double maxTokenSimilarity = 0;
+        for (String part in busStopNameParts) {
+          if (_query.length < part.length)
+            part = part.substring(0, _query.length);
+          maxTokenSimilarity = max(maxTokenSimilarity, 1 - jw.normalizedDistance(part, _query.toLowerCase()));
+        }
+
+        double distance = jw.normalizedDistance(busStopName, _query.toLowerCase());
+
+        if (1 - maxTokenSimilarity < distance) {
+          distance = 1 - maxTokenSimilarity - 0.01 * (_query.length / busStopName.length);
+        }
+
+        if (isQueryAllNumbers) {
+          final double codeDistance = busStop.code.startsWith(_queryString) ? -1 : 1;
+          distance = min(distance, codeDistance);
+        }
+
+        return distance;
+      };
+      final List<List<dynamic>> sets = _busStops.map((BusStop busStop) => <dynamic>[distanceFunction(busStop), busStop]).
+      where((List<dynamic> set) => set[0] < widget.searchDifferenceThreshold).toList();
+      sets.sort((List<dynamic> set1, List<dynamic> set2) => set1[0].compareTo(set2[0]));
+      _filteredBusStops = sets.map<BusStop>((List<dynamic> set) => set[1]).toList();
+    } else {
+      _filteredBusStops = _busStops;
+    }
     final Iterable<dynamic> metadataIterable = _filteredBusStops.map<dynamic>((BusStop busStop) => <dynamic>[busStop, _calculateQueryMetadata(busStop, _query)]);
     _queryMetadata = Map<BusStop, dynamic>.fromIterable(metadataIterable, key: (dynamic item) => item[0], value: (dynamic item) => item[1]);
 
@@ -629,7 +666,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   @override
   void showBusDetailSheet(BusStop busStop, UserRoute route) {
     super.showBusDetailSheet(busStop, route);
-    pushHistory(_query);
+    pushHistory(_query.trim());
   }
 
   void _toggleShowServicesOnly() {
@@ -686,17 +723,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   static Iterable<BusService> _filterBusServices(List<BusService> list, String query) => list.where((BusService busService) =>
       busService.number.toLowerCase().startsWith(query.toLowerCase()));
-
-  static Iterable<BusStop> _filterBusStops(List<BusStop> list, String query) => list.where((BusStop busStop) => _matchesQuery(busStop, query));
-
-  static bool _matchesQuery(BusStop busStop, String query) {
-    final String queryLowercase = query.toLowerCase();
-    final String busStopCodeLowercase = busStop.code.toLowerCase();
-    final String busStopDisplayNameLowercase = busStop.displayName.toLowerCase();
-    final String busStopDefaultNameLowercase = busStop.defaultName.toLowerCase();
-
-    return busStopCodeLowercase.contains(queryLowercase) || busStopDisplayNameLowercase.contains(queryLowercase) || busStopDefaultNameLowercase.contains(queryLowercase);
-  }
 
   static Map<String, dynamic> _calculateQueryMetadata(BusStop busStop, String query) {
     final String queryLowercase = query.toLowerCase();

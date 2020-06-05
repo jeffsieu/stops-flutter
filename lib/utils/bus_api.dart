@@ -152,6 +152,16 @@ class BusAPI {
     return _arrivalCache[busStop];
   }
 
+  Future<DateTime> getArrivalTime(BusStop busStop, String busServiceNumber) async {
+    final List<BusServiceArrivalResult> arrivalResults = getLatestArrival(busStop);
+    for (BusServiceArrivalResult arrivalResult in arrivalResults) {
+      if (arrivalResult.busService.number == busServiceNumber) {
+        return arrivalResult.buses[0].arrivalTime;
+      }
+    }
+    return null;
+  }
+
   Stream<List<BusServiceArrivalResult>> busStopArrivalStream(BusStop busStop)  {
     if (busStop == null) {
       return null;

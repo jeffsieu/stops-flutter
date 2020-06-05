@@ -75,7 +75,7 @@ class AddRoutePageState extends State<AddRoutePage> {
             Row(
               children: <Widget>[
                 InkWell(
-                  borderRadius: BorderRadius.circular(32.0),
+                  borderRadius: BorderRadius.circular(8.0),
                   onTap: _showColorDialog,
                   child: Container(
                     padding: const EdgeInsets.all(8.0),
@@ -84,7 +84,12 @@ class AddRoutePageState extends State<AddRoutePage> {
                       height: 48.0,
                       decoration: BoxDecoration(
                         color: _color,
-                        borderRadius: BorderRadius.circular(24.0),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Center(
+                        child: Icon(Icons.palette,
+                          color: _color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -221,7 +226,7 @@ class AddRoutePageState extends State<AddRoutePage> {
         return AlertDialog(
           title: const Text('Route color'),
           content: ColorPicker(
-            colors: Colors.primaries.map((a) => a.of(context)).toList(),
+            colors: Colors.primaries.map((Color a) => a.of(context)).toList(),
             size: 48.0,
             initialColor: _color.of(context),
             onColorChanged: (Color color) {

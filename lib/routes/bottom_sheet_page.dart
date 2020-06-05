@@ -52,5 +52,6 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T> 
   @mustCallSuper
   void hideBusDetailSheet() {
     rubberAnimationController.animateTo(to: rubberAnimationController.lowerBound);
+    widget.bottomSheetKey.currentState.updateWith(null, null);
   }
 }

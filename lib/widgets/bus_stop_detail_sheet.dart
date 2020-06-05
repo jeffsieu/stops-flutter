@@ -77,14 +77,20 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
    * Called externally from the parent containing this widget
    */
   Future<void> updateWith(BusStop busStop, UserRoute route) async {
+    _busStop = busStop;
+    _route = route;
+    if (_busStop == null || _route == null) {
+      setState(() {
+
+      });
+      return;
+    }
     final bool starred = await isBusStopInRoute(busStop, route);
     setState(() {
       if (_busStopListener != null) {
         unregisterBusStopListener(_busStop, _busStopListener);
       }
 
-      _busStop = busStop;
-      _route = route;
       _isStarEnabled = starred;
       _isEditing = false;
       _busArrivalStream = BusAPI().busStopArrivalStream(busStop);
@@ -107,15 +113,6 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           _isAnimating = false;
         });
       }
-
-      AnimationStatusListener statusListener;
-      statusListener = (AnimationStatus status) {
-        if (widget.rubberAnimationController.animationState.value ==
-            AnimationState.collapsed) {
-          widget.rubberAnimationController.removeStatusListener(statusListener);
-        }
-      };
-      widget.rubberAnimationController.addStatusListener(statusListener);
     });
 
     _busStopListener = (BusStop busStop) {

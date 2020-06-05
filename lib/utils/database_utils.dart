@@ -12,6 +12,7 @@ import 'package:sqflite/sqlite_api.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_route.dart';
 import '../utils/bus_utils.dart';
+import '../utils/notification_utils.dart';
 import '../utils/user_route.dart';
 import 'bus_service.dart';
 import 'bus_stop.dart';
@@ -114,7 +115,7 @@ Future<void> setThemeMode(ThemeMode themeMode) async {
 }
 
 Future<Map<String, dynamic>> getNearestBusStops(double latitude, double longitude) async {
-  const int numberOfEntries = 3;
+  const int numberOfEntries = 5;
 
   const String distanceQuery = '(latitude - ?) * (latitude - ?) + (longitude - ?) * (longitude - ?) AS distance';
   const String fullQuery = 'SELECT *, $distanceQuery FROM bus_stop ORDER BY distance LIMIT ?';
@@ -312,13 +313,23 @@ void _updateBusStopListeners(BusStop busStop) {
 
 Future<void> followBus({@required String stop, @required String bus}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  prefs.setBool('$_isBusFollowedKey$stop$bus', true);
+  if (!prefs.containsKey(_isBusFollowedKey)) {
+    prefs.setStringList(_isBusFollowedKey, <String>[]);
+  }
 
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
   final String key = _followerKey(stop, bus);
+  if (!followedBuses.contains(key)) {
+    followedBuses.add(key);
+  }
+
+  prefs.setStringList(_isBusFollowedKey, followedBuses);
 
   // To allow removal of listener while in iteration
   // (as it is common behaviour for a listener to
   // detach itself after a certain call)
+  if (_busFollowStatusListeners[key] == null)
+      return;
   final List<BusFollowStatusListener> listeners = List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]);
 
   for (BusFollowStatusListener listener in listeners) {
@@ -326,15 +337,32 @@ Future<void> followBus({@required String stop, @required String bus}) async {
   }
 }
 
+Future<List<String>> getFollowedBuses() async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  if (!prefs.containsKey(_isBusFollowedKey)) {
+    return <String>[];
+  }
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
+  return followedBuses;
+}
+
 Future<void> unfollowBus({@required String stop, @required String bus}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  prefs.remove('$_isBusFollowedKey$stop$bus');
+  if (!prefs.containsKey(_isBusFollowedKey)) {
+    prefs.setStringList(_isBusFollowedKey, <String>[]);
+  }
 
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
   final String key = _followerKey(stop, bus);
+  followedBuses.remove(key);
+
+  prefs.setStringList(_isBusFollowedKey, followedBuses);
 
   // To allow removal of listener while in iteration
   // (as it is common behaviour for a listener to
   // detach itself after a certain call)
+  if (_busFollowStatusListeners[key] == null)
+    return;
   final List<BusFollowStatusListener> listeners = List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]);
 
   for (BusFollowStatusListener listener in listeners) {
@@ -344,7 +372,23 @@ Future<void> unfollowBus({@required String stop, @required String bus}) async {
 
 Future<bool> isBusFollowed({@required String stop, @required String bus}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  return prefs.containsKey('$_isBusFollowedKey$stop$bus');
+  if (!prefs.containsKey(_isBusFollowedKey)) {
+    return false;
+  }
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
+  final String key = _followerKey(stop, bus);
+  if (followedBuses.contains(key))
+  {
+    final bool isTracked = await NotificationAPI().isBusTracked(stop, bus);
+    if (isTracked)
+      return true;
+    else{
+      followedBuses.remove(key);
+      prefs.setStringList(_isBusFollowedKey, followedBuses);
+      return false;
+    }
+  }
+  return false;
 }
 
 String _followerKey(String stop, String bus) => '$stop $bus';

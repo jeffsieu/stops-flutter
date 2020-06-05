@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:expandable/expandable.dart';
 import 'package:location/location.dart';
 import 'package:quick_actions/quick_actions.dart';
 
@@ -215,46 +216,59 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
         if (snapshot.hasData)
           _nearestBusStops = snapshot.data;
-        return snapshot.hasData && snapshot.data['busStops'].length == 3 ? Container(
-          height: 150,
-          child: ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            scrollDirection: Axis.horizontal,
-            itemCount: 3,
-            itemBuilder: (BuildContext context, int position) {
-              final BusStop busStop = snapshot.data['busStops'][position];
-              final double distanceInMeters = snapshot.data['distances'][position];
-
-              return ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: MediaQuery.of(context).size.width * 0.9,
+        return snapshot.hasData && snapshot.data['busStops'].length == 5 ? Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+          margin: const EdgeInsets.all(8.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: ExpandablePanel(
+              tapHeaderToExpand: false,
+              headerAlignment: ExpandablePanelHeaderAlignment.center,
+              header: Container(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text('Nearby stops', style: Theme.of(context).textTheme.display1),
+              ),
+              collapsed: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _buildSuggestionItem(snapshot.data['busStops'][0], snapshot.data['distances'][0]),
+                ],
+              ),
+              expanded: ListView.separated(
+                  physics: const NeverScrollableScrollPhysics(),
+                  scrollDirection: Axis.vertical,
+                  shrinkWrap: true,
+                  itemCount: 5,
+                  separatorBuilder: (BuildContext context, int position) => const Divider(),
+                  itemBuilder: (BuildContext context, int position) {
+                    final BusStop busStop = snapshot.data['busStops'][position ];
+                    final double distanceInMeters = snapshot.data['distances'][position];
+                    return _buildSuggestionItem(busStop, distanceInMeters);
+                  },
                 ),
-                child: Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                  margin: const EdgeInsets.all(8.0),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8.0),
-                    onTap: () => showBusDetailSheet(busStop, UserRoute.home),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text('${position == 0 ? 'Nearest' : 'Nearby'} bus stop', style: Theme.of(context).textTheme.display1),
-                          Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
-                          Container(height: 16.0),
-                          Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),
-                          Text('${busStop.code} · ${busStop.road}', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
+            ),
           ),
         ) : Container();
       },
+    );
+  }
+
+  Widget _buildSuggestionItem(BusStop busStop, double distanceInMeters) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8.0),
+      onTap: () => showBusDetailSheet(busStop, UserRoute.home),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
+            Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),
+            Text('${busStop.code} · ${busStop.road}', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
+          ],
+        ),
+      ),
     );
   }
 

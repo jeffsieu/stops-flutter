@@ -136,37 +136,24 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
         onPressed: () {
           if (_isBusFollowed) {
             unfollowBus(stop: widget.busStop.code, bus: service.number);
+            NotificationAPI().untrackBus();
           } else {
-            BusFollowStatusListener listener;
-            listener = (String stop, String code, bool isFollowed) {
-              if (stop == widget.busStop.code &&
-                  code == service.number &&
-                  !isFollowed) {
-                setState(() {
-                  _isBusFollowed = !_isBusFollowed;
-                });
-
-                removeBusFollowStatusListener(widget.busStop.code, service.number, listener);
-              }
-            };
-
-            addBusFollowStatusListener(widget.busStop.code, service.number, listener);
 
             final DateTime estimatedArrivalTime = widget.arrivalResult.buses[0].arrivalTime;
             final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
 
             followBus(stop: widget.busStop.code, bus: service.number);
-            final SnackBar snackBar = SnackBar(content: Text('You will be notified when ${service.number} arrives'));
+            final SnackBar snackBar = SnackBar(content: Text('Tracking the next ${service.number} bus'));
 
             Scaffold.of(context).showSnackBar(snackBar);
             // Add notification timer
-            NotificationAPI().scheduleNotification(widget.busStop.code, service.number, notificationTime);
-
-            if (mounted)
-              setState(() {
-                _isBusFollowed = !_isBusFollowed;
-              });
+            NotificationAPI().trackBus(widget.busStop, service, notificationTime);
           }
+
+          if (mounted)
+            setState(() {
+              _isBusFollowed = !_isBusFollowed;
+            });
         },
       ),
     );
@@ -254,7 +241,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
 
   @override
   Widget build(BuildContext context) {
-    if (getMinutesFromNow(widget.bus.arrivalTime) <= 1) {
+    if (widget.bus.arrivalTime.getMinutesFromNow() <= 1) {
       if (!_controller.isAnimating)
         _controller.forward();
     }
@@ -280,7 +267,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
                 );
               },
               child: Text(
-                getBusTimingShortened(getMinutesFromNow(widget.bus.arrivalTime)),
+                getBusTimingShortened(widget.bus.arrivalTime.getMinutesFromNow()),
                 style: Theme.of(context).textTheme.title.copyWith(color: busLoadColor, fontSize: 24),
               ),
             ),
