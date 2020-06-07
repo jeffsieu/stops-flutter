@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../utils/database_utils.dart';
-import 'stops_app.dart';
+import '../main.dart';
 
 class SettingsPage extends StatefulWidget {
   static const String _kThemeLabelSystem = 'System';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../utils/database_utils.dart';
-import 'home_page.dart';
+import 'routes/home_page.dart';
+import 'utils/database_utils.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,9 +57,9 @@ class StopsAppState extends State<StopsApp> {
         popupMenuTheme: PopupMenuThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
         cardTheme: CardTheme(elevation: 2.0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
         dialogTheme: DialogTheme(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
-        textTheme: TextTheme(
-          display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.deepOrangeAccent),
-          headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
+        textTheme: const TextTheme(
+          headline4: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.deepOrangeAccent),
+          headline5: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
         ),
       ),
       darkTheme: ThemeData(
@@ -76,9 +76,9 @@ class StopsAppState extends State<StopsApp> {
         popupMenuTheme: PopupMenuThemeData(color: const Color(0xFF323232), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
         cardTheme: CardTheme(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
         dialogTheme: DialogTheme(backgroundColor: const Color(0xFF323232), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
-        textTheme: TextTheme(
-          display1: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
-          headline: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
+        textTheme: const TextTheme(
+          headline4: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 3, color: Colors.orangeAccent),
+          headline5: TextStyle(fontWeight: FontWeight.w300, fontSize: 28),
         ),
       ),
     );

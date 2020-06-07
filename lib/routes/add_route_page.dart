@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:implicitly_animated_reorderable_list/transitions.dart';
 
+import '../main.dart';
 import '../routes/fade_page_route.dart';
 import '../routes/search_page.dart';
 import '../utils/bus_stop.dart';
@@ -11,7 +11,6 @@ import '../utils/user_route.dart';
 import '../widgets/card_app_bar.dart';
 import '../widgets/color_picker.dart';
 import '../widgets/never_focus_node.dart';
-import 'stops_app.dart';
 
 class AddRoutePage extends StatefulWidget {
   const AddRoutePage() : route = null;
@@ -61,7 +60,7 @@ class AddRoutePageState extends State<AddRoutePage> {
         title: Text(widget.route == null ? 'Add route' : 'Edit route'),
         actions: <Widget>[
           IconButton(
-            icon: Icon(Icons.done),
+            icon: const Icon(Icons.done),
             tooltip: 'Done',
             onPressed: _popRoute,
           )

@@ -44,7 +44,7 @@ class NotificationAPI {
   static const int notificationId = 0;
   static const int silentNotificationId = 1;
 
-  static AndroidNotificationDetails silentAndroidDetails = AndroidNotificationDetails(
+  static AndroidNotificationDetails silentAndroidDetails = const AndroidNotificationDetails(
     _busArrivalSilentChannelId,
     _busArrivalSilentChannelName,
     _busArrivalSilentChannelDescription,
@@ -57,7 +57,7 @@ class NotificationAPI {
     onlyAlertOnce: true,
     enableVibration: true,
     showWhen: false,
-    styleInformation: const BigTextStyleInformation(''),
+    styleInformation: BigTextStyleInformation(''),
   );
 
   static AndroidNotificationDetails androidDetails = AndroidNotificationDetails(

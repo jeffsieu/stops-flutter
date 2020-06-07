@@ -22,7 +22,7 @@ import '../widgets/bus_stop_search_item.dart';
 import '../widgets/card_app_bar.dart';
 import 'bottom_sheet_page.dart';
 import 'bus_service_page.dart';
-import 'stops_app.dart';
+import '../main.dart';
 
 
 class SearchPage extends BottomSheetPage {

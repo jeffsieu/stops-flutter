@@ -1,10 +1,11 @@
+import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'package:expandable/expandable.dart';
 import 'package:location/location.dart';
 import 'package:quick_actions/quick_actions.dart';
+import 'package:shimmer/shimmer.dart';
 
+import '../main.dart';
 import '../routes/add_route_page.dart';
 import '../routes/route_page.dart';
 import '../routes/settings_page.dart';
@@ -23,7 +24,6 @@ import '../widgets/route_model.dart';
 import 'bottom_sheet_page.dart';
 import 'fade_page_route.dart';
 import 'search_page.dart';
-import 'stops_app.dart';
 
 class HomePage extends BottomSheetPage {
   @override
@@ -79,7 +79,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             heroTag: null,
             onPressed: _pushAddRouteRoute,
             label: const Text('Add new route'),
-            icon: Icon(Icons.add),
+            icon: const Icon(Icons.add),
           ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -99,14 +99,14 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             });
             hideBusDetailSheet();
           },
-          items: <BottomNavigationBarItem>[
+          items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
-              title: const Text('Home'),
+              title: Text('Home'),
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.directions),
-              title: const Text('Routes'),
+              title: Text('Routes'),
             ),
           ],
         ),
@@ -216,58 +216,85 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
         if (snapshot.hasData)
           _nearestBusStops = snapshot.data;
-        return snapshot.hasData && snapshot.data['busStops'].length == 5 ? Card(
+        final bool isLoaded = snapshot.hasData && snapshot.data['busStops'].length == 5;
+        return Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
           margin: const EdgeInsets.all(8.0),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.only(bottom: 8.0),
             child: ExpandablePanel(
-              tapHeaderToExpand: false,
+              tapHeaderToExpand: true,
               headerAlignment: ExpandablePanelHeaderAlignment.center,
               header: Container(
                 alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text('Nearby stops', style: Theme.of(context).textTheme.display1),
+                padding: const EdgeInsets.all(16.0),
+                child: Text('Nearby stops', style: Theme.of(context).textTheme.headline4),
               ),
               collapsed: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  _buildSuggestionItem(snapshot.data['busStops'][0], snapshot.data['distances'][0]),
+                  if (isLoaded)
+                    _buildSuggestionItem(snapshot.data['busStops'][0], snapshot.data['distances'][0]),
+                  if (!isLoaded)
+                    _buildSuggestionItem(null, null),
                 ],
               ),
-              expanded: ListView.separated(
-                  physics: const NeverScrollableScrollPhysics(),
-                  scrollDirection: Axis.vertical,
-                  shrinkWrap: true,
-                  itemCount: 5,
-                  separatorBuilder: (BuildContext context, int position) => const Divider(),
-                  itemBuilder: (BuildContext context, int position) {
-                    final BusStop busStop = snapshot.data['busStops'][position ];
-                    final double distanceInMeters = snapshot.data['distances'][position];
-                    return _buildSuggestionItem(busStop, distanceInMeters);
-                  },
-                ),
+              expanded: isLoaded ? ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                scrollDirection: Axis.vertical,
+                shrinkWrap: true,
+                itemCount: 5,
+                separatorBuilder: (BuildContext context, int position) => const Divider(),
+                itemBuilder: (BuildContext context, int position) {
+                  final BusStop busStop = snapshot.data['busStops'][position ];
+                  final double distanceInMeters = snapshot.data['distances'][position];
+                  return _buildSuggestionItem(busStop, distanceInMeters);
+                },
+              ) : Container(),
             ),
           ),
-        ) : Container();
+        );
       },
     );
   }
 
   Widget _buildSuggestionItem(BusStop busStop, double distanceInMeters) {
+    final bool showShimmer = busStop == null || distanceInMeters == null;
+
+    Widget child;
+    if (showShimmer) {
+      child = Shimmer.fromColors(
+        baseColor: Color.lerp(Theme.of(context).hintColor, Theme.of(context).canvasColor, 0.9),
+        highlightColor: Theme.of(context).canvasColor,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('▅▅▅▅▅▅▅▅', style: Theme.of(context).textTheme.overline.copyWith(backgroundColor: Colors.grey)),
+            Text('██████████', style: Theme.of(context).textTheme.bodyText2.copyWith(backgroundColor: Colors.grey)),
+            Text('▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅', style: Theme.of(context).textTheme.overline.copyWith(backgroundColor: Colors.grey)),
+          ],
+        ),
+      );
+    } else {
+      final String distanceText = '${distanceInMeters.floor()} m away';
+      final String busStopNameText = busStop.displayName;
+      final String busStopCodeText = '${busStop.code} · ${busStop.road}';
+      child = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(distanceText, style: Theme.of(context).textTheme.bodyText1.copyWith(color: Colors.grey)),
+          Text(busStopNameText, style: Theme.of(context).textTheme.headline6),
+          Text(busStopCodeText, style: Theme.of(context).textTheme.bodyText1.copyWith(color: Colors.grey)),
+        ],
+      );
+    }
+
     return InkWell(
       borderRadius: BorderRadius.circular(8.0),
       onTap: () => showBusDetailSheet(busStop, UserRoute.home),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('${distanceInMeters.floor()} m away', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
-            Text('${busStop.displayName}', style: Theme.of(context).textTheme.title),
-            Text('${busStop.code} · ${busStop.road}', style: Theme.of(context).textTheme.body2.copyWith(color: Colors.grey)),
-          ],
-        ),
+        child: child,
       ),
     );
   }
