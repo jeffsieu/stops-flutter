@@ -26,8 +26,8 @@ class RouteListItem extends StatelessWidget {
             color: route.color.of(context),
           ),
         ),
-        title: Text(route.name, style: Theme.of(context).textTheme.title),
-        subtitle: Text(route.busStops.map<String>((BusStop busStop) => busStop.displayName).join(' > '), style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
+        title: Text(route.name, style: Theme.of(context).textTheme.headline6),
+        subtitle: Text(route.busStops.map<String>((BusStop busStop) => busStop.displayName).join(' > '), style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).hintColor)),
         trailing: PopupMenuButton<RouteAction>(
           tooltip: 'Route options',
           onSelected: (RouteAction action) {

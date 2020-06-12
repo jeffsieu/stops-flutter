@@ -250,10 +250,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                     children: <Widget>[
                       Text(_busStop.displayName,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headline),
+                          style: Theme.of(context).textTheme.headline5),
                       Text('${_busStop.code} · ${_busStop.road}',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
+                          style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).hintColor)),
                     ],
                   ),
                 ),
@@ -285,7 +285,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     if (_isEditing)
       return IconButton(
         tooltip: 'Done',
-        icon: Icon(Icons.done),
+        icon: const Icon(Icons.done),
         onPressed: () {
           setState(() {
             _isEditing = false;
@@ -372,12 +372,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
               children: <Widget>[
                 Text(
                   'Pinned bus services',
-                  style: Theme.of(context).textTheme.display1,
+                  style: Theme.of(context).textTheme.headline4,
                 ),
                 Text(
                   'Arrival times of pinned buses are displayed on the ${_route == UserRoute.home ? 'homepage' : 'route page'}',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.body1.copyWith(color: Theme.of(context).hintColor),
+                  style: Theme.of(context).textTheme.bodyText2.copyWith(color: Theme.of(context).hintColor),
                 )
               ],
             )
@@ -508,7 +508,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
 
   Widget _messageBox(String text) {
     return Center(
-        child: Text(text, style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).hintColor)),
+        child: Text(text, style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).hintColor)),
     );
   }
 
@@ -554,7 +554,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                     padding: const EdgeInsets.only(top: 16.0, left: 16.0),
                     child: Text(
                       'Rename bus stop',
-                      style: Theme.of(context).textTheme.title,
+                      style: Theme.of(context).textTheme.headline6,
                     ),
                   ),
                   Container(height: 16.0),

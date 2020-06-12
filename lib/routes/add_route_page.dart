@@ -180,7 +180,7 @@ class AddRoutePageState extends State<AddRoutePage> {
                           leading: Container(
                             width: 24,
                             child: Text('${position + 1}.',
-                                style: Theme.of(context).textTheme.title.copyWith(color: _color),
+                                style: Theme.of(context).textTheme.headline6.copyWith(color: _color),
                                 textAlign: TextAlign.right,
                             ),
                           ),

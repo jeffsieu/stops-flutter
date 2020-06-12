@@ -77,15 +77,15 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
           text: widget.nameStart,
           style: Theme.of(context)
               .textTheme
-              .title
+              .headline6
               .copyWith(fontWeight: FontWeight.normal),
           children: <TextSpan>[
             TextSpan(
                 text: widget.nameBold,
-                style: Theme.of(context).textTheme.title.copyWith(
+                style: Theme.of(context).textTheme.headline6.copyWith(
                   fontWeight: FontWeight.bold,
                   decoration: TextDecoration.underline,
-                  decorationColor: Theme.of(context).textTheme.body1.color,
+                  decorationColor: Theme.of(context).textTheme.bodyText2.color,
                   background: Paint()
                     ..color =
                         Theme.of(context).highlightColor,
@@ -100,15 +100,15 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
           text: widget.codeStart,
           style: Theme.of(context)
               .textTheme
-              .subtitle
+              .subtitle2
               .copyWith(fontWeight: FontWeight.normal),
           children: <TextSpan>[
             TextSpan(
                 text: widget.codeBold,
-                style: Theme.of(context).textTheme.subtitle.copyWith(
+                style: Theme.of(context).textTheme.subtitle2.copyWith(
                   fontWeight: FontWeight.bold,
                   decoration: TextDecoration.underline,
-                  decorationColor: Theme.of(context).textTheme.body1.color,
+                  decorationColor: Theme.of(context).textTheme.bodyText2.color,
                   background: Paint()
                     ..color =
                         Theme.of(context).highlightColor,

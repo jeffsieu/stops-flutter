@@ -100,8 +100,8 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                         child: Text(
                           _padServiceNumber(service.number),
                           style: widget.hasArrivals ?
-                            Theme.of(context).textTheme.title.copyWith(fontFamily: 'B612 Mono') :
-                            Theme.of(context).textTheme.title.copyWith(
+                            Theme.of(context).textTheme.headline6.copyWith(fontFamily: 'B612 Mono') :
+                            Theme.of(context).textTheme.headline6.copyWith(
                               fontFamily: 'B612 Mono',
                               color: Theme.of(context).hintColor,
                             ),
@@ -131,7 +131,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
       opacity: widget.isEditing ? 0 : 1,
       child: IconButton(
         tooltip: 'Notify me when the bus arrives',
-        icon: _isBusFollowed ? Icon(Icons.notifications_active)
+        icon: _isBusFollowed ? const Icon(Icons.notifications_active)
             : Icon(Icons.notifications_none, color: Theme.of(context).hintColor),
         onPressed: () {
           if (_isBusFollowed) {
@@ -253,7 +253,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
       children: <Widget>[
         Text(
           getBusTypeVerbose(widget.bus.type),
-          style: Theme.of(context).textTheme.body1.copyWith(color: busLoadColor.withOpacity(0.5)),
+          style: Theme.of(context).textTheme.bodyText2.copyWith(color: busLoadColor.withOpacity(0.5)),
         ),
         Container(
           width: BusTimingRow.height,
@@ -268,7 +268,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
               },
               child: Text(
                 getBusTimingShortened(widget.bus.arrivalTime.getMinutesFromNow()),
-                style: Theme.of(context).textTheme.title.copyWith(color: busLoadColor, fontSize: 24),
+                style: Theme.of(context).textTheme.headline6.copyWith(color: busLoadColor, fontSize: 24),
               ),
             ),
           ),

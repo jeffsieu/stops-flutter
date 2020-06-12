@@ -69,8 +69,8 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
               child: Center(
                 child: Column(
                   children: <Widget>[
-                    Text(name, style: Theme.of(context).textTheme.title),
-                    Text('$code · $road', style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).hintColor)),
+                    Text(name, style: Theme.of(context).textTheme.headline6),
+                    Text('$code · $road', style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).hintColor)),
                   ],
                 )
               ),
@@ -123,7 +123,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                     ],
                   ),
                 ) : Center(
-                  child: Text(BusAPI.kNoPinnedBusesError, style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).hintColor)),
+                  child: Text(BusAPI.kNoPinnedBusesError, style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).hintColor)),
                 ),
               );
           }
@@ -160,7 +160,7 @@ class _BusTimingChipState extends State<BusTimingChip> {
           children: <TextSpan>[
             TextSpan(
               text: '${widget.serviceNumber}',
-              style: Theme.of(context).textTheme.body1.copyWith(
+              style: Theme.of(context).textTheme.bodyText2.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   fontFamily: 'B612 Mono',
@@ -169,7 +169,7 @@ class _BusTimingChipState extends State<BusTimingChip> {
             ),
             TextSpan(
               text:  ' · ${getBusTimingVerbose(widget.bus.arrivalTime.getMinutesFromNow())}',
-              style: Theme.of(context).textTheme.body1.copyWith(
+              style: Theme.of(context).textTheme.bodyText2.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   color: getBusLoadColor(widget.bus.load, MediaQuery.of(context).platformBrightness),

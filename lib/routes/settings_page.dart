@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../utils/database_utils.dart';
 import '../main.dart';
+import '../utils/database_utils.dart';
 
 class SettingsPage extends StatefulWidget {
   static const String _kThemeLabelSystem = 'System';
@@ -39,7 +39,7 @@ class SettingsPageState extends State<SettingsPage> {
           ListTile(
             title: const Text('Theme'),
             subtitle: Text(_getThemeLabel(_themeMode)),
-            leading: Icon(Icons.brush),
+            leading: const Icon(Icons.brush),
             onTap: () {
               showDialog<ThemeMode>(
                 context: context,

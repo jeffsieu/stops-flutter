@@ -25,11 +25,11 @@ class BusStopLegendCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.info_outline, color: Theme.of(context).textTheme.display1.color),
+              Icon(Icons.info_outline, color: Theme.of(context).textTheme.headline4.color),
               Container(width: 16.0),
               Text(
                   'Legend',
-                  style: Theme.of(context).textTheme.display1
+                  style: Theme.of(context).textTheme.headline4
               ),
             ],
           ),
@@ -83,7 +83,7 @@ class BusStopLegendCard extends StatelessWidget {
                 child: Center(
                   child: Text(
                     getBusTypeVerbose(BusType.double),
-                    style: Theme.of(context).textTheme.title,
+                    style: Theme.of(context).textTheme.headline4,
                   ),
                 ),
               ),

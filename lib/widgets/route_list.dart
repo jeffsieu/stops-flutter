@@ -45,7 +45,7 @@ class RouteListState extends State<RouteList> {
             return Container(
               padding: const EdgeInsets.all(32.0),
               child: Center(
-                child: Text('No routes created.\n\nCreate a route to organize bus stops you go to frequently.', style: Theme.of(context).textTheme.display1.copyWith(color: Theme.of(context).hintColor)),
+                child: Text('No routes created.\n\nCreate a route to organize bus stops you go to frequently.', style: Theme.of(context).textTheme.headline4.copyWith(color: Theme.of(context).hintColor)),
               ),
             );
 

@@ -6,11 +6,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
 import 'package:latlong/latlong.dart' as latlong;
+import 'package:location/location.dart';
 
+import '../main.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_service.dart';
 import '../utils/bus_stop.dart';
@@ -22,7 +22,6 @@ import '../widgets/bus_stop_search_item.dart';
 import '../widgets/card_app_bar.dart';
 import 'bottom_sheet_page.dart';
 import 'bus_service_page.dart';
-import '../main.dart';
 
 
 class SearchPage extends BottomSheetPage {
@@ -314,7 +313,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
                     Text(
                       'Hide map',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).accentColor, fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).accentColor, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -530,7 +529,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
                     padding: const EdgeInsets.only(
                         left: 16.0, top: 16.0, bottom: 8.0),
                     child: Text.rich(
-                        const TextSpan(text: 'Past searches'), style: Theme.of(context).textTheme.display1),
+                        const TextSpan(text: 'Past searches'), style: Theme.of(context).textTheme.headline4),
                   ),
                   ListView.builder(
                     padding: const EdgeInsets.all(0.0),
@@ -565,7 +564,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text('Services', style: Theme.of(context).textTheme.display1),
+            Text('Services', style: Theme.of(context).textTheme.headline4),
             FlatButton(
               onPressed: _toggleShowServicesOnly,
               child: const Text('See all'),
@@ -581,7 +580,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       child: Padding(
         padding: const EdgeInsets.only(top: 8.0, left: 16.0),
         child:
-        Text('Bus stops', style: Theme.of(context).textTheme.display1),
+        Text('Bus stops', style: Theme.of(context).textTheme.headline4),
       ),
     );
   }

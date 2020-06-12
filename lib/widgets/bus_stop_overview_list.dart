@@ -50,7 +50,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                 return Container(
                   padding: const EdgeInsets.all(32.0),
                   child: Center(
-                    child: Text('Pinned bus stops appear here.\n\nTap the star next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.', style: Theme.of(context).textTheme.display1.copyWith(color: Theme.of(context).hintColor)),
+                    child: Text('Pinned bus stops appear here.\n\nTap the star next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.', style: Theme.of(context).textTheme.headline4.copyWith(color: Theme.of(context).hintColor)),
                   ),
                 );
               else {
