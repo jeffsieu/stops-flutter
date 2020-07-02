@@ -89,3 +89,17 @@ int compareBusNumber(String a, String b) {
   }
   return diff;
 }
+
+extension BusNumberFormat on String {
+  String padAsServiceNumber() {
+    // Service number contains letter
+    final String serviceNumber = this;
+    if (serviceNumber.contains(RegExp(r'\D'))) {
+      final String number = serviceNumber.substring(0, serviceNumber.length - 1);
+      final String letter = serviceNumber[serviceNumber.length - 1];
+      return number.padLeft(3) + letter;
+    } else {
+      return serviceNumber.padLeft(3).padRight(1);
+    }
+  }
+}

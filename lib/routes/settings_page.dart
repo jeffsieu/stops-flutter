@@ -36,47 +36,71 @@ class SettingsPageState extends State<SettingsPage> {
       ),
       body: ListView(
         children: <Widget>[
-          ListTile(
-            title: const Text('Theme'),
-            subtitle: Text(_getThemeLabel(_themeMode)),
-            leading: const Icon(Icons.brush),
-            onTap: () {
-              showDialog<ThemeMode>(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Choose theme'),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        RadioListTile<ThemeMode>(
-                          title: Text(_getThemeLabel(ThemeMode.system)),
-                          value: ThemeMode.system,
-                          groupValue: _themeMode,
-                          onChanged: _onThemeModeChanged,
-                        ),
-                        RadioListTile<ThemeMode>(
-                          title: const Text(SettingsPage._kThemeLabelLight),
-                          value: ThemeMode.light,
-                          groupValue: _themeMode,
-                          onChanged: _onThemeModeChanged,
-                        ),
-                        RadioListTile<ThemeMode>(
-                          title: const Text(SettingsPage._kThemeLabelDark),
-                          value: ThemeMode.dark,
-                          groupValue: _themeMode,
-                          onChanged: _onThemeModeChanged,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              );
-            },
-          ),
+          _buildThemeTile(),
+          _buildAboutTile(),
         ],
       ),
+    );
+  }
+
+  Widget _buildThemeTile() {
+    return ListTile(
+      title: const Text('Theme'),
+      subtitle: Text(_getThemeLabel(_themeMode)),
+      leading: const Icon(Icons.brush),
+      onTap: () {
+        showDialog<ThemeMode>(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Choose theme'),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    RadioListTile<ThemeMode>(
+                      title: Text(_getThemeLabel(ThemeMode.system)),
+                      value: ThemeMode.system,
+                      groupValue: _themeMode,
+                      onChanged: _onThemeModeChanged,
+                    ),
+                    RadioListTile<ThemeMode>(
+                      title: const Text(SettingsPage._kThemeLabelLight),
+                      value: ThemeMode.light,
+                      groupValue: _themeMode,
+                      onChanged: _onThemeModeChanged,
+                    ),
+                    RadioListTile<ThemeMode>(
+                      title: const Text(SettingsPage._kThemeLabelDark),
+                      value: ThemeMode.dark,
+                      groupValue: _themeMode,
+                      onChanged: _onThemeModeChanged,
+                    ),
+                  ],
+                ),
+              );
+            }
+        );
+      },
+    );
+  }
+
+  Widget _buildAboutTile() {
+    return ListTile(
+      title: const Text('About'),
+      leading: const Icon(Icons.info_outline),
+      onTap: () {
+        showAboutDialog(
+          context: context,
+          applicationIcon: Image.asset(
+            'assets/images/icon/icon_squircle.png',
+            width: IconTheme.of(context).size * 2,
+            height: IconTheme.of(context).size * 2,
+          ),
+          applicationName: 'Stops',
+          applicationVersion: '0.5.1',
+        );
+      },
     );
   }
 

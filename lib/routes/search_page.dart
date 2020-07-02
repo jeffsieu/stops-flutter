@@ -338,29 +338,48 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     final Widget body = Stack(
       children: <Widget>[
         _buildMapWidget(),
-        AnimatedBuilder(
-          animation: _mapClipperAnimation,
-          builder: (BuildContext context, Widget child) {
-            return Transform.translate(offset: Offset(0, (MediaQuery.of(context).size.height - _resultsSheetCollapsedHeight) * _mapClipperAnimation.value), child: child);
-          },
-          child: Material(
-            elevation: 4.0,
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (ScrollNotification notification) {
-                if (notification is ScrollStartNotification && notification.dragDetails != null) {
-                  _hideKeyboard();
-                  return true;
-                }
-                return false;
+        Stack(
+          children: <Widget>[
+            AnimatedBuilder(
+              animation: _mapClipperAnimation,
+              builder: (BuildContext context, Widget child) {
+                return Transform.translate(offset: Offset(0, (MediaQuery.of(context).size.height - _resultsSheetCollapsedHeight) * _mapClipperAnimation.value), child: child);
               },
-              child: CustomScrollView(
-                physics: _isMapVisible ? const NeverScrollableScrollPhysics() : const ScrollPhysics(),
-                controller: _scrollController,
-                slivers: slivers,
+              child: Material(
+                elevation: 4.0,
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (ScrollNotification notification) {
+                    if (notification is ScrollStartNotification && notification.dragDetails != null) {
+                      _hideKeyboard();
+                      return true;
+                    }
+                    return false;
+                  },
+                  child: CustomScrollView(
+                    physics: _isMapVisible ? const NeverScrollableScrollPhysics() : const ScrollPhysics(),
+                    controller: _scrollController,
+                    slivers: slivers,
+                  ),
+                ),
               ),
             ),
-          ),
+            // Hide the overscroll contents from the status bar, only when map not visible
+            AnimatedBuilder(
+              animation: _scrollController,
+              builder: (BuildContext context, Widget child) {
+                final bool showBackground = _scrollController.offset - kToolbarHeight / 2 - MediaQuery.of(context).padding.top >= 0 && !_isMapVisible;
+                return Opacity(
+                  opacity: showBackground ? 1 : 0,
+                  child: child,
+                );
+              },
+              child: Container(
+                height: kToolbarHeight / 2 + MediaQuery.of(context).padding.top,
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+            ),
+          ],
         ),
         Positioned(
           top: 0,

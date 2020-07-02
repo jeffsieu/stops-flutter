@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../routes/bus_service_page.dart';
+import '../routes/home_page.dart';
 import '../utils/bus_service.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
@@ -98,7 +99,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                         height: BusTimingRow.height,
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text(
-                          _padServiceNumber(service.number),
+                          service.number.padAsServiceNumber(),
                           style: widget.hasArrivals ?
                             Theme.of(context).textTheme.headline6.copyWith(fontFamily: 'B612 Mono') :
                             Theme.of(context).textTheme.headline6.copyWith(
@@ -136,24 +137,26 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
         onPressed: () {
           if (_isBusFollowed) {
             unfollowBus(stop: widget.busStop.code, bus: service.number);
-            NotificationAPI().untrackBus();
           } else {
+            final SnackBar snackBar = SnackBar(content: Text('Tracking the ${service.number} bus arriving in ${widget.arrivalResult.buses[0].arrivalTime.getMinutesFromNow()} min'));
+            Scaffold.of(context).showSnackBar(snackBar);
 
             final DateTime estimatedArrivalTime = widget.arrivalResult.buses[0].arrivalTime;
-            final DateTime notificationTime = estimatedArrivalTime.subtract(const Duration(seconds: 30));
-
-            followBus(stop: widget.busStop.code, bus: service.number);
-            final SnackBar snackBar = SnackBar(content: Text('Tracking the next ${service.number} bus'));
-
-            Scaffold.of(context).showSnackBar(snackBar);
-            // Add notification timer
-            NotificationAPI().trackBus(widget.busStop, service, notificationTime);
+            followBus(stop: widget.busStop.code, bus: service.number, arrivalTime: estimatedArrivalTime);
           }
+          updateNotifications();
 
-          if (mounted)
-            setState(() {
-              _isBusFollowed = !_isBusFollowed;
-            });
+          isBusFollowed(stop: widget.busStop.code, bus: service.number).then<void>((bool isFollowed) {
+            if (mounted)
+            {
+              setState(() {
+                _isBusFollowed = isFollowed;
+              });
+
+              // Refresh home page to show followed buses
+              HomePage.of(context).refreshLocation();
+            }
+          });
         },
       ),
     );
@@ -189,17 +192,6 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
   void _pushBusServiceRoute(String serviceNumber) {
     final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage.withBusStop(serviceNumber, widget.busStop));
     Navigator.push(context, route);
-  }
-
-  String _padServiceNumber(String serviceNumber) {
-    // Service number contains letter
-    if (serviceNumber.contains(RegExp(r'\D'))) {
-      final String number = serviceNumber.substring(0, serviceNumber.length - 1);
-      final String letter = serviceNumber[serviceNumber.length - 1];
-      return number.padLeft(3) + letter;
-    } else {
-      return serviceNumber.padLeft(3).padRight(1);
-    }
   }
 }
 

@@ -9,10 +9,14 @@ import '../main.dart';
 import '../routes/add_route_page.dart';
 import '../routes/route_page.dart';
 import '../routes/settings_page.dart';
+import '../utils/bus.dart';
+import '../utils/bus_api.dart';
 import '../utils/bus_stop.dart';
+import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/location_utils.dart';
 import '../utils/reorder_status_notification.dart';
+import '../utils/time_utils.dart';
 import '../utils/user_route.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import '../widgets/card_app_bar.dart';
@@ -115,6 +119,10 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Future<bool> _onWillPop() async {
+    if (isBusDetailSheetVisible()) {
+      return true;
+    }
+
     if (_activeRoute != null) {
       setState(() {
         _activeRoute = null;
@@ -182,30 +190,94 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   Widget _buildBody() {
     return RefreshIndicator(
       onRefresh: refreshLocation,
-      child: CustomScrollView(
-        controller: _scrollController,
-        scrollDirection: Axis.vertical,
-        physics: canScroll ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
-        slivers: <Widget>[
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            brightness: Theme.of(context).brightness,
-            titleSpacing: 8.0,
-            title: Container(
-              child: _buildSearchField(),
-            ),
-            backgroundColor: Colors.transparent,
-            elevation: 0.0,
+      child: Stack(
+        children: <Widget>[
+          CustomScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.vertical,
+            physics: canScroll ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(
+                child: Container(
+                  alignment: Alignment.topCenter,
+                  height: 64.0 + MediaQuery.of(context).padding.top,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: HomePageContentSwitcher(
+                  scrollController: _scrollController,
+                  child: _buildContent(),
+                ),
+              ),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: HomePageContentSwitcher(
-              scrollController: _scrollController,
-              child: _buildContent(),
+          // Hide the overscroll contents from the status bar
+          Container(
+            height: kToolbarHeight / 2 + MediaQuery.of(context).padding.top,
+            color: Theme.of(context).scaffoldBackgroundColor,
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AppBar(
+              brightness: Theme.of(context).brightness,
+              backgroundColor: Colors.transparent,
+              leading: null,
+              automaticallyImplyLeading: false,
+              titleSpacing: 8.0,
+              elevation: 0.0,
+              title: Container(
+                child: _buildSearchField(),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTrackedBuses() {
+    return FutureBuilder<List<Bus>>(
+      future: getFollowedBuses(),
+      builder: (BuildContext context, AsyncSnapshot<List<Bus>> snapshot) {
+        return Card(
+          margin: const EdgeInsets.all(8.0),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Tracked buses', style: Theme.of(context).textTheme.headline4),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (BuildContext context, int position) {
+                    final Bus bus = snapshot.data[position];
+
+                    return ListTile(
+                      leading: Text(
+                          bus.busService.number.padAsServiceNumber(),
+                        style: Theme.of(context).textTheme.headline6.copyWith(fontFamily: 'B612 Mono')
+                      ),
+                      title: FutureBuilder<DateTime>(
+                        future: BusAPI().getArrivalTime(bus.busStop, bus.busService.number),
+                        builder: (BuildContext context, AsyncSnapshot<DateTime> snapshot) {
+                          return Text(snapshot.hasData ? '${snapshot.data.getMinutesFromNow()} min' : '',
+                            style: Theme.of(context).textTheme.subtitle1,
+                          );
+                        },
+                      ),
+                      subtitle: Text(bus.busStop.displayName),
+                    );
+                  },
+                  itemCount: snapshot?.data?.length ?? 0,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -216,14 +288,25 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
         if (snapshot.hasData)
           _nearestBusStops = snapshot.data;
+        else if (snapshot.connectionState == ConnectionState.done || !LocationUtils.isLocationAllowed()) {
+          return Container();
+        }
         final bool isLoaded = snapshot.hasData && snapshot.data['busStops'].length == 5;
         return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+          elevation: 0.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+            side: BorderSide(
+              color: Theme.of(context).dividerColor,
+            ),
+          ),
+          color: Theme.of(context).scaffoldBackgroundColor,
           margin: const EdgeInsets.all(8.0),
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: ExpandablePanel(
-              tapHeaderToExpand: true,
+              tapHeaderToExpand: isLoaded,
+              hasIcon: isLoaded,
               headerAlignment: ExpandablePanelHeaderAlignment.center,
               header: Container(
                 alignment: Alignment.centerLeft,
@@ -329,8 +412,10 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   List<Widget> _buildHomeItems() {
     return <Widget>[
+      _buildTrackedBuses(),
       _buildSuggestions(),
       const Divider(height: 32.0, indent: 8.0, endIndent: 8.0),
+      Center(child: Text('My Stops', style: Theme.of(context).textTheme.headline4,)),
       _busStopOverviewList,
     ];
   }
@@ -357,7 +442,6 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   Future<Map<String, dynamic>> _getNearestBusStops() async {
     final LocationData locationData = await LocationUtils.getLocation();
     if (locationData == null) {
-      // Location permissions not given
       return null;
     } else {
       return await getNearestBusStops(locationData.latitude, locationData.longitude);

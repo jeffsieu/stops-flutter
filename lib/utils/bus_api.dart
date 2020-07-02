@@ -153,7 +153,8 @@ class BusAPI {
   }
 
   Future<DateTime> getArrivalTime(BusStop busStop, String busServiceNumber) async {
-    final List<BusServiceArrivalResult> arrivalResults = getLatestArrival(busStop);
+    List<BusServiceArrivalResult> arrivalResults = getLatestArrival(busStop);
+    arrivalResults ??= await busStopArrivalStream(busStop).first;
     for (BusServiceArrivalResult arrivalResult in arrivalResults) {
       if (arrivalResult.busService.number == busServiceNumber) {
         return arrivalResult.buses[0].arrivalTime;

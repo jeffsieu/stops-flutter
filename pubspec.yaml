@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  android_alarm_manager: ^0.4.5+11
   cupertino_icons: ^0.1.2
   edit_distance: ^0.4.1
   expandable: ^2.2.0
@@ -60,5 +61,6 @@ flutter:
         weight: 400
 
   assets:
+    - assets/images/icon/icon_squircle.png
     - assets/secrets.json
     - assets/maps/map_style_dark.json

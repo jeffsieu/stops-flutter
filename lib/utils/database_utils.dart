@@ -9,13 +9,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';
 
-import '../utils/bus_api.dart';
-import '../utils/bus_route.dart';
-import '../utils/bus_utils.dart';
-import '../utils/notification_utils.dart';
-import '../utils/user_route.dart';
+import 'bus.dart';
+import 'bus_api.dart';
+import 'bus_route.dart';
 import 'bus_service.dart';
 import 'bus_stop.dart';
+import 'bus_utils.dart';
+import 'user_route.dart';
 
 /* Called when a bus stop is modified */
 typedef BusStopChangeListener = void Function(BusStop busStop);
@@ -28,6 +28,7 @@ const int defaultRouteId = -1;
 const String defaultRouteName = 'Home';
 const String _themeModeKey = 'THEME_OPTION';
 const String _isBusFollowedKey = 'BUS_FOLLOW';
+const String _busTimingsKey = 'BUS_TIMINGS';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
 const String _searchHistoryKey = 'SEARCH_HISTORY';
 const String _areBusStopsCachedKey = 'BUS_STOP_CACHE';
@@ -311,19 +312,26 @@ void _updateBusStopListeners(BusStop busStop) {
     }
 }
 
-Future<void> followBus({@required String stop, @required String bus}) async {
+Future<void> followBus({@required String stop, @required String bus, @required DateTime arrivalTime}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey)) {
     prefs.setStringList(_isBusFollowedKey, <String>[]);
   }
-
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
-  final String key = _followerKey(stop, bus);
-  if (!followedBuses.contains(key)) {
-    followedBuses.add(key);
+  if (!prefs.containsKey(_busTimingsKey)) {
+    prefs.setStringList(_busTimingsKey, <String>[]);
   }
 
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+
+  assert(followedBuses.length == followedBusTimings.length);
+
+  final String key = _followerKey(stop, bus);
+  followedBuses.add(key);
+  followedBusTimings.add(arrivalTime.toIso8601String());
+
   prefs.setStringList(_isBusFollowedKey, followedBuses);
+  prefs.setStringList(_busTimingsKey, followedBusTimings);
 
   // To allow removal of listener while in iteration
   // (as it is common behaviour for a listener to
@@ -337,12 +345,37 @@ Future<void> followBus({@required String stop, @required String bus}) async {
   }
 }
 
-Future<List<String>> getFollowedBuses() async {
+Future<List<Bus>> getFollowedBuses() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  if (!prefs.containsKey(_isBusFollowedKey)) {
-    return <String>[];
+  if (!prefs.containsKey(_isBusFollowedKey) || !prefs.containsKey(_busTimingsKey)) {
+    return <Bus>[];
   }
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
+  final List<Bus> followedBuses = <Bus>[];
+  final List<String> followedBusesRaw = prefs.getStringList(_isBusFollowedKey);
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+
+  assert(followedBusesRaw.length == followedBusTimings.length);
+
+  final DateTime now = DateTime.now();
+
+  for (int i = followedBusesRaw.length - 1; i >= 0; i--) {
+    final DateTime arrivalTime = DateTime.parse(followedBusTimings[i]);
+    if (arrivalTime.isBefore(now)) {
+      followedBusesRaw.removeAt(i);
+      followedBusTimings.removeAt(i);
+    }
+  }
+
+  for (int i = 0; i < followedBusesRaw.length; i++) {
+    final List<String> tokens = followedBusesRaw[i].split(' ');
+    final BusStop busStop = await getCachedBusStopWithCode(tokens[0]);
+    final BusService busService = await getCachedBusServiceWithNumber(tokens[1]);
+    followedBuses.add(Bus(busStop: busStop, busService: busService));
+  }
+
+  prefs.setStringList(_isBusFollowedKey, followedBusesRaw);
+  prefs.setStringList(_busTimingsKey, followedBusTimings);
+
   return followedBuses;
 }
 
@@ -351,12 +384,26 @@ Future<void> unfollowBus({@required String stop, @required String bus}) async {
   if (!prefs.containsKey(_isBusFollowedKey)) {
     prefs.setStringList(_isBusFollowedKey, <String>[]);
   }
+  if (!prefs.containsKey(_busTimingsKey)) {
+    prefs.setStringList(_busTimingsKey, <String>[]);
+  }
 
   final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+
+  assert(followedBuses.length == followedBusTimings.length);
+
   final String key = _followerKey(stop, bus);
-  followedBuses.remove(key);
+  final int index = followedBuses.indexOf(key);
+
+  if (index != -1) {
+    // If bus is not already un-followed (by cancelling)
+    followedBuses.remove(key);
+    followedBusTimings.removeAt(index);
+  }
 
   prefs.setStringList(_isBusFollowedKey, followedBuses);
+  prefs.setStringList(_busTimingsKey, followedBusTimings);
 
   // To allow removal of listener while in iteration
   // (as it is common behaviour for a listener to
@@ -375,16 +422,34 @@ Future<bool> isBusFollowed({@required String stop, @required String bus}) async 
   if (!prefs.containsKey(_isBusFollowedKey)) {
     return false;
   }
+  if (!prefs.containsKey(_busTimingsKey)) {
+    return false;
+  }
   final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+
+  if (followedBuses.length != followedBusTimings.length) {
+    followedBuses.clear();
+    followedBusTimings.clear();
+
+    prefs.setStringList(_isBusFollowedKey, followedBuses);
+    prefs.setStringList(_busTimingsKey, followedBusTimings);
+  }
+
+  assert(followedBuses.length == followedBusTimings.length);
+
   final String key = _followerKey(stop, bus);
   if (followedBuses.contains(key))
   {
-    final bool isTracked = await NotificationAPI().isBusTracked(stop, bus);
-    if (isTracked)
+    final int index = followedBuses.indexOf(key);
+    final DateTime arrivalTime = DateTime.parse(followedBusTimings[index]);
+    if (arrivalTime.isAfter(DateTime.now()))
       return true;
     else{
       followedBuses.remove(key);
+      followedBusTimings.removeAt(index);
       prefs.setStringList(_isBusFollowedKey, followedBuses);
+      prefs.setStringList(_busTimingsKey, followedBusTimings);
       return false;
     }
   }

@@ -44,6 +44,10 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T> 
     );
   }
 
+  bool isBusDetailSheetVisible() {
+    return rubberAnimationController.value > 0;
+  }
+
   @mustCallSuper
   void showBusDetailSheet(BusStop busStop, UserRoute route) {
     widget.bottomSheetKey.currentState.updateWith(busStop, route);
