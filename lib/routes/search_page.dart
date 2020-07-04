@@ -235,7 +235,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildSearchCard() {
     final TextField searchField = TextField(
-      autofocus: false,
+      autofocus: !_isMapVisible,
       controller: _textController,
       onChanged: (String newText) {
         setState(() {
@@ -245,9 +245,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       },
       onTap: () {
         hideBusDetailSheet();
-        setState(() {
-          _isMapVisible = false;
-        });
+        if (_isMapVisible)
+          setState(() {
+            _isMapVisible = false;
+          });
       },
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0, bottom: 16.0),
@@ -382,7 +383,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
           ],
         ),
         Positioned(
-          top: 0,
+          top: 8,
           left: 0,
           right: 0,
           child: AppBar(

@@ -12,7 +12,6 @@ import '../routes/settings_page.dart';
 import '../utils/bus.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_stop.dart';
-import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/location_utils.dart';
 import '../utils/reorder_status_notification.dart';
@@ -40,6 +39,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   Widget _busStopOverviewList;
   int _bottomNavIndex;
   Map<String, dynamic> _nearestBusStops;
+  List<Bus> _followedBuses;
   ScrollController _scrollController;
   bool canScroll;
   AnimationController _fabScaleAnimationController;
@@ -188,96 +188,146 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Widget _buildBody() {
-    return RefreshIndicator(
-      onRefresh: refreshLocation,
-      child: Stack(
-        children: <Widget>[
-          CustomScrollView(
-            controller: _scrollController,
-            scrollDirection: Axis.vertical,
-            physics: canScroll ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
-            slivers: <Widget>[
-              SliverToBoxAdapter(
-                child: Container(
-                  alignment: Alignment.topCenter,
-                  height: 64.0 + MediaQuery.of(context).padding.top,
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: HomePageContentSwitcher(
-                  scrollController: _scrollController,
-                  child: _buildContent(),
-                ),
-              ),
-            ],
-          ),
-          // Hide the overscroll contents from the status bar
-          Container(
-            height: kToolbarHeight / 2 + MediaQuery.of(context).padding.top,
-            color: Theme.of(context).scaffoldBackgroundColor,
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AppBar(
-              brightness: Theme.of(context).brightness,
-              backgroundColor: Colors.transparent,
-              leading: null,
-              automaticallyImplyLeading: false,
-              titleSpacing: 8.0,
-              elevation: 0.0,
-              title: Container(
-                child: _buildSearchField(),
+    return Stack(
+      children: <Widget>[
+        CustomScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.vertical,
+          physics: canScroll ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
+          slivers: <Widget>[
+            SliverToBoxAdapter(
+              child: Container(
+                alignment: Alignment.topCenter,
+                height: 64.0 + MediaQuery.of(context).padding.top,
               ),
             ),
+            SliverToBoxAdapter(
+              child: HomePageContentSwitcher(
+                scrollController: _scrollController,
+                child: _buildContent(),
+              ),
+            ),
+          ],
+        ),
+        // Hide the overscroll contents from the status bar
+        Container(
+          height: kToolbarHeight / 2 + MediaQuery.of(context).padding.top,
+          color: Theme.of(context).scaffoldBackgroundColor,
+        ),
+        Positioned(
+          top: 8,
+          left: 0,
+          right: 0,
+          child: AppBar(
+            brightness: Theme.of(context).brightness,
+            backgroundColor: Colors.transparent,
+            leading: null,
+            automaticallyImplyLeading: false,
+            titleSpacing: 8.0,
+            elevation: 0.0,
+            title: Container(
+              child: _buildSearchField(),
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildTrackedBuses() {
-    return FutureBuilder<List<Bus>>(
-      future: getFollowedBuses(),
-      builder: (BuildContext context, AsyncSnapshot<List<Bus>> snapshot) {
-        return Card(
-          margin: const EdgeInsets.all(8.0),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text('Tracked buses', style: Theme.of(context).textTheme.headline4),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (BuildContext context, int position) {
-                    final Bus bus = snapshot.data[position];
+    return AnimatedSize(
+      alignment: Alignment.topCenter,
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOutCubic,
+      child: StreamBuilder<List<Bus>>(
+        initialData: _followedBuses,
+        stream: followedBusesStream(),
+        builder: (BuildContext context, AsyncSnapshot<List<Bus>> snapshot) {
+          final bool isLoaded = snapshot.hasData && snapshot.data.isNotEmpty;
+          if (isLoaded)
+            _followedBuses = snapshot.data;
 
-                    return ListTile(
-                      leading: Text(
-                          bus.busService.number.padAsServiceNumber(),
-                        style: Theme.of(context).textTheme.headline6.copyWith(fontFamily: 'B612 Mono')
-                      ),
-                      title: FutureBuilder<DateTime>(
-                        future: BusAPI().getArrivalTime(bus.busStop, bus.busService.number),
-                        builder: (BuildContext context, AsyncSnapshot<DateTime> snapshot) {
-                          return Text(snapshot.hasData ? '${snapshot.data.getMinutesFromNow()} min' : '',
-                            style: Theme.of(context).textTheme.subtitle1,
+          return AnimatedOpacity(
+            opacity: isLoaded ? 1 : 0,
+            duration: isLoaded ? const Duration(milliseconds: 650) : Duration.zero,
+            curve: const Interval(0.66, 1),
+            child: isLoaded ? Card(
+              margin: const EdgeInsets.all(8.0),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text('Tracked buses', style: Theme.of(context).textTheme.headline4),
+                    ),
+                    AnimatedSize(
+                      alignment: Alignment.topCenter,
+                      vsync: this,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOutCubic,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemBuilder: (BuildContext context, int position) {
+                          final Bus bus = snapshot.data[position];
+
+                          return ListTile(
+                            onTap: () {
+                              showBusDetailSheet(bus.busStop, UserRoute.home);
+                            },
+                            title: FutureBuilder<DateTime>(
+                              future: BusAPI().getArrivalTime(bus.busStop, bus.busService.number),
+                              builder: (BuildContext context, AsyncSnapshot<DateTime> snapshot) {
+                                return Text(snapshot.hasData ? '${bus.busService.number} - ${snapshot.data.getMinutesFromNow()} min' : '',
+                                  style: Theme.of(context).textTheme.headline6,
+                                );
+                              },
+                            ),
+                            subtitle: Text(bus.busStop.displayName),
                           );
                         },
+                        itemCount: snapshot.data.length,
                       ),
-                      subtitle: Text(bus.busStop.displayName),
-                    );
-                  },
-                  itemCount: snapshot?.data?.length ?? 0,
+                    ),
+                    Row(
+                      children: <Widget>[
+                        FlatButton.icon(
+                          icon: const Icon(Icons.notifications_off),
+                          label: const Text(
+                            'STOP TRACKING ALL BUSES',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          textColor: Theme.of(context).accentColor,
+                          onPressed: () async {
+                            final List<Map<String, dynamic>> trackedBuses = await unfollowAllBuses();
+                            Scaffold.of(context).showSnackBar(SnackBar(
+                              content: const Text('Stopped tracking all buses'),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                onPressed: () async {
+                                  for (Map<String, dynamic> trackedBus in trackedBuses) {
+                                    await followBus(stop: trackedBus['stop'], bus: trackedBus['bus'], arrivalTime: trackedBus['arrivalTime']);
+                                  }
+
+                                  // Update the bus stop detail sheet to reflect change in bus stop follow status
+                                  widget.bottomSheetKey.currentState.setState(() {});
+                                },
+                              ),
+                            ));
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+            ) : Container(),
+          );
+        },
+      ),
     );
   }
 
@@ -286,12 +336,27 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       future: _getNearestBusStops(),
       initialData: _nearestBusStops,
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-        if (snapshot.hasData)
+        if (snapshot.hasData && snapshot.connectionState == ConnectionState.done)
           _nearestBusStops = snapshot.data;
         else if (snapshot.connectionState == ConnectionState.done || !LocationUtils.isLocationAllowed()) {
           return Container();
         }
-        final bool isLoaded = snapshot.hasData && snapshot.data['busStops'].length == 5;
+        final bool isLoaded = _nearestBusStops != null && _nearestBusStops['busStops'].length == 5;
+
+        final Widget refreshButton = Row(
+          children: <Widget>[
+            FlatButton.icon(
+              icon: const Icon(Icons.refresh),
+              label: const Text(
+                'REFRESH LOCATION',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              textColor: Theme.of(context).accentColor,
+              onPressed: refreshLocation,
+            ),
+          ],
+        );
+
         return Card(
           elevation: 0.0,
           shape: RoundedRectangleBorder(
@@ -304,36 +369,42 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
           margin: const EdgeInsets.all(8.0),
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
-            child: ExpandablePanel(
-              tapHeaderToExpand: isLoaded,
-              hasIcon: isLoaded,
-              headerAlignment: ExpandablePanelHeaderAlignment.center,
-              header: Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.all(16.0),
-                child: Text('Nearby stops', style: Theme.of(context).textTheme.headline4),
-              ),
-              collapsed: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  if (isLoaded)
-                    _buildSuggestionItem(snapshot.data['busStops'][0], snapshot.data['distances'][0]),
-                  if (!isLoaded)
-                    _buildSuggestionItem(null, null),
-                ],
-              ),
-              expanded: isLoaded ? ListView.separated(
-                physics: const NeverScrollableScrollPhysics(),
-                scrollDirection: Axis.vertical,
-                shrinkWrap: true,
-                itemCount: 5,
-                separatorBuilder: (BuildContext context, int position) => const Divider(),
-                itemBuilder: (BuildContext context, int position) {
-                  final BusStop busStop = snapshot.data['busStops'][position ];
-                  final double distanceInMeters = snapshot.data['distances'][position];
-                  return _buildSuggestionItem(busStop, distanceInMeters);
-                },
-              ) : Container(),
+            child: Column(
+              children: [
+                ExpandablePanel(
+                  tapHeaderToExpand: true,
+                  hasIcon: true,
+                  headerAlignment: ExpandablePanelHeaderAlignment.center,
+                  header: Container(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text('Nearby stops', style: Theme.of(context).textTheme.headline4),
+                  ),
+                  collapsed: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      if (isLoaded)
+                        _buildSuggestionItem(_nearestBusStops['busStops'][0], _nearestBusStops['distances'][0]),
+                      if (!isLoaded)
+                        _buildSuggestionItem(null, null),
+                    ],
+                  ),
+                  expanded: ListView.separated(
+                    physics: const NeverScrollableScrollPhysics(),
+                    scrollDirection: Axis.vertical,
+                    shrinkWrap: true,
+                    itemCount: 5,
+                    separatorBuilder: (BuildContext context, int position) => const Divider(),
+                    itemBuilder: (BuildContext context, int position) {
+                      final BusStop busStop = isLoaded ? _nearestBusStops['busStops'][position] : null;
+                      final double distanceInMeters = isLoaded ? _nearestBusStops['distances'][position] : null;
+                      return _buildSuggestionItem(busStop, distanceInMeters);
+                    },
+                  ),
+                ),
+                refreshButton,
+              ],
             ),
           ),
         );
@@ -449,6 +520,12 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Future<void> refreshLocation() async {
+    setState((){
+      _nearestBusStops = null;
+    });
+  }
+
+  Future<void> refresh() async {
     setState(() {});
   }
 

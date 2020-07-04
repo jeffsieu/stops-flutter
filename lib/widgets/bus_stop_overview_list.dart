@@ -30,20 +30,19 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<BusStop>>(
-      initialData: _busStops,
-      future: getBusStopsInRoute(UserRoute.home),
+    return StreamBuilder<List<BusStop>>(
+      stream: routeBusStopsStream(UserRoute.home),
       builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
         switch (snapshot.connectionState) {
           case ConnectionState.none:
             return _messageBox(BusAPI.kNoInternetError);
-            case ConnectionState.active:
             case ConnectionState.waiting:
               if (snapshot.data == null) {
                 return const Center(child: CircularProgressIndicator());
               }
             continue done;
             done:
+          case ConnectionState.active:
           case ConnectionState.done:
             if (snapshot.hasData && _busStops != snapshot.data) {
               if (snapshot.data.isEmpty)
@@ -55,9 +54,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                 );
               else {
                 // Only update list when database is updated, otherwise the list is updated with old positions
-                if (snapshot.connectionState == ConnectionState.done) {
-                  _busStops..clear()..addAll(snapshot.data);
-                }
+                _busStops..clear()..addAll(snapshot.data);
               }
             }
             return MediaQuery.removePadding(

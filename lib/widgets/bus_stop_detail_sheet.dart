@@ -315,12 +315,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
             if (_isStarEnabled) {
               addBusStopToRoute(_busStop, _route).then((_) {
                 setState(() {});
-                HomePage.of(context).refreshLocation();
+                HomePage.of(context).refresh();
               });
             } else {
               removeBusStopFromRoute(_busStop, _route).then((_) {
                 setState(() {});
-                HomePage.of(context).refreshLocation();
+                HomePage.of(context).refresh();
               });
               Scaffold.of(context).showSnackBar(
                 SnackBar(

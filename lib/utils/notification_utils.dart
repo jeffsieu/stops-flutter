@@ -67,7 +67,6 @@ Future<void> updateNotifications() async {
   final List<String> longMessageParts = <String>[];
 
   if (followedBuses.isEmpty) {
-    print('cancelling from  empty followed bus');
     notifications.cancel(silentNotificationId);
     return;
   }
@@ -108,7 +107,6 @@ Future<void> updateNotifications() async {
   }
 
   if (busCount == 0) {
-    print('cancelling fron bus count');
     notifications.cancel(silentNotificationId);
     return;
   }
@@ -122,7 +120,7 @@ Future<void> updateNotifications() async {
     _busArrivalSilentChannelName,
     _busArrivalSilentChannelDescription,
     importance: Importance.Low,
-    priority: Priority.Default,
+    priority: Priority.High,
     ongoing: true,
     autoCancel: false,
     progress: 50,
@@ -142,6 +140,8 @@ Future<void> updateNotifications() async {
     shortMessageParts.join(' · '),
     silentNotificationDetails,
   );
+
+  updateFollowedBusesStream();
 
   if (earliestNotificationTime == null)
     return;

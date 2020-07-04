@@ -10,7 +10,6 @@ import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
-import '../utils/notification_utils.dart';
 import '../utils/time_utils.dart';
 import '../widgets/bus_stop_detail_sheet.dart';
 import '../widgets/route_model.dart';
@@ -43,14 +42,27 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
   @override
   void initState() {
     super.initState();
+
+    addBusFollowStatusListener(widget.busStop.code, widget.busService.number, onBusFollowStatusChanged);
     service = widget.busService;
-    isBusFollowed(stop: widget.busStop.code, bus: service.number)
-        .then((bool isFollowed) {
-      if (mounted && _isBusFollowed != isFollowed)
-        setState(() {
-          _isBusFollowed = isFollowed;
-        });
+
+    isBusFollowed(stop: widget.busStop.code, bus: widget.busService.number).then((bool isFollowed) {
+      setState(() {
+        _isBusFollowed = isFollowed;
+      });
     });
+  }
+
+  void onBusFollowStatusChanged(String busStopCode, String busServiceNumber, bool isFollowed) {
+    setState(() {
+      _isBusFollowed = isFollowed;
+    });
+  }
+
+  @override
+  void dispose() {
+    removeBusFollowStatusListener(widget.busStop.code, widget.busService.number, onBusFollowStatusChanged);
+    super.dispose();
   }
 
   @override
@@ -144,19 +156,9 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
             final DateTime estimatedArrivalTime = widget.arrivalResult.buses[0].arrivalTime;
             followBus(stop: widget.busStop.code, bus: service.number, arrivalTime: estimatedArrivalTime);
           }
-          updateNotifications();
 
-          isBusFollowed(stop: widget.busStop.code, bus: service.number).then<void>((bool isFollowed) {
-            if (mounted)
-            {
-              setState(() {
-                _isBusFollowed = isFollowed;
-              });
-
-              // Refresh home page to show followed buses
-              HomePage.of(context).refreshLocation();
-            }
-          });
+          // Refresh home page to show followed buses
+          HomePage.of(context).refresh();
         },
       ),
     );

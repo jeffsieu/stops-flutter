@@ -15,6 +15,7 @@ import 'bus_route.dart';
 import 'bus_service.dart';
 import 'bus_stop.dart';
 import 'bus_utils.dart';
+import 'notification_utils.dart';
 import 'user_route.dart';
 
 /* Called when a bus stop is modified */
@@ -35,8 +36,10 @@ const String _areBusStopsCachedKey = 'BUS_STOP_CACHE';
 const String _areBusServicesCachedKey = 'BUS_SERVICE_CACHE';
 const String _areBusServiceRoutesCachedKey = 'BUS_ROUTE_CACHE';
 
-Map<String, List<BusFollowStatusListener>> _busFollowStatusListeners = <String, List<BusFollowStatusListener>>{};
-Map<BusStop, List<BusStopChangeListener>> _busStopListeners = <BusStop, List<BusStopChangeListener>>{};
+final Map<String, List<BusFollowStatusListener>> _busFollowStatusListeners = <String, List<BusFollowStatusListener>>{};
+final Map<BusStop, List<BusStopChangeListener>> _busStopListeners = <BusStop, List<BusStopChangeListener>>{};
+final StreamController<List<Bus>> _followedBusesController = StreamController<List<Bus>>.broadcast();
+final Map<UserRoute, StreamController<List<BusStop>>> _userRouteBusStopStreamControllers = <UserRoute, StreamController<List<BusStop>>>{};
 
 Future<Database> _accessDatabase() async {
   return openDatabase(
@@ -141,6 +144,21 @@ Future<void> updateBusStop(BusStop busStop) async {
   await database.update('bus_stop', busStop.toMap(), where: 'code = ?', whereArgs: <String>[busStop.code]);
 }
 
+Stream<List<BusStop>> routeBusStopsStream(UserRoute route) {
+  if (!_userRouteBusStopStreamControllers.containsKey(route)) {
+    _userRouteBusStopStreamControllers[route] = StreamController<List<BusStop>>.broadcast();
+  }
+  getBusStopsInRoute(route).then((List<BusStop> busStops) {
+    _userRouteBusStopStreamControllers[route].add(busStops);
+  });
+  return _userRouteBusStopStreamControllers[route].stream;
+}
+
+Future<void> _updateRouteBusStopsStream(UserRoute route) async {
+  _userRouteBusStopStreamControllers.putIfAbsent(route, () => StreamController<List<BusStop>>.broadcast());
+  _userRouteBusStopStreamControllers[route].add(await getBusStopsInRoute(route));
+}
+
 Future<List<BusStop>> getBusStopsInRoute(UserRoute route) async {
   final Database database = await _accessDatabase();
   final List<Map<String, dynamic>> result = await database.rawQuery('SELECT * FROM bus_stop JOIN user_route_bus_stop ON code = busStopCode WHERE routeId = ${route.id} ORDER BY position');
@@ -164,6 +182,7 @@ Future<void> addBusStopToRoute(BusStop busStop, UserRoute route) async {
   await database.insert('user_route_bus_stop', entry);
 
   _updateBusStopListeners(busStop);
+  await _updateRouteBusStopsStream(route);
 }
 
 Future<void> removeBusStopFromRoute(BusStop busStop, UserRoute route) async {
@@ -173,6 +192,7 @@ Future<void> removeBusStopFromRoute(BusStop busStop, UserRoute route) async {
   await database.rawUpdate('UPDATE user_route_bus_stop SET position = position - 1 WHERE routeId = ? AND position > ?', <dynamic>[route.id, position]);
 
   _updateBusStopListeners(busStop);
+  await _updateRouteBusStopsStream(route);
 }
 
 Future<bool> isBusStopInRoute(BusStop busStop, UserRoute route) async {
@@ -333,6 +353,10 @@ Future<void> followBus({@required String stop, @required String bus, @required D
   prefs.setStringList(_isBusFollowedKey, followedBuses);
   prefs.setStringList(_busTimingsKey, followedBusTimings);
 
+  // Update followed buses stream
+  updateFollowedBusesStream();
+  updateNotifications();
+
   // To allow removal of listener while in iteration
   // (as it is common behaviour for a listener to
   // detach itself after a certain call)
@@ -343,6 +367,10 @@ Future<void> followBus({@required String stop, @required String bus, @required D
   for (BusFollowStatusListener listener in listeners) {
     listener(stop, bus, true);
   }
+}
+
+Future<void> updateFollowedBusesStream() async {
+  _followedBusesController.add(await getFollowedBuses());
 }
 
 Future<List<Bus>> getFollowedBuses() async {
@@ -405,6 +433,10 @@ Future<void> unfollowBus({@required String stop, @required String bus}) async {
   prefs.setStringList(_isBusFollowedKey, followedBuses);
   prefs.setStringList(_busTimingsKey, followedBusTimings);
 
+  // Update followed buses stream
+  updateFollowedBusesStream();
+  updateNotifications();
+
   // To allow removal of listener while in iteration
   // (as it is common behaviour for a listener to
   // detach itself after a certain call)
@@ -415,6 +447,44 @@ Future<void> unfollowBus({@required String stop, @required String bus}) async {
   for (BusFollowStatusListener listener in listeners) {
     listener(stop, bus, false);
   }
+}
+
+Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  final List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+
+  for (int i = 0; i < followedBuses.length; i++) {
+    final List<String> tokens = followedBuses[i].split(' ');
+    final String stop = tokens[0];
+    final String bus = tokens[1];
+    result.add(<String, dynamic>{
+      'stop': stop,
+      'bus': bus,
+      'arrivalTime': DateTime.parse(followedBusTimings[i]),
+    });
+  }
+
+  prefs.setStringList(_isBusFollowedKey, <String>[]);
+  prefs.setStringList(_busTimingsKey, <String>[]);
+
+  // Update followed buses stream
+  updateFollowedBusesStream();
+  updateNotifications();
+
+  for (MapEntry<String, List<BusFollowStatusListener>> entry in _busFollowStatusListeners.entries) {
+    final List<String> tokens = entry.key.split(' ');
+    final String stop = tokens[0];
+    final String bus = tokens[1];
+
+    for (BusFollowStatusListener listener in entry.value) {
+      listener(stop, bus, false);
+    }
+  }
+
+  return result;
 }
 
 Future<bool> isBusFollowed({@required String stop, @required String bus}) async {
@@ -454,6 +524,13 @@ Future<bool> isBusFollowed({@required String stop, @required String bus}) async 
     }
   }
   return false;
+}
+
+Stream<List<Bus>> followedBusesStream() {
+  getFollowedBuses().then((List<Bus> followedBuses) {
+      _followedBusesController.add(followedBuses);
+  });
+  return _followedBusesController.stream;
 }
 
 String _followerKey(String stop, String bus) => '$stop $bus';
