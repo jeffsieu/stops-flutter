@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:edit_distance/edit_distance.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
 import 'package:latlong/latlong.dart' as latlong;
+import 'package:location/location.dart';
 
+import '../main.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_service.dart';
 import '../utils/bus_stop.dart';
@@ -21,7 +22,6 @@ import '../widgets/bus_stop_search_item.dart';
 import '../widgets/card_app_bar.dart';
 import 'bottom_sheet_page.dart';
 import 'bus_service_page.dart';
-import 'stops_app.dart';
 
 
 class SearchPage extends BottomSheetPage {
@@ -30,8 +30,10 @@ class SearchPage extends BottomSheetPage {
 
   final int _furthestBusStopDistanceMeters = 1000;
   final int offsetDistance = 300;
+  final double searchDifferenceThreshold = 0.25;
   final bool showMap;
   final bool isSimpleMode;
+
 
   @override
   State<StatefulWidget> createState() {
@@ -52,6 +54,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   List<BusService> _filteredBusServices;
   List<BusStop> _busStops = <BusStop>[];
   List<BusStop> _filteredBusStops;
+  JaroWinkler jw = JaroWinkler();
 
   String _queryString = '';
   String get _query => _queryString;
@@ -205,18 +208,19 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         builder: (BuildContext context, Widget child) {
           return Transform.translate(
             offset: Offset(0, _fabTopOffset * rubberAnimationController.value.clamp(0.0, 0.5)),
-            child: FloatingActionButton.extended(
-                onPressed: () => setState(() {
-                  _isMapVisible = !_isMapVisible;
-                  if (_isMapVisible)
-                    _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
-                  _hideKeyboard();
-                }),
-                label: const Text('Choose on map'),
-                icon: const Icon(Icons.map)
-            ),
+            child: child,
           );
         },
+        child: FloatingActionButton.extended(
+            onPressed: () => setState(() {
+              _isMapVisible = !_isMapVisible;
+              if (_isMapVisible)
+                _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
+              _hideKeyboard();
+            }),
+            label: const Text('Choose on map'),
+            icon: const Icon(Icons.map)
+        ),
       ),
     );
 
@@ -231,7 +235,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildSearchCard() {
     final TextField searchField = TextField(
-      autofocus: false,
+      autofocus: !_isMapVisible,
       controller: _textController,
       onChanged: (String newText) {
         setState(() {
@@ -241,9 +245,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       },
       onTap: () {
         hideBusDetailSheet();
-        setState(() {
-          _isMapVisible = false;
-        });
+        if (_isMapVisible)
+          setState(() {
+            _isMapVisible = false;
+          });
       },
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0, bottom: 16.0),
@@ -309,7 +314,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
                     Text(
                       'Hide map',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.subhead.copyWith(color: Theme.of(context).accentColor, fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).accentColor, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -334,32 +339,51 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     final Widget body = Stack(
       children: <Widget>[
         _buildMapWidget(),
-        AnimatedBuilder(
-          animation: _mapClipperAnimation,
-          builder: (BuildContext context, Widget child) {
-            return Transform.translate(offset: Offset(0, (MediaQuery.of(context).size.height - _resultsSheetCollapsedHeight) * _mapClipperAnimation.value), child: child);
-          },
-          child: Material(
-            elevation: 4.0,
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (ScrollNotification notification) {
-                if (notification is ScrollStartNotification && notification.dragDetails != null) {
-                  _hideKeyboard();
-                  return true;
-                }
-                return false;
+        Stack(
+          children: <Widget>[
+            AnimatedBuilder(
+              animation: _mapClipperAnimation,
+              builder: (BuildContext context, Widget child) {
+                return Transform.translate(offset: Offset(0, (MediaQuery.of(context).size.height - _resultsSheetCollapsedHeight) * _mapClipperAnimation.value), child: child);
               },
-              child: CustomScrollView(
-                physics: _isMapVisible ? const NeverScrollableScrollPhysics() : const ScrollPhysics(),
-                controller: _scrollController,
-                slivers: slivers,
+              child: Material(
+                elevation: 4.0,
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (ScrollNotification notification) {
+                    if (notification is ScrollStartNotification && notification.dragDetails != null) {
+                      _hideKeyboard();
+                      return true;
+                    }
+                    return false;
+                  },
+                  child: CustomScrollView(
+                    physics: _isMapVisible ? const NeverScrollableScrollPhysics() : const ScrollPhysics(),
+                    controller: _scrollController,
+                    slivers: slivers,
+                  ),
+                ),
               ),
             ),
-          ),
+            // Hide the overscroll contents from the status bar, only when map not visible
+            AnimatedBuilder(
+              animation: _scrollController,
+              builder: (BuildContext context, Widget child) {
+                final bool showBackground = _scrollController.offset - kToolbarHeight / 2 - MediaQuery.of(context).padding.top >= 0 && !_isMapVisible;
+                return Opacity(
+                  opacity: showBackground ? 1 : 0,
+                  child: child,
+                );
+              },
+              child: Container(
+                height: kToolbarHeight / 2 + MediaQuery.of(context).padding.top,
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+            ),
+          ],
         ),
         Positioned(
-          top: 0,
+          top: 8,
           left: 0,
           right: 0,
           child: AppBar(
@@ -459,12 +483,44 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     if (_query.isEmpty && !_showServicesOnly) {
       _filteredBusServices = <BusService>[];
     } else {
-      _filteredBusServices = _filterBusServices(_busServices, _query).toList(growable: false);
+      _filteredBusServices =
+          _filterBusServices(_busServices, _query).toList(growable: false);
       _filteredBusServices.sort((BusService a, BusService b) =>
           compareBusNumber(a.number, b.number));
     }
 
-    _filteredBusStops = _filterBusStops(_busStops, _query).toList(growable: false);
+    if (_query.isNotEmpty) {
+      final bool isQueryAllNumbers = num.tryParse(_queryString) != null;
+      final num Function(BusStop) distanceFunction = (BusStop busStop) {
+        final String busStopName = busStop.displayName.toLowerCase();
+        final List<String> busStopNameParts = busStopName.split(RegExp(r'( |/)'));
+        double maxTokenSimilarity = 0;
+        for (String part in busStopNameParts) {
+          if (_query.length < part.length)
+            part = part.substring(0, _query.length);
+          maxTokenSimilarity = max(maxTokenSimilarity, 1 - jw.normalizedDistance(part, _query.toLowerCase()));
+        }
+
+        double distance = jw.normalizedDistance(busStopName, _query.toLowerCase());
+
+        if (1 - maxTokenSimilarity < distance) {
+          distance = 1 - maxTokenSimilarity - 0.01 * (_query.length / busStopName.length);
+        }
+
+        if (isQueryAllNumbers) {
+          final double codeDistance = busStop.code.startsWith(_queryString) ? -1 : 1;
+          distance = min(distance, codeDistance);
+        }
+
+        return distance;
+      };
+      final List<List<dynamic>> sets = _busStops.map((BusStop busStop) => <dynamic>[distanceFunction(busStop), busStop]).
+      where((List<dynamic> set) => set[0] < widget.searchDifferenceThreshold).toList();
+      sets.sort((List<dynamic> set1, List<dynamic> set2) => set1[0].compareTo(set2[0]));
+      _filteredBusStops = sets.map<BusStop>((List<dynamic> set) => set[1]).toList();
+    } else {
+      _filteredBusStops = _busStops;
+    }
     final Iterable<dynamic> metadataIterable = _filteredBusStops.map<dynamic>((BusStop busStop) => <dynamic>[busStop, _calculateQueryMetadata(busStop, _query)]);
     _queryMetadata = Map<BusStop, dynamic>.fromIterable(metadataIterable, key: (dynamic item) => item[0], value: (dynamic item) => item[1]);
 
@@ -493,7 +549,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
                     padding: const EdgeInsets.only(
                         left: 16.0, top: 16.0, bottom: 8.0),
                     child: Text.rich(
-                        const TextSpan(text: 'Past searches'), style: Theme.of(context).textTheme.display1),
+                        const TextSpan(text: 'Past searches'), style: Theme.of(context).textTheme.headline4),
                   ),
                   ListView.builder(
                     padding: const EdgeInsets.all(0.0),
@@ -528,7 +584,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Text('Services', style: Theme.of(context).textTheme.display1),
+            Text('Services', style: Theme.of(context).textTheme.headline4),
             FlatButton(
               onPressed: _toggleShowServicesOnly,
               child: const Text('See all'),
@@ -544,7 +600,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       child: Padding(
         padding: const EdgeInsets.only(top: 8.0, left: 16.0),
         child:
-        Text('Bus stops', style: Theme.of(context).textTheme.display1),
+        Text('Bus stops', style: Theme.of(context).textTheme.headline4),
       ),
     );
   }
@@ -629,7 +685,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   @override
   void showBusDetailSheet(BusStop busStop, UserRoute route) {
     super.showBusDetailSheet(busStop, route);
-    pushHistory(_query);
+    pushHistory(_query.trim());
   }
 
   void _toggleShowServicesOnly() {
@@ -686,17 +742,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   static Iterable<BusService> _filterBusServices(List<BusService> list, String query) => list.where((BusService busService) =>
       busService.number.toLowerCase().startsWith(query.toLowerCase()));
-
-  static Iterable<BusStop> _filterBusStops(List<BusStop> list, String query) => list.where((BusStop busStop) => _matchesQuery(busStop, query));
-
-  static bool _matchesQuery(BusStop busStop, String query) {
-    final String queryLowercase = query.toLowerCase();
-    final String busStopCodeLowercase = busStop.code.toLowerCase();
-    final String busStopDisplayNameLowercase = busStop.displayName.toLowerCase();
-    final String busStopDefaultNameLowercase = busStop.defaultName.toLowerCase();
-
-    return busStopCodeLowercase.contains(queryLowercase) || busStopDisplayNameLowercase.contains(queryLowercase) || busStopDefaultNameLowercase.contains(queryLowercase);
-  }
 
   static Map<String, dynamic> _calculateQueryMetadata(BusStop busStop, String query) {
     final String queryLowercase = query.toLowerCase();

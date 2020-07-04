@@ -56,7 +56,7 @@ class RoutePageState extends State<RoutePage> {
           Container(width: 16.0),
           Expanded(
             child: Text(widget.route.name,
-                style: Theme.of(context).textTheme.display1
+                style: Theme.of(context).textTheme.headline4
                     .copyWith(color: widget.route.color.of(context))
             ),
           ),

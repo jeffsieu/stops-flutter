@@ -18,7 +18,7 @@ class BusStopClosestItemState extends State<BusStopClosestItem> {
     return Card(
       child: Column(
         children: <Widget>[
-          Text('NEAREST BUS STOP', style: Theme.of(context).textTheme.title),
+          Text('NEAREST BUS STOP', style: Theme.of(context).textTheme.headline6),
           BusStopOverviewItem(busStop, key: Key(busStop.code)),
         ],
       )

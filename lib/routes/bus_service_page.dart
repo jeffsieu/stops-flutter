@@ -104,8 +104,8 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
           final BusStop busStop = route.busStops[position];
           if (busStop == widget.focusedBusStop)
             return ListTile(
-              title: Text('${busStop.defaultName}', style: Theme.of(context).textTheme.title.copyWith(color: Theme.of(context).accentColor)),
-              subtitle: Text('${busStop.code}', style: Theme.of(context).textTheme.subtitle.copyWith(color: Theme.of(context).accentColor)),
+              title: Text('${busStop.defaultName}', style: Theme.of(context).textTheme.headline6.copyWith(color: Theme.of(context).accentColor)),
+              subtitle: Text('${busStop.code}', style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).accentColor)),
               leading: Text('${route.distances[position]}\nKM'),
               onTap: () => showBusDetailSheet(busStop, UserRoute.home),
             );

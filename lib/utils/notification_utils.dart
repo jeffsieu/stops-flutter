@@ -1,108 +1,153 @@
 import 'dart:typed_data';
 
+import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'bus.dart';
+import 'bus_api.dart';
+import 'bus_utils.dart';
 import 'database_utils.dart';
+import 'time_utils.dart';
 
-class NotificationAPI {
-  factory NotificationAPI() {
-    if (!_isInitialized) {
-      notifications.initialize(initializationSettings);
-      _isInitialized = true;
-    }
+FlutterLocalNotificationsPlugin notifications = FlutterLocalNotificationsPlugin();
 
-    return _singleton;
+const String _busArrivalChannelId = 'bus_arrival_channel';
+const String _busArrivalChannelName = 'Bus arrival alerts';
+const String _busArrivalChannelDescription = ' Alerts when buses arrive';
+
+const String _busArrivalSilentChannelId = 'bus_arrival_silent_channel';
+const String _busArrivalSilentChannelName = 'Silent bus arrivals';
+const String _busArrivalSilentChannelDescription = ' Tracks bus arrival timings silently';
+
+const int notificationId = 0;
+const int silentNotificationId = 1;
+const int alarmManagerTaskId = 0;
+
+const AndroidInitializationSettings androidSettings = AndroidInitializationSettings(
+    'ic_notification');
+const Function onDidReceiveLocalNotification = null;
+const IOSInitializationSettings iosSettings = IOSInitializationSettings(
+    onDidReceiveLocalNotification: onDidReceiveLocalNotification);
+const InitializationSettings initializationSettings = InitializationSettings(
+    androidSettings, iosSettings);
+
+AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    _busArrivalChannelId,
+    _busArrivalChannelName,
+    _busArrivalChannelDescription,
+    timeoutAfter: 30000,
+    priority: Priority.High,
+    importance: Importance.Max,
+    enableVibration: true,
+    vibrationPattern: Int64List.fromList(<int>[0, 30, 60, 30, 60, 30, 60, 800]),
+);
+IOSNotificationDetails iosDetails = const IOSNotificationDetails();
+NotificationDetails notificationDetails = NotificationDetails(
+    androidDetails, iosDetails);
+
+bool _isInitialized = false;
+
+/*
+ * Updates the live notification with current bus timing info,
+ * and displays an alert notification if any buses are arriving.
+ *
+ * Calls itself when the notifications need to be updated (usually
+ * about a minute later), and continues doing so until the last
+ * tracked bus has arrived. Then, it will cancel the live notification
+ * and stop calling itself.
+ */
+Future<void> updateNotifications() async {
+  if (!_isInitialized) {
+    notifications.initialize(initializationSettings);
+    _isInitialized = true;
+  }
+  final List<DateTime> arrivalTimes = <DateTime>[];
+  final List<Bus> followedBuses = List<Bus>.from(await getFollowedBuses());
+  final List<String> shortMessageParts = <String>[];
+  final List<String> longMessageParts = <String>[];
+
+  if (followedBuses.isEmpty) {
+    notifications.cancel(silentNotificationId);
+    return;
   }
 
-  NotificationAPI._internal();
+  DateTime earliestNotificationTime;
 
-  static final NotificationAPI _singleton = NotificationAPI._internal();
+  int busCount = 0;
+  int leastMinutesLeft;
+  for (Bus followedBus in followedBuses) {
+    final String busNumber = followedBus.busService.number;
+    final String stopCode = followedBus.busStop.code;
+    final DateTime arrivalTime = await BusAPI().getArrivalTime(followedBus.busStop, busNumber);
+    arrivalTimes.add(arrivalTime);
+    final int minutesLeft = arrivalTime.getMinutesFromNow();
 
-  static FlutterLocalNotificationsPlugin notifications = FlutterLocalNotificationsPlugin();
 
-  static const String _busArrivalChannelId = 'bus_arrival_channel';
-  static const String _busArrivalChannelName = 'Bus arrivals';
-  static const String _busArrivalChannelDescription = ' Send notifications about bus arrivals';
+    if (minutesLeft >= 2) {
+      final DateTime nextNotificationTime = arrivalTime.subtract(Duration(minutes: minutesLeft - 1));
 
-  static const AndroidInitializationSettings androidSettings = AndroidInitializationSettings(
-      'mipmap/ic_launcher');
-  static const Function onDidReceiveLocalNotification = null;
-  static const IOSInitializationSettings iosSettings = IOSInitializationSettings(
-      onDidReceiveLocalNotification: onDidReceiveLocalNotification);
-  static const InitializationSettings initializationSettings = InitializationSettings(
-      androidSettings, iosSettings);
-
-  static AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      _busArrivalChannelId,
-      _busArrivalChannelName,
-      _busArrivalChannelDescription,
-      importance: Importance.Max,
-      priority: Priority.High,
-      enableVibration: true,
-      vibrationPattern: Int64List.fromList(<int>[0, 30, 60, 30, 60, 30, 60, 800]),
-  );
-  static IOSNotificationDetails iosDetails = IOSNotificationDetails();
-  static NotificationDetails notificationDetails = NotificationDetails(
-      androidDetails, iosDetails);
-
-  static bool _isInitialized = false;
-
-  static List<int> notificationIds = <int>[];
-
-  /*
-   * Schedules a notification to remind the user
-   * of the bus' arrival, at the given time
-   *
-   * Returns the id of the scheduled notification
-   */
-  Future<int> scheduleNotification(String stop, String bus, DateTime notificationTime) async {
-    int notificationId = 0;
-    int index = 0;
-
-    for (int id in notificationIds) {
-      if (notificationId == id) {
-        notificationId++;
-      } else {
-        break;
+      if (earliestNotificationTime == null || earliestNotificationTime.isAfter(nextNotificationTime)) {
+        earliestNotificationTime = nextNotificationTime;
       }
-      index++;
-    }
-
-    notificationIds.insert(index, notificationId);
-
-    notifications.schedule(
+      if (leastMinutesLeft == null || minutesLeft < leastMinutesLeft)
+        leastMinutesLeft = minutesLeft;
+      shortMessageParts.add('$busNumber ($minutesLeft min)');
+      longMessageParts.add('$busNumber - $minutesLeft min');
+      busCount++;
+    } else {
+      // Bus arrived
+      notifications.show(
         notificationId,
-        '$bus arrives in about 30s',
+        '$busNumber is arriving',
         'This notification will auto-dismiss in 1 min',
-        notificationTime,
         notificationDetails,
-        androidAllowWhileIdle: true
-    );
-
-    BusFollowStatusListener listener;
-    listener = (String stop, String bus, bool isFollowed) {
-      if (!isFollowed) {
-        notifications.cancel(notificationId);
-        notificationIds.remove(notificationId);
-      }
-      removeBusFollowStatusListener(stop, bus, listener);
-    };
-    addBusFollowStatusListener(stop, bus, listener);
-    
-    final Duration timeDifference = notificationTime.difference(DateTime.now());
-
-    Future<void>.delayed(timeDifference + const Duration(minutes: 1), () {
-      // Auto-dismiss notification after 1 minute
-      notifications.cancel(notificationId);
-      notificationIds.remove(notificationId);
-    });
-
-    Future<void>.delayed(timeDifference, () {
-      // Un-follow bus
-      removeBusFollowStatusListener(stop, bus, listener);
-      unfollowBus(stop: stop, bus: bus);
-    });
-
-    return notificationId;
+      );
+      unfollowBus(stop: stopCode, bus: busNumber);
+    }
   }
+
+  if (busCount == 0) {
+    notifications.cancel(silentNotificationId);
+    return;
+  }
+
+  longMessageParts.sort((String a, String b) => compareBusNumber(a.split(' ')[0], b.split(' ')[0]));
+  final String message = longMessageParts.join('\n');
+
+
+  final AndroidNotificationDetails silentAndroidDetails = AndroidNotificationDetails(
+    _busArrivalSilentChannelId,
+    _busArrivalSilentChannelName,
+    _busArrivalSilentChannelDescription,
+    importance: Importance.Low,
+    priority: Priority.High,
+    ongoing: true,
+    autoCancel: false,
+    progress: 50,
+    showProgress: true,
+    onlyAlertOnce: true,
+    enableVibration: true,
+    showWhen: false,
+    styleInformation: BigTextStyleInformation(message),
+  );
+
+  final NotificationDetails silentNotificationDetails = NotificationDetails(
+      silentAndroidDetails, iosDetails);
+
+  notifications.show(
+    silentNotificationId,
+    'Next bus - $leastMinutesLeft min',
+    shortMessageParts.join(' · '),
+    silentNotificationDetails,
+  );
+
+  updateFollowedBusesStream();
+
+  if (earliestNotificationTime == null)
+    return;
+  await AndroidAlarmManager.initialize();
+
+  // Cancel any scheduled notification update
+  await AndroidAlarmManager.cancel(alarmManagerTaskId);
+  await AndroidAlarmManager.oneShotAt(earliestNotificationTime, alarmManagerTaskId, updateNotifications);
 }

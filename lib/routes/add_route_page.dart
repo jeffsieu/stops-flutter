@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:implicitly_animated_reorderable_list/transitions.dart';
 
+import '../main.dart';
 import '../routes/fade_page_route.dart';
 import '../routes/search_page.dart';
 import '../utils/bus_stop.dart';
@@ -11,7 +11,6 @@ import '../utils/user_route.dart';
 import '../widgets/card_app_bar.dart';
 import '../widgets/color_picker.dart';
 import '../widgets/never_focus_node.dart';
-import 'stops_app.dart';
 
 class AddRoutePage extends StatefulWidget {
   const AddRoutePage() : route = null;
@@ -61,7 +60,7 @@ class AddRoutePageState extends State<AddRoutePage> {
         title: Text(widget.route == null ? 'Add route' : 'Edit route'),
         actions: <Widget>[
           IconButton(
-            icon: Icon(Icons.done),
+            icon: const Icon(Icons.done),
             tooltip: 'Done',
             onPressed: _popRoute,
           )
@@ -75,7 +74,7 @@ class AddRoutePageState extends State<AddRoutePage> {
             Row(
               children: <Widget>[
                 InkWell(
-                  borderRadius: BorderRadius.circular(32.0),
+                  borderRadius: BorderRadius.circular(8.0),
                   onTap: _showColorDialog,
                   child: Container(
                     padding: const EdgeInsets.all(8.0),
@@ -84,7 +83,12 @@ class AddRoutePageState extends State<AddRoutePage> {
                       height: 48.0,
                       decoration: BoxDecoration(
                         color: _color,
-                        borderRadius: BorderRadius.circular(24.0),
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Center(
+                        child: Icon(Icons.palette,
+                          color: _color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -176,7 +180,7 @@ class AddRoutePageState extends State<AddRoutePage> {
                           leading: Container(
                             width: 24,
                             child: Text('${position + 1}.',
-                                style: Theme.of(context).textTheme.title.copyWith(color: _color),
+                                style: Theme.of(context).textTheme.headline6.copyWith(color: _color),
                                 textAlign: TextAlign.right,
                             ),
                           ),
@@ -221,7 +225,7 @@ class AddRoutePageState extends State<AddRoutePage> {
         return AlertDialog(
           title: const Text('Route color'),
           content: ColorPicker(
-            colors: Colors.primaries.map((a) => a.of(context)).toList(),
+            colors: Colors.primaries.map((Color a) => a.of(context)).toList(),
             size: 48.0,
             initialColor: _color.of(context),
             onColorChanged: (Color color) {
