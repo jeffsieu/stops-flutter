@@ -80,7 +80,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
   }
 
   Widget _buildPinnedServices(List<BusService> pinnedServices) {
-    if (pinnedServices.isEmpty)
+    if (pinnedServices == null || pinnedServices.isEmpty)
       return Container();
     return Padding(
       padding: const EdgeInsets.only(top: 8.0),

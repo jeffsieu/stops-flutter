@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../models/bus_stop.dart';
@@ -26,17 +28,57 @@ class RoutePageState extends State<RoutePage> {
       removeTop: true,
       child: RouteModel(
         route: widget.route,
-        child: ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (BuildContext context, int position) {
-            if (position == 0)
-              return _buildHeader();
-            final BusStop busStop = widget.route.busStops[position - 1];
-            return BusStopOverviewItem(busStop, key: Key(busStop.code));
+        child: StreamBuilder<List<BusStop>>(
+          initialData: widget.route.busStops,
+          stream: routeBusStopsStream(widget.route),
+          builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
+            switch (snapshot.connectionState) {
+              case ConnectionState.none:
+              case ConnectionState.waiting:
+                if (snapshot.data == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                continue done;
+              done:
+              case ConnectionState.active:
+              case ConnectionState.done:
+                if (snapshot.hasData && widget.route.busStops != snapshot.data) {
+                  widget.route.busStops..clear()..addAll(snapshot.data);
+                }
+                return CustomScrollView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  slivers: <Widget>[
+                    SliverToBoxAdapter(
+                      child: _buildHeader(),
+                    ),
+                    if (widget.route.busStops == null || widget.route.busStops.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Container(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Center(
+                            child: Text('This route has no stops.\n\nTap the edit icon to add stops to this route.', style: Theme.of(context).textTheme.headline4.copyWith(color: Theme.of(context).hintColor)),
+                          ),
+                        ),
+                      ),
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int position) {
+                          final bool isDivider = position % 2 == 1;
+                          if (isDivider)
+                            return const Divider(height: 1);
+                          final int itemPosition = position ~/ 2;
+                          final BusStop busStop = widget.route.busStops[itemPosition];
+                          return BusStopOverviewItem(busStop, key: Key(busStop.code));
+                        },
+                        childCount: widget.route.busStops.length + max(0, widget.route.busStops.length - 1),
+                      ),
+                    ),
+                  ],
+                );
+            }
+            return null;
           },
-          itemCount: widget.route.busStops.length + 1,
-          separatorBuilder: (BuildContext context, int position) => position > 0 ? const Divider(height: 1) : Container(),
         ),
       ),
     );
@@ -74,10 +116,9 @@ class RoutePageState extends State<RoutePage> {
   Future<void> _pushEditRouteRoute() async {
     final UserRoute route = await Navigator.push(context, FadePageRoute<UserRoute>(child: AddRoutePage.edit(widget.route)));
     if (route != null) {
-      updateUserRoute(route);
-      setState(() {
-        widget.route.update(route);
-      });
+      widget.route.update(route);
+      await updateUserRoute(route);
+      setState(() {});
     }
   }
 }

@@ -273,6 +273,7 @@ Future<void> updateUserRoute(UserRoute route) async {
     position++;
   }
   await batch.commit(noResult: true);
+  await _updateRouteBusStopsStream(route);
 }
 
 Future<List<UserRoute>> getUserRoutes() async {
@@ -763,6 +764,7 @@ Future<void> pinBusService(BusStop busStop, BusService busService, UserRoute rou
     'busServiceNumber':  busService.number,
   };
   await database.insert('pinned_bus_service', data);
+  await _updateRouteBusStopsStream(route);
 }
 
 Future<void> unpinBusService(BusStop busStop, BusService busService, UserRoute route) async {
@@ -776,6 +778,7 @@ Future<void> unpinBusService(BusStop busStop, BusService busService, UserRoute r
         busService.number,
       ],
   );
+  await _updateRouteBusStopsStream(route);
 }
 
 Future<bool> isBusServicePinned(BusStop busStop, BusService busService, UserRoute route) async {

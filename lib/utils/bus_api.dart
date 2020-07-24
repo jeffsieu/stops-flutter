@@ -201,20 +201,20 @@ class BusAPI {
       );
 
       _arrivalControllers.putIfAbsent(busStop, () => controller);
-      updateArrivalStream();
-      return controller.stream;
-    }
+
+    updateArrivalStream();
+    return controller.stream;
   }
+}
 
-  Future<String> _fetchAsString(String url, int skip, [String extraParams = '']) async {
-    final HttpClientRequest request = await HttpClient().getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
-    request.headers.set(_kApiTag, _kApiKey);
-    request.headers.set('Content-Type', 'application/json');
+Future<String> _fetchAsString(String url, int skip, [String extraParams = '']) async {
+  final HttpClientRequest request = await HttpClient().getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
+  request.headers.set(_kApiTag, _kApiKey);
+  request.headers.set('Content-Type', 'application/json');
 
-    final HttpClientResponse response = await request.close();
-    final Future<String> content = utf8.decodeStream(response);
-
-    return content;
+  final HttpClientResponse response = await request.close();
+  final Future<String> content = utf8.decodeStream(response);
+  return content;
   }
 
   Future<String> _fetchBusStopList(int skip) async {
