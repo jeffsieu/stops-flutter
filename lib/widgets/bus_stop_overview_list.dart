@@ -49,7 +49,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                 return Container(
                   padding: const EdgeInsets.all(32.0),
                   child: Center(
-                    child: Text('Pinned bus stops appear here.\n\nTap the star next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.', style: Theme.of(context).textTheme.headline4.copyWith(color: Theme.of(context).hintColor)),
+                    child: Text('Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.', style: Theme.of(context).textTheme.headline4.copyWith(color: Theme.of(context).hintColor)),
                   ),
                 );
               else {
@@ -82,7 +82,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                       final Color materialColor = Color.lerp(Theme.of(context).scaffoldBackgroundColor, Colors.white, dragAnimation.value / 10);
                       final double elevation = Tween<double>(begin: initialElevation, end: 10.0).animate(CurvedAnimation(parent: dragAnimation, curve: Curves.easeOutCubic)).value;
 
-                      Widget busStopItem = BusStopOverviewItem(busStop, key: Key(busStop.code));
+                      Widget busStopItem = BusStopOverviewItem(busStop, key: Key(busStop.code + busStop.pinnedServices.length.toString()));
 
                       if (position > 0)
                         busStopItem = Column(
