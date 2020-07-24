@@ -9,14 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';
 
-import 'bus.dart';
+import '../models/bus.dart';
+import '../models/bus_route.dart';
+import '../models/bus_service.dart';
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import 'bus_api.dart';
-import 'bus_route.dart';
-import 'bus_service.dart';
-import 'bus_stop.dart';
 import 'bus_utils.dart';
 import 'notification_utils.dart';
-import 'user_route.dart';
 
 /* Called when a bus stop is modified */
 typedef BusStopChangeListener = void Function(BusStop busStop);
@@ -38,7 +38,7 @@ const String _areBusServiceRoutesCachedKey = 'BUS_ROUTE_CACHE';
 
 final Map<String, List<BusFollowStatusListener>> _busFollowStatusListeners = <String, List<BusFollowStatusListener>>{};
 final Map<BusStop, List<BusStopChangeListener>> _busStopListeners = <BusStop, List<BusStopChangeListener>>{};
-final StreamController<List<Bus>> _followedBusesController = StreamController<List<Bus>>.broadcast();
+final StreamController<List<Bus>> _followedBusesController = StreamController<List<Bus>>.broadcast(onListen: updateFollowedBusesStream);
 final Map<UserRoute, StreamController<List<BusStop>>> _userRouteBusStopStreamControllers = <UserRoute, StreamController<List<BusStop>>>{};
 
 Future<Database> _accessDatabase() async {
@@ -171,7 +171,7 @@ Future<List<BusStop>> getBusStopsInRoute(UserRoute route) async {
   return busStops;
 }
 
-Future<void> addBusStopToRoute(BusStop busStop, UserRoute route) async {
+Future<void> addBusStopToRoute(BusStop busStop, UserRoute route, BuildContext context) async {
   final Database database = await _accessDatabase();
   final int newBusStopPosition = (await database.rawQuery('SELECT COUNT(busStopCode) as count FROM user_route_bus_stop WHERE routeId = $defaultRouteId'))[0]['count'];
   final Map<String, dynamic> entry = <String, dynamic>{
@@ -183,9 +183,20 @@ Future<void> addBusStopToRoute(BusStop busStop, UserRoute route) async {
 
   _updateBusStopListeners(busStop);
   await _updateRouteBusStopsStream(route);
+
+  Scaffold.of(context).hideCurrentSnackBar();
+  Scaffold.of(context).showSnackBar(SnackBar(
+    content: Text('Pinned ${busStop.displayName} to ${route == UserRoute.home ? "home" : route.name}'),
+//    action: SnackBarAction(
+//      label: 'SHOW ME',
+//      onPressed: () {
+//        Navigator.popUntil(context, ModalRoute.withName('/home'));
+//      },
+//    ),
+  ));
 }
 
-Future<void> removeBusStopFromRoute(BusStop busStop, UserRoute route) async {
+Future<void> removeBusStopFromRoute(BusStop busStop, UserRoute route, BuildContext context) async {
   final Database database = await _accessDatabase();
   final int position = (await database.query('user_route_bus_stop', where: 'routeId = ? AND busStopCode = ?', whereArgs: <dynamic>[route.id, busStop.code])).first['position'];
   await database.delete('user_route_bus_stop', where: 'routeId = ? AND busStopCode = ?', whereArgs: <dynamic>[route.id, busStop.code]);
@@ -193,6 +204,17 @@ Future<void> removeBusStopFromRoute(BusStop busStop, UserRoute route) async {
 
   _updateBusStopListeners(busStop);
   await _updateRouteBusStopsStream(route);
+
+  Scaffold.of(context).hideCurrentSnackBar();
+  Scaffold.of(context).showSnackBar(SnackBar(
+    content: Text('Unpinned ${busStop.displayName} from ${route == UserRoute.home ? "home" : route.name}'),
+    action: SnackBarAction(
+      label: 'UNDO',
+      onPressed: () {
+        addBusStopToRoute(busStop, route, context);
+      },
+    ),
+  ));
 }
 
 Future<bool> isBusStopInRoute(BusStop busStop, UserRoute route) async {
@@ -527,9 +549,6 @@ Future<bool> isBusFollowed({@required String stop, @required String bus}) async 
 }
 
 Stream<List<Bus>> followedBusesStream() {
-  getFollowedBuses().then((List<Bus> followedBuses) {
-      _followedBusesController.add(followedBuses);
-  });
   return _followedBusesController.stream;
 }
 
@@ -574,22 +593,19 @@ Future<void> setBusServiceSkipsStored() async {
 Future<void> pushHistory(String query) async {
   if (query.isEmpty)
     return;
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  if (prefs.containsKey('$_searchHistoryKey 0')) {
-    final String historyTop = prefs.getString('$_searchHistoryKey 0');
-    if (query == historyTop)
-      return;
-  }
-  await shiftHistory();
-  prefs.setString('$_searchHistoryKey 0',  query);
+  final List<String> history = await getHistory();
+  history.remove(query);
+  history.add(query);
+  if (history.length > 3)
+    history.removeAt(0);
+  storeHistory(history);
 }
 
-Future<void> shiftHistory() async {
+Future<void> storeHistory(List<String> history) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  if (prefs.containsKey('$_searchHistoryKey 1'))
-    prefs.setString('$_searchHistoryKey 2', prefs.getString('$_searchHistoryKey 1'));
-  if (prefs.containsKey('$_searchHistoryKey 0'))
-    prefs.setString('$_searchHistoryKey 1', prefs.getString('$_searchHistoryKey 0'));
+  for (int i = 0; i < 3; i++) {
+    await prefs.setString('$_searchHistoryKey $i', history[i]);
+  }
 }
 
 Future<List<String>> getHistory() async {

@@ -4,10 +4,10 @@ import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorder
 import 'package:implicitly_animated_reorderable_list/transitions.dart';
 
 import '../main.dart';
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import '../routes/fade_page_route.dart';
 import '../routes/search_page.dart';
-import '../utils/bus_stop.dart';
-import '../utils/user_route.dart';
 import '../widgets/card_app_bar.dart';
 import '../widgets/color_picker.dart';
 import '../widgets/never_focus_node.dart';
@@ -258,7 +258,8 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   Future<void> _pushSearchRoute() async {
-    final FadePageRoute<BusStop> route = FadePageRoute<BusStop>(child: SearchPage.onlyBusStops());
+    final Widget page = SearchPage.onlyBusStops();
+    final FadePageRoute<BusStop> route = FadePageRoute<BusStop>(child: page);
     final BusStop selectedBusStop = await Navigator.push(context, route);
     if (selectedBusStop != null) {
       setState(() {

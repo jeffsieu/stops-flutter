@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/bus_stop.dart';
+import '../models/bus_stop.dart';
 import 'bus_stop_overview_item.dart';
 
 class BusStopClosestItem extends StatefulWidget {

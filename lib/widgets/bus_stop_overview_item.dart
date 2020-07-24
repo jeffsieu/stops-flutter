@@ -1,15 +1,12 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
+import '../models/bus_service.dart';
+import '../models/bus_stop.dart';
 import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
-import '../utils/bus_service.dart';
 import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
-import '../utils/time_utils.dart';
 import '../widgets/bus_timing_row.dart';
 import '../widgets/route_model.dart';
 
@@ -59,7 +56,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
     return InkWell(
       onTap: _showDetailSheet,
       child: Container(
-        padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
+        padding: const EdgeInsets.only(top: 32.0, bottom: 32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,48 +133,5 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
   void _showDetailSheet() {
     FocusScope.of(context).requestFocus(FocusNode());
     HomePage.of(context).showBusDetailSheet(widget.busStop, RouteModel.of(context).route);
-  }
-}
-
-class BusTimingChip extends StatefulWidget {
-  const BusTimingChip({@required this.serviceNumber, @required this.bus});
-
-  final String serviceNumber;
-  final Bus bus;
-
-  @override
-  _BusTimingChipState createState() => _BusTimingChipState();
-}
-
-class _BusTimingChipState extends State<BusTimingChip> {
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      elevation: 2.0,
-      backgroundColor: Theme.of(context).cardColor,
-      label: RichText(
-        text: TextSpan(
-          children: <TextSpan>[
-            TextSpan(
-              text: '${widget.serviceNumber}',
-              style: Theme.of(context).textTheme.bodyText2.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  fontFamily: 'B612 Mono',
-                  color: getBusLoadColor(widget.bus.load, MediaQuery.of(context).platformBrightness),
-              ),
-            ),
-            TextSpan(
-              text:  ' · ${getBusTimingVerbose(widget.bus.arrivalTime.getMinutesFromNow())}',
-              style: Theme.of(context).textTheme.bodyText2.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: getBusLoadColor(widget.bus.load, MediaQuery.of(context).platformBrightness),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

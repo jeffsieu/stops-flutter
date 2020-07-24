@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
+import '../models/bus_service.dart';
 import 'bus_api.dart';
-import 'bus_service.dart';
 
 class BusServiceArrivalResult {
   BusServiceArrivalResult._({
@@ -11,12 +11,12 @@ class BusServiceArrivalResult {
 
   static BusServiceArrivalResult fromJson(dynamic json) {
     final BusService busService = BusService.fromJson(json);
-    final List<Bus> buses = <Bus>[
-      Bus.fromJson(json['NextBus']),
-      Bus.fromJson(json['NextBus2']),
-      Bus.fromJson(json['NextBus3'])
+    final List<BusArrival> buses = <BusArrival>[
+      BusArrival.fromJson(json['NextBus']),
+      BusArrival.fromJson(json['NextBus2']),
+      BusArrival.fromJson(json['NextBus3'])
     ];
-    buses.removeWhere((Bus b) => b == null);
+    buses.removeWhere((BusArrival b) => b == null);
     return BusServiceArrivalResult._(
         busService: busService,
         buses: buses,
@@ -24,11 +24,11 @@ class BusServiceArrivalResult {
   }
 
   final BusService busService;
-  final List<Bus> buses;
+  final List<BusArrival> buses;
 }
 
-class Bus {
-  Bus._({
+class BusArrival {
+  BusArrival._({
     @required this.type,
     @required this.load,
     @required this.latitude,
@@ -36,7 +36,7 @@ class Bus {
     @required this.arrivalTime,
   });
 
-  static Bus fromJson(dynamic json) {
+  static BusArrival fromJson(dynamic json) {
     final String typeString = json[BusAPI.kBusServiceTypeKey];
     BusType type;
     if (typeString == BusAPI.kBusServiceTypeSingle)
@@ -61,7 +61,7 @@ class Bus {
 
     if (arrivalTime == null)
       return null;
-    return Bus._(
+    return BusArrival._(
       type: type,
       load: load,
       latitude: latitude,

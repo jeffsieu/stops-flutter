@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:android_alarm_manager/android_alarm_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import 'bus.dart';
+import '../models/bus.dart';
 import 'bus_api.dart';
 import 'bus_utils.dart';
 import 'database_utils.dart';
@@ -65,11 +65,6 @@ Future<void> updateNotifications() async {
   final List<Bus> followedBuses = List<Bus>.from(await getFollowedBuses());
   final List<String> shortMessageParts = <String>[];
   final List<String> longMessageParts = <String>[];
-
-  if (followedBuses.isEmpty) {
-    notifications.cancel(silentNotificationId);
-    return;
-  }
 
   DateTime earliestNotificationTime;
 
@@ -141,13 +136,11 @@ Future<void> updateNotifications() async {
     silentNotificationDetails,
   );
 
-  updateFollowedBusesStream();
-
   if (earliestNotificationTime == null)
     return;
   await AndroidAlarmManager.initialize();
 
   // Cancel any scheduled notification update
   await AndroidAlarmManager.cancel(alarmManagerTaskId);
-  await AndroidAlarmManager.oneShotAt(earliestNotificationTime, alarmManagerTaskId, updateNotifications);
+  await AndroidAlarmManager.oneShotAt(DateTime.now(), alarmManagerTaskId, updateNotifications);
 }

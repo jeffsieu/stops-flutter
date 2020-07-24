@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/user_route.dart';
+import '../models/user_route.dart';
 
 class RouteModel extends InheritedWidget {
   const RouteModel({

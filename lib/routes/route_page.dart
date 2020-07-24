@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import '../routes/add_route_page.dart';
 import '../routes/fade_page_route.dart';
-import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
-import '../utils/user_route.dart';
 import '../widgets/bus_stop_overview_item.dart';
 import '../widgets/route_model.dart';
 
@@ -44,7 +44,7 @@ class RoutePageState extends State<RoutePage> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Row(
         children: <Widget>[
           IconButton(

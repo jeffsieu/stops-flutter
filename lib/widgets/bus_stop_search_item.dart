@@ -1,10 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meta/meta.dart';
 
-import 'package:flutter/material.dart';
-
-import '../utils/bus_stop.dart';
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import '../utils/database_utils.dart';
-import '../utils/user_route.dart';
+import '../widgets/highlighted_icon.dart';
 
 class BusStopSearchItem extends StatefulWidget {
   const BusStopSearchItem({
@@ -70,8 +71,39 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
       onTap: widget.onTap,
-      leading: Text(widget.distance),
+      leading: Container(
+        width: 48.0,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            HighlightedIcon(
+              iconColor: Theme.of(context).colorScheme.primary,
+              child: SvgPicture.asset(
+                'assets/images/bus-stop.svg',
+                width: 24.0,
+                height: 24.0,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            if (widget.distance.isNotEmpty)
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    widget.distance,
+                    softWrap: false,
+                    style: Theme.of(context).textTheme.subtitle2.copyWith(
+                      color: Theme.of(context).hintColor,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
       title: RichText(
         text: TextSpan(
           text: widget.nameStart,
@@ -83,12 +115,9 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
             TextSpan(
                 text: widget.nameBold,
                 style: Theme.of(context).textTheme.headline6.copyWith(
+                  color: Theme.of(context).accentColor,
                   fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
                   decorationColor: Theme.of(context).textTheme.bodyText2.color,
-                  background: Paint()
-                    ..color =
-                        Theme.of(context).highlightColor,
                 )),
             TextSpan(
                 text: widget.nameEnd),
@@ -101,34 +130,36 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
           style: Theme.of(context)
               .textTheme
               .subtitle2
-              .copyWith(fontWeight: FontWeight.normal),
+              .copyWith(color: Theme.of(context).hintColor),
           children: <TextSpan>[
             TextSpan(
                 text: widget.codeBold,
                 style: Theme.of(context).textTheme.subtitle2.copyWith(
+                  color: Theme.of(context).accentColor,
                   fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
                   decorationColor: Theme.of(context).textTheme.bodyText2.color,
-                  background: Paint()
-                    ..color =
-                        Theme.of(context).highlightColor,
                 )),
             TextSpan(
                 text: widget.codeEnd),
+            TextSpan(
+                text: ' ⋅ ${widget.busStop.road}'),
           ],
         ),
       ),
       trailing: IconButton(
-        icon: Icon(_isStarEnabled ? Icons.star : Icons.star_border),
+        icon: SvgPicture.asset(
+          _isStarEnabled ? 'assets/images/pin.svg': 'assets/images/pin-outline.svg',
+          color: _isStarEnabled ? Theme.of(context).colorScheme.secondary : Theme.of(context).hintColor,
+        ),
         tooltip: _isStarEnabled ? 'Unpin from home' : 'Pin to home',
         onPressed: () {
           setState(() {
             _isStarEnabled = !_isStarEnabled;
           });
           if (_isStarEnabled) {
-            addBusStopToRoute(widget.busStop, UserRoute.home);
+            addBusStopToRoute(widget.busStop, UserRoute.home, context);
           } else {
-            removeBusStopFromRoute(widget.busStop, UserRoute.home);
+            removeBusStopFromRoute(widget.busStop, UserRoute.home, context);
           }
         },
       ),

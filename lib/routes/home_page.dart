@@ -1,22 +1,25 @@
-import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:expandable/expandable.dart';
 import 'package:location/location.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../main.dart';
+import '../models/bus.dart';
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import '../routes/add_route_page.dart';
 import '../routes/route_page.dart';
+import '../routes/scan_card_page.dart';
 import '../routes/settings_page.dart';
-import '../utils/bus.dart';
 import '../utils/bus_api.dart';
-import '../utils/bus_stop.dart';
+import '../utils/bus_service_arrival_result.dart';
 import '../utils/database_utils.dart';
 import '../utils/location_utils.dart';
 import '../utils/reorder_status_notification.dart';
 import '../utils/time_utils.dart';
-import '../utils/user_route.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import '../widgets/card_app_bar.dart';
 import '../widgets/home_page_content_switcher.dart';
@@ -133,6 +136,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     if (_bottomNavIndex == 1) {
       setState(() {
         _bottomNavIndex = 0;
+        _fabScaleAnimationController.reverse();
       });
       return false;
     }
@@ -156,7 +160,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.all(16.0),
             border: InputBorder.none,
-            hintText: 'Search for bus stops and buses',
+            hintText: 'Search for stops, services',
             hintStyle: const TextStyle().copyWith(color:
             Theme.of(context).hintColor),
           ),
@@ -173,9 +177,15 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             onSelected: (String item) {
               if (item == 'Settings') {
                 _pushSettingsRoute();
+              } else if (item == 'Check card value') {
+                _pushScanCardRoute();
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+              const PopupMenuItem<String>(
+                child: Text('Check card value'),
+                value: 'Check card value',
+              ),
               const PopupMenuItem<String>(
                 child: Text('Settings'),
                 value: 'Settings',
@@ -223,11 +233,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             backgroundColor: Colors.transparent,
             leading: null,
             automaticallyImplyLeading: false,
-            titleSpacing: 8.0,
+            titleSpacing: 16.0,
             elevation: 0.0,
-            title: Container(
-              child: _buildSearchField(),
-            ),
+            title: _buildSearchField(),
           ),
         ),
       ],
@@ -244,16 +252,15 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
         initialData: _followedBuses,
         stream: followedBusesStream(),
         builder: (BuildContext context, AsyncSnapshot<List<Bus>> snapshot) {
-          final bool isLoaded = snapshot.hasData && snapshot.data.isNotEmpty;
-          if (isLoaded)
+          if (snapshot.hasData && snapshot.connectionState != ConnectionState.waiting)
             _followedBuses = snapshot.data;
-
+          final bool hasTrackedBuses = snapshot.hasData && snapshot.data.isNotEmpty;
           return AnimatedOpacity(
-            opacity: isLoaded ? 1 : 0,
-            duration: isLoaded ? const Duration(milliseconds: 650) : Duration.zero,
+            opacity: hasTrackedBuses ? 1 : 0,
+            duration: hasTrackedBuses ? const Duration(milliseconds: 650) : Duration.zero,
             curve: const Interval(0.66, 1),
-            child: isLoaded ? Card(
-              margin: const EdgeInsets.all(8.0),
+            child: hasTrackedBuses ? Card(
+              margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               child: Padding(
                 padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
                 child: Column(
@@ -273,15 +280,22 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                         physics: const NeverScrollableScrollPhysics(),
                         itemBuilder: (BuildContext context, int position) {
                           final Bus bus = snapshot.data[position];
-
                           return ListTile(
                             onTap: () {
                               showBusDetailSheet(bus.busStop, UserRoute.home);
                             },
-                            title: FutureBuilder<DateTime>(
-                              future: BusAPI().getArrivalTime(bus.busStop, bus.busService.number),
-                              builder: (BuildContext context, AsyncSnapshot<DateTime> snapshot) {
-                                return Text(snapshot.hasData ? '${bus.busService.number} - ${snapshot.data.getMinutesFromNow()} min' : '',
+                            title: StreamBuilder<List<BusServiceArrivalResult>>(
+                              stream: BusAPI().busStopArrivalStream(bus.busStop),
+                              builder: (BuildContext context, AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
+                                DateTime arrivalTime;
+                                if (snapshot.hasData) {
+                                  for (BusServiceArrivalResult arrivalResult in snapshot.data) {
+                                    if (arrivalResult.busService == bus.busService) {
+                                      arrivalTime = arrivalResult.buses[0].arrivalTime;
+                                    }
+                                  }
+                                }
+                                return Text(snapshot.hasData ? '${bus.busService.number} - ${arrivalTime.getMinutesFromNow()} min' : '',
                                   style: Theme.of(context).textTheme.headline6,
                                 );
                               },
@@ -366,11 +380,11 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             ),
           ),
           color: Theme.of(context).scaffoldBackgroundColor,
-          margin: const EdgeInsets.all(8.0),
+          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Column(
-              children: [
+              children: <Widget>[
                 ExpandablePanel(
                   tapHeaderToExpand: true,
                   hasIcon: true,
@@ -414,18 +428,37 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   Widget _buildSuggestionItem(BusStop busStop, double distanceInMeters) {
     final bool showShimmer = busStop == null || distanceInMeters == null;
-
+    final double factor = MediaQuery.of(context).textScaleFactor;
     Widget child;
     if (showShimmer) {
       child = Shimmer.fromColors(
         baseColor: Color.lerp(Theme.of(context).hintColor, Theme.of(context).canvasColor, 0.9),
         highlightColor: Theme.of(context).canvasColor,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('▅▅▅▅▅▅▅▅', style: Theme.of(context).textTheme.overline.copyWith(backgroundColor: Colors.grey)),
-            Text('██████████', style: Theme.of(context).textTheme.bodyText2.copyWith(backgroundColor: Colors.grey)),
-            Text('▅▅▅▅▅▅▅▅▅▅▅▅▅▅▅', style: Theme.of(context).textTheme.overline.copyWith(backgroundColor: Colors.grey)),
+            Container(
+              height: factor * 12.0,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(factor * 3.0)),
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+            ),
+            Container(height: 8.0),
+            Container(
+              height: factor * 24.0,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(factor * 3.0)),
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+            ),
+            Container(height: 8.0),
+            Container(
+              height: factor * 12.0,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(factor * 3.0)),
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+            ),
           ],
         ),
       );
@@ -436,9 +469,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       child = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(distanceText, style: Theme.of(context).textTheme.bodyText1.copyWith(color: Colors.grey)),
+          Text(distanceText, style: Theme.of(context).textTheme.bodyText1.copyWith(color: Theme.of(context).hintColor)),
           Text(busStopNameText, style: Theme.of(context).textTheme.headline6),
-          Text(busStopCodeText, style: Theme.of(context).textTheme.bodyText1.copyWith(color: Colors.grey)),
+          Text(busStopCodeText, style: Theme.of(context).textTheme.bodyText1.copyWith(color: Theme.of(context).hintColor)),
         ],
       );
     }
@@ -485,8 +518,12 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     return <Widget>[
       _buildTrackedBuses(),
       _buildSuggestions(),
-      const Divider(height: 32.0, indent: 8.0, endIndent: 8.0),
-      Center(child: Text('My Stops', style: Theme.of(context).textTheme.headline4,)),
+      Padding(
+        padding: const EdgeInsets.only(top: 32.0),
+        child: Center(
+            child: Text('My Stops', style: Theme.of(context).textTheme.headline4),
+        ),
+      ),
       _busStopOverviewList,
     ];
   }
@@ -521,6 +558,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   Future<void> refreshLocation() async {
     setState((){
+      LocationUtils.invalidateLocation();
       _nearestBusStops = null;
     });
   }
@@ -553,18 +591,27 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   void _pushSearchRoute() {
     hideBusDetailSheet();
-    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage());
+    final Widget page = SearchPage();
+    final Route<void> route = FadePageRoute<void>(child: page);
     Navigator.push(context, route);
   }
 
   void _pushSearchRouteWithMap() {
     hideBusDetailSheet();
-    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SearchPage(showMap: true));
+    final Widget page = SearchPage(showMap: true);
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => page);
     Navigator.push(context, route);
   }
 
   void _pushSettingsRoute() {
-    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => SettingsPage());
+    final Widget page = SettingsPage();
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => page);
+    Navigator.push(context, route);
+  }
+
+  void _pushScanCardRoute() {
+    final Widget page = ScanCardPage();
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => page);
     Navigator.push(context, route);
   }
 }

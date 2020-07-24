@@ -5,9 +5,9 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../utils/bus_service.dart';
+import '../models/bus_service.dart';
+import '../models/bus_stop.dart';
 import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
 
 class BusAPI {
@@ -164,21 +164,24 @@ class BusAPI {
   }
 
   Stream<List<BusServiceArrivalResult>> busStopArrivalStream(BusStop busStop)  {
+    final Function updateArrivalStream = () => _fetchBusStopArrivalList(busStop.code).then((String result) {
+      final List<dynamic> services = jsonDecode(result)[kBusStopServicesKey];
+      final List<BusServiceArrivalResult> arrivalResults = services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
+      _arrivalCache[busStop] = arrivalResults;
+      _arrivalControllers[busStop].add(arrivalResults);
+    });
+
     if (busStop == null) {
       return null;
     } else if (_arrivalControllers.containsKey(busStop)) {
+      updateArrivalStream();
       return _arrivalControllers[busStop].stream;
     } else {
       Timer timer;
       StreamController<List<BusServiceArrivalResult>> controller;
 
       void fetchBusStops(Timer timer){
-        _fetchBusStopArrivalList(busStop.code).then((String result) {
-          final List<dynamic> services = jsonDecode(result)[kBusStopServicesKey];
-          final List<BusServiceArrivalResult> arrivalResults = services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
-          _arrivalCache[busStop] = arrivalResults;
-          controller.add(arrivalResults);
-        });
+        updateArrivalStream();
       }
 
       void startTimer() {
@@ -198,6 +201,7 @@ class BusAPI {
       );
 
       _arrivalControllers.putIfAbsent(busStop, () => controller);
+      updateArrivalStream();
       return controller.stream;
     }
   }

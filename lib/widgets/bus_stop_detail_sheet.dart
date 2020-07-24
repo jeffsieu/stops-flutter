@@ -3,16 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:rubber/rubber.dart';
-import 'package:stops_sg/routes/home_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../models/bus_service.dart';
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
+import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
-import '../utils/bus_service.dart';
 import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
-import '../utils/user_route.dart';
 import '../widgets/bus_stop_legend_card.dart';
 import '../widgets/bus_timing_row.dart';
 import '../widgets/route_model.dart';
@@ -261,18 +261,6 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
             ),
           ),
           Container(
-            alignment: Alignment.centerLeft,
-            child: AnimatedOpacity(
-              opacity: _isEditing ? 1 : 0,
-              duration: BusStopDetailSheet.editAnimationDuration,
-              child: IconButton(
-                tooltip: 'Rename',
-                icon: const Icon(Icons.edit),
-                onPressed: _isEditing ? _showEditNameDialog : null,
-              ),
-            )
-          ),
-          Container(
             alignment: Alignment.centerRight,
             child: _buildHeaderOverflow(),
           ),
@@ -286,6 +274,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       return IconButton(
         tooltip: 'Done',
         icon: const Icon(Icons.done),
+        color: Theme.of(context).accentColor,
         onPressed: () {
           setState(() {
             _isEditing = false;
@@ -293,6 +282,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
         },
       );
     return PopupMenuButton<_MenuOption>(
+      icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
       onSelected: (_MenuOption option) {
         switch(option) {
           case _MenuOption.edit:
@@ -302,7 +292,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                 widget.rubberAnimationController.launchTo(
                     widget.rubberAnimationController.value,
                     widget.rubberAnimationController.upperBound,
-                    velocity: BusStopDetailSheet._launchVelocity/2);
+                    velocity: BusStopDetailSheet._launchVelocity / 2);
             });
             break;
           case _MenuOption.rename:
@@ -313,20 +303,15 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
               _isStarEnabled = !_isStarEnabled;
             });
             if (_isStarEnabled) {
-              addBusStopToRoute(_busStop, _route).then((_) {
+              addBusStopToRoute(_busStop, _route, context).then((_) {
                 setState(() {});
-                HomePage.of(context).refresh();
+                HomePage.of(context)?.refresh();
               });
             } else {
-              removeBusStopFromRoute(_busStop, _route).then((_) {
+              removeBusStopFromRoute(_busStop, _route, context).then((_) {
                 setState(() {});
-                HomePage.of(context).refresh();
+                HomePage.of(context)?.refresh();
               });
-              Scaffold.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Bus stop unpinned from ${_route == UserRoute.home ? "home" : _route.name}'),
-                ),
-              );
             }
             break;
           case _MenuOption.googleMaps:
@@ -344,7 +329,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
         if (_isStarEnabled)
           const PopupMenuItem<_MenuOption>(
             value: _MenuOption.edit,
-            child: Text('Pin/unpin services'),
+            child: Text('Manage pinned services'),
           ),
         PopupMenuItem<_MenuOption>(
           value: _MenuOption.favorite,
@@ -568,10 +553,9 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                       autofocus: true,
                       autocorrect: true,
                       controller: textController,
-                      cursorColor: Theme.of(context).accentColor,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        hintText: 'Bus stop name',
+                        labelText: 'Name',
                       ),
                     ),
                   ),
@@ -583,7 +567,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                     child: Row(
                       children: <Widget>[
                         FlatButton(
-                          textColor: Theme.of(context).accentColor,
+                          textColor: Theme.of(context).colorScheme.primary,
                           onPressed: () {
                             textController.text = _busStop.defaultName;
                           },
@@ -591,7 +575,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                         ),
                         const Spacer(),
                         FlatButton(
-                          textColor: Theme.of(context).accentColor,
+                          textColor: Theme.of(context).colorScheme.primary,
                           onPressed: () {
                             Navigator.pop(context);
                           },
@@ -599,7 +583,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                         ),
                         Container(width: 8.0),
                         FlatButton(
-                          textColor: Theme.of(context).accentColor,
+                          textColor: Theme.of(context).colorScheme.primary,
                           onPressed: () {
                             final String newName = textController.text;
                             Navigator.pop(context, newName);

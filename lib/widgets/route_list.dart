@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:implicitly_animated_reorderable_list/transitions.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
+import 'package:implicitly_animated_reorderable_list/transitions.dart';
 
+import '../models/user_route.dart';
 import '../utils/database_utils.dart';
 import '../utils/reorder_status_notification.dart';
-import '../utils/user_route.dart';
 import 'route_list_item.dart';
 
 class RouteList extends StatefulWidget {
@@ -62,7 +62,7 @@ class RouteListState extends State<RouteList> {
               return false;
             },
             child: ImplicitlyAnimatedReorderableList<UserRoute>(
-              padding: const EdgeInsets.only(bottom: kFloatingActionButtonMargin + 48),
+              padding: const EdgeInsets.only(top: 8.0, bottom: kFloatingActionButtonMargin + 48),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               items: _routes,
