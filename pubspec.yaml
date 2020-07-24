@@ -1,7 +1,7 @@
 name: stops_sg
 description: A Flutter application that displays live bus timings for bus stops in Singapore
 
-version: 0.5.1+11
+version: 0.6.0+12
 
 environment:
   sdk: ">=2.6.0 <3.0.0"
@@ -15,6 +15,9 @@ dependencies:
   expandable: ^2.2.0
   flutter_launcher_icons: ^0.7.3
   flutter_local_notifications: ^1.4.4
+  flutter_nfc_kit: ^1.1.0
+  flutter_svg: ^0.18.0
+  google_fonts: ^1.1.0
   google_maps_flutter: ^0.5.28+1
   implicitly_animated_reorderable_list: ^0.2.2
   latlong: ^0.6.1
@@ -41,26 +44,9 @@ flutter_icons:
 # The following section is specific to Flutter.
 flutter:
   uses-material-design: true
-
-  fonts:
-    - family: 'B612 Mono'
-      fonts:
-      - asset: assets/fonts/B612Mono-Regular.ttf
-      - asset: assets/fonts/B612Mono-Italic.ttf
-        style: italic
-      - asset: assets/fonts/B612Mono-Bold.ttf
-        weight: 700
-      - asset: assets/fonts/B612Mono-BoldItalic.ttf
-        style: italic
-        weight: 700
-    - family: 'Source Sans Pro'
-      fonts:
-      - asset: assets/fonts/SourceSansPro-Light.ttf
-        weight: 300
-      - asset: assets/fonts/SourceSansPro-Regular.ttf
-        weight: 400
-
   assets:
-    - assets/images/icon/icon_squircle.png
+    - assets/fonts/
+    - assets/images/
+    - assets/images/icon/
     - assets/secrets.json
     - assets/maps/map_style_dark.json

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:implicitly_animated_reorderable_list/transitions.dart';
 
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import '../utils/bus_api.dart';
-import '../utils/bus_stop.dart';
 import '../utils/database_utils.dart';
 import '../utils/reorder_status_notification.dart';
-import '../utils/user_route.dart';
 import '../widgets/bus_stop_overview_item.dart';
 import '../widgets/custom_handle.dart';
 import '../widgets/route_model.dart';

@@ -1,10 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 
-import 'bus_api.dart';
+import '../utils/bus_api.dart';
 import 'bus_route.dart';
 import 'bus_stop.dart';
 
 class BusService {
+
   BusService._({
     @required this.number,
     @required this.operator,
@@ -37,6 +39,10 @@ class BusService {
         number: map['number'],
         operator: map['operator'],
     );
+  }
+  
+  static Color listColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.light ? Colors.redAccent : Colors.redAccent[100];
   }
 
   Map<String, dynamic> toMap() {

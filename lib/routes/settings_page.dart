@@ -1,5 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 import '../utils/database_utils.dart';
@@ -98,7 +101,29 @@ class SettingsPageState extends State<SettingsPage> {
             height: IconTheme.of(context).size * 2,
           ),
           applicationName: 'Stops',
-          applicationVersion: '0.5.1',
+          applicationVersion: '0.6.0',
+          children: <Widget>[
+            RichText(
+              text: TextSpan(
+                text: 'Made by ',
+                children: <TextSpan>[
+                  TextSpan(
+                    text: 'Jeff Sieu',
+                    style: TextStyle(color: Theme.of(context).accentColor),
+                    recognizer: TapGestureRecognizer()..onTap = () async {
+                      const String url = 'https://github.com/jeffsieu';
+                      if (await canLaunch(url)) {
+                        await launch(
+                          url,
+                          forceSafariVC: false,
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );

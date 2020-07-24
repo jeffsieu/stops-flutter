@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:rubber/rubber.dart';
 
-import '../utils/bus_stop.dart';
-import '../utils/user_route.dart';
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import '../widgets/bus_stop_detail_sheet.dart';
 
 abstract class BottomSheetPage extends StatefulWidget {

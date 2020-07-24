@@ -29,18 +29,21 @@ class LocationUtils {
     hasPermission = (await location.hasPermission()) == PermissionStatus.GRANTED;
   }
 
-  static Future<LocationData> getLocation() async {
+  static void invalidateLocation() {
+    _currentLocationTimestamp = null;
+  }
 
-    // Platform messages may fail, so we use a try/catch PlatformException.
+  static Future<LocationData> getLocation() async {
+    if (isLocationCurrent())
+      return _currentLocation;
     try {
       _currentLocation = await location.getLocation();
+      _currentLocationTimestamp = DateTime.now();
     } on PlatformException catch (e) {
       if (e.code == 'PERMISSION_DENIED' || e.code == 'PERMISSION_DENIED_NEVER_ASK') {
       }
-      return null;
+      _currentLocation = null;
     }
-
-    _currentLocationTimestamp = DateTime.now();
     return _currentLocation;
   }
 }

@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart';
 
-import 'bus_api.dart';
+import '../utils/bus_api.dart';
 import 'bus_service.dart';
 
 class BusStop {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../utils/bus_stop.dart';
-import '../utils/user_route.dart';
+import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import 'custom_handle.dart';
 
 class RouteListItem extends StatelessWidget {
@@ -14,7 +14,7 @@ class RouteListItem extends StatelessWidget {
     return CustomHandle(
       delay: const Duration(milliseconds: 500),
       child: ListTile(
-        contentPadding: const EdgeInsets.only(left: 16.0, right: 8.0),
+        contentPadding: const EdgeInsets.only(left: 24.0, right: 16.0),
         onTap: () {
           RouteActionNotification(route, RouteAction.select).dispatch(context);
         },
@@ -29,6 +29,7 @@ class RouteListItem extends StatelessWidget {
         title: Text(route.name, style: Theme.of(context).textTheme.headline6),
         subtitle: Text(route.busStops.map<String>((BusStop busStop) => busStop.displayName).join(' > '), style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).hintColor)),
         trailing: PopupMenuButton<RouteAction>(
+          icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
           tooltip: 'Route options',
           onSelected: (RouteAction action) {
             RouteActionNotification(route, action).dispatch(context);

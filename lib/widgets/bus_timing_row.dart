@@ -2,12 +2,14 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../main.dart';
+import '../models/bus_service.dart';
+import '../models/bus_stop.dart';
 import '../routes/bus_service_page.dart';
 import '../routes/home_page.dart';
-import '../utils/bus_service.dart';
 import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_stop.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/time_utils.dart';
@@ -68,7 +70,15 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
   @override
   Widget build(BuildContext context) {
     final Widget item = InkWell(
-      onTap: () => widget.isEditing ? null : _pushBusServiceRoute(service.number),
+      onTap: widget.isEditing ? () async {
+        final bool isPinned = await isBusServicePinned(widget.busStop, service, RouteModel.of(context).route);
+        setState(() {
+          if (isPinned)
+            unpinBusService(widget.busStop, service, RouteModel.of(context).route);
+          else
+            pinBusService(widget.busStop, service, RouteModel.of(context).route);
+        });
+      } : () => _pushBusServiceRoute(service.number),
       child: Stack(
         alignment: Alignment.center,
         children: <Widget>[
@@ -91,16 +101,17 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                         future: isBusServicePinned(widget.busStop, service, RouteModel.of(context).route),
                         builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
                           final bool isChecked = snapshot.data;
+                          final Checkbox checkbox = Checkbox(
+                            value: isChecked,
+                            onChanged: (bool checked) => setState(() {
+                              if (checked)
+                                pinBusService(widget.busStop, service, RouteModel.of(context).route);
+                              else
+                                unpinBusService(widget.busStop, service, RouteModel.of(context).route);
+                            }),
+                          );
                           if (widget.isEditing)
-                            return Checkbox(
-                              value: isChecked,
-                              onChanged: (bool checked) => setState(() {
-                                if (checked)
-                                  pinBusService(widget.busStop, service, RouteModel.of(context).route);
-                                else
-                                  unpinBusService(widget.busStop, service, RouteModel.of(context).route);
-                              }),
-                            );
+                            return checkbox;
                           return Container();
                         },
                       ),
@@ -112,12 +123,12 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text(
                           service.number.padAsServiceNumber(),
-                          style: widget.hasArrivals ?
-                            Theme.of(context).textTheme.headline6.copyWith(fontFamily: 'B612 Mono') :
-                            Theme.of(context).textTheme.headline6.copyWith(
-                              fontFamily: 'B612 Mono',
-                              color: Theme.of(context).hintColor,
-                            ),
+                          style: GoogleFonts.getFont(StopsApp.monospacedFont,
+                            textStyle: Theme.of(context).textTheme.headline5,
+                            color: widget.hasArrivals ?
+                              Theme.of(context).textTheme.headline6.color :
+                              Theme.of(context).hintColor,
+                          ),
                         ),
                       ),
                   ],
@@ -192,15 +203,16 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
   }
 
   void _pushBusServiceRoute(String serviceNumber) {
-    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => BusServicePage.withBusStop(serviceNumber, widget.busStop));
+    final Widget page = BusServicePage.withBusStop(serviceNumber, widget.busStop);
+    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => page);
     Navigator.push(context, route);
   }
 }
 
 class _BusTimingItem extends StatefulWidget {
-  const _BusTimingItem(this.bus, {Key key}) : super(key: key);
+  const _BusTimingItem(this.busArrival, {Key key}) : super(key: key);
 
-  final Bus bus;
+  final BusArrival busArrival;
 
   @override
   State<StatefulWidget> createState() {
@@ -235,18 +247,18 @@ class _BusTimingItemState extends State<_BusTimingItem>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.bus.arrivalTime.getMinutesFromNow() <= 1) {
+    if (widget.busArrival.arrivalTime.getMinutesFromNow() <= 1) {
       if (!_controller.isAnimating)
         _controller.forward();
     }
     else
       _controller.reset();
-    final Color busLoadColor = getBusLoadColor(widget.bus.load, MediaQuery.of(context).platformBrightness);
+    final Color busLoadColor = getBusLoadColor(widget.busArrival.load, MediaQuery.of(context).platformBrightness);
     return Stack(
       alignment: Alignment.bottomCenter,
       children: <Widget>[
         Text(
-          getBusTypeVerbose(widget.bus.type),
+          getBusTypeVerbose(widget.busArrival.type),
           style: Theme.of(context).textTheme.bodyText2.copyWith(color: busLoadColor.withOpacity(0.5)),
         ),
         Container(
@@ -261,7 +273,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
                 );
               },
               child: Text(
-                getBusTimingShortened(widget.bus.arrivalTime.getMinutesFromNow()),
+                getBusTimingShortened(widget.busArrival.arrivalTime.getMinutesFromNow()),
                 style: Theme.of(context).textTheme.headline6.copyWith(color: busLoadColor, fontSize: 24),
               ),
             ),

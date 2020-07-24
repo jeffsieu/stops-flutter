@@ -3,8 +3,8 @@ import 'package:meta/meta.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/database_utils.dart';
 import 'bus_stop.dart';
-import 'database_utils.dart';
 
 class UserRoute {
   UserRoute({
