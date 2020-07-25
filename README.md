@@ -15,17 +15,17 @@ It uses live data exposed by [LTA Datamall](https://www.mytransport.sg/content/m
 
 ## Screenshots
 
-### Light vs Dark
-<img src="https://user-images.githubusercontent.com/8487294/78435346-e3ffd900-76a8-11ea-8e07-4a10348a53c5.png" width=300>
-<img src="https://user-images.githubusercontent.com/8487294/78457074-44f3d500-76da-11ea-8ee6-0cdebb52fc2a.png" width=300>
+<p align="middle">
+ <img src="https://user-images.githubusercontent.com/8487294/88450897-0b132e00-ce85-11ea-8a07-5c200e6eabbb.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/88450899-0c445b00-ce85-11ea-8540-65293e3453a5.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/88450914-2aaa5680-ce85-11ea-9406-d40dda15dde0.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/88450917-2c741a00-ce85-11ea-8599-0d4b079386cd.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/88450982-da7fc400-ce85-11ea-84b7-151add2f3443.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/88450919-2ed67400-ce85-11ea-9954-e3f09718995a.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/88451013-03a05480-ce86-11ea-8983-ebff80ba871a.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/88451016-04d18180-ce86-11ea-9786-558d2ad26149.png" width=300>
+</p>
 
-### Homepage
-<img src="https://user-images.githubusercontent.com/8487294/78438056-abacca80-76a9-11ea-81ca-e13061e2687a.png" width=300>
-
-### Others
-<img src="https://user-images.githubusercontent.com/8487294/78457073-432a1180-76da-11ea-874f-2a0c8912179f.png" width=300>
-<img src="https://user-images.githubusercontent.com/8487294/78438029-a9e30700-76a9-11ea-94f4-bfcc55cb8f16.png" width=300>
-<img src="https://user-images.githubusercontent.com/8487294/78438042-ab143400-76a9-11ea-8613-261acdb7293f.png" width=300>
 
 ## Getting Started
  ```
