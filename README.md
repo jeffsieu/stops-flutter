@@ -3,6 +3,10 @@
 Stops is an app built with Flutter that displays live bus timings for bus stops in Singapore.
 It uses live data exposed by [LTA Datamall](https://www.mytransport.sg/content/mytransport/home/dataMall.html)'s API.
 
+## Download (Android)
+
+[Download the latest release](https://github.com/jeffsieu/stops-flutter/releases).
+
 ## Features
  - Pin your favorite bus stops
  - Search bus stops by their name or code
