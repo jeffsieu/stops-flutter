@@ -627,20 +627,16 @@ Future<void> cacheBusStops(List<BusStop> busStops) async {
   final Batch batch = database.batch();
 
   for (final BusStop busStop in busStops) {
-    _cacheBusStop(busStop, batch);
+    batch.insert(
+      'bus_stop',
+      busStop.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
   await batch.commit(noResult: true);
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.setBool(_areBusStopsCachedKey, true);
-}
-
-void _cacheBusStop(BusStop busStop, Batch batch) {
-  batch.insert(
-    'bus_stop',
-    busStop.toMap(),
-    conflictAlgorithm: ConflictAlgorithm.replace,
-  );
 }
 
 Future<bool> areBusStopsCached() async {
@@ -668,20 +664,16 @@ Future<void> cacheBusServices(List<BusService> busServices) async {
   final Batch batch = database.batch();
 
   for (final BusService busService in busServices) {
-    _cacheBusService(busService, batch);
+    batch.insert(
+      'bus_service',
+      busService.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
   await batch.commit(noResult: true);
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.setBool(_areBusServicesCachedKey, true);
-}
-
-void _cacheBusService(BusService busService, Batch batch) {
-  batch.insert(
-    'bus_service',
-    busService.toMap(),
-    conflictAlgorithm: ConflictAlgorithm.replace,
-  );
 }
 
 Future<bool> areBusServicesCached() async {
@@ -703,38 +695,40 @@ Future<BusService> getCachedBusServiceWithNumber(String serviceNumber) async {
   return BusService.fromMap(maps.first);
 }
 
-Future<Batch> beginBatchTransaction() async {
-  return (await _accessDatabase()).batch();
-}
-
-void cacheBusServiceRouteStop(Map<String, dynamic> busStop, Batch batch) {
+Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {
   final String serviceNumber = busStop[BusAPI.kBusServiceNumberKey];
   final int direction = busStop[BusAPI.kBusServiceDirectionKey];
   final String busStopCode = busStop[BusAPI.kBusStopCodeKey];
   final double distance = busStop[BusAPI.kBusStopDistanceKey]?.toDouble() ?? 0;
 
-  final dynamic json = <String, dynamic>{
+  final Map<String, dynamic> json = <String, dynamic>{
     'serviceNumber': serviceNumber,
     'direction': direction,
     'busStopCode': busStopCode,
     'distance': distance,
   };
+  return json;
+}
 
-  batch.insert(
-    'bus_route',
-    json,
-    conflictAlgorithm: ConflictAlgorithm.replace,
-  );
+Future<void> cacheBusServiceRoutes(List<Map<String, dynamic>> busServiceRoutesRaw) async {
+  final Database database = await _accessDatabase();
+  final Batch batch = database.batch();
+  for (dynamic busStop in busServiceRoutesRaw) {
+    batch.insert(
+      'bus_route',
+      busStop,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+  await batch.commit(noResult: true);
+
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(_areBusServiceRoutesCachedKey, true);
 }
 
 Future<bool> areBusServiceRoutesCached() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs.containsKey(_areBusServiceRoutesCachedKey);
-}
-
-Future<void> setBusServiceRoutesCached() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(_areBusServiceRoutesCachedKey, true);
 }
 
 Future<List<BusServiceRoute>> getCachedBusRoutes(BusService busService) async {

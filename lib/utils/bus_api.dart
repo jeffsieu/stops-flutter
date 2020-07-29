@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:sqflite/sqflite.dart';
 
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
@@ -70,8 +69,6 @@ class BusAPI {
 
   bool _areBusStopsLoaded = false;
   bool _areBusServicesLoaded = false;
-  int _arrivalSkip = 0;
-  int _servicesSkip = 0;
 
   /*
    * Load LTA API key from secrets.json file in root directory
@@ -93,22 +90,7 @@ class BusAPI {
   Stream<List<BusStop>> busStopsStream() {
     StreamController<List<BusStop>> controller;
     Future<void> onListen() async {
-      if (!await areBusStopsCached()) {
-        while (!_areBusStopsLoaded) {
-          final String result = await _fetchBusStopList(_arrivalSkip);
-          final List<dynamic> resultList = jsonDecode(result)['value'];
-          _busStops.addAll(resultList.map((dynamic busStopJson) =>
-              BusStop.fromJson(busStopJson)));
-
-          if (resultList.length != 500) {
-            _areBusStopsLoaded = true;
-          } else {
-            controller.add(_busStops);
-            _arrivalSkip += 500;
-          }
-        }
-        cacheBusStops(_busStops);
-      } else if (!_areBusStopsLoaded){
+      if (!_areBusStopsLoaded){
         _busStops.addAll(await getCachedBusStops());
         _areBusStopsLoaded = true;
       }
@@ -121,23 +103,9 @@ class BusAPI {
 
   Stream<List<BusService>> busServicesStream() {
     StreamController<List<BusService>> controller;
-    Future<void> onListen() async {
-      if (!await areBusServicesCached()) {
-        while (!_areBusServicesLoaded) {
-          final String result = await _fetchBusServiceList(_servicesSkip);
-          final List<dynamic> resultList = jsonDecode(result)['value'];
-          _busServices.addAll(resultList.map((dynamic busServiceJson) =>
-              BusService.fromJson(busServiceJson)));
 
-          if (resultList.length != 500) {
-            _areBusServicesLoaded = true;
-          } else {
-            controller.add(_busServices);
-            _servicesSkip += 500;
-          }
-        }
-        cacheBusServices(_busServices);
-      } else if (!_areBusServicesLoaded){
+    Future<void> onListen() async {
+      if (!_areBusServicesLoaded){
         _busServices.addAll(await getCachedBusServices());
         _areBusServicesLoaded = true;
       }
@@ -207,47 +175,74 @@ class BusAPI {
   }
 }
 
-Future<String> _fetchAsString(String url, int skip, [String extraParams = '']) async {
-  final HttpClientRequest request = await HttpClient().getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
-  request.headers.set(_kApiTag, _kApiKey);
-  request.headers.set('Content-Type', 'application/json');
+  Future<String> _fetchAsString(String url, int skip, [String extraParams = '']) async {
+    final HttpClientRequest request = await HttpClient().getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
+    request.headers.set(_kApiTag, _kApiKey);
+    request.headers.set('Content-Type', 'application/json');
 
-  final HttpClientResponse response = await request.close();
-  final Future<String> content = utf8.decodeStream(response);
-  return content;
+    final HttpClientResponse response = await request.close();
+    final Future<String> content = utf8.decodeStream(response);
+    return content;
   }
 
-  Future<String> _fetchBusStopList(int skip) async {
-    return _fetchAsString(_kGetBusStopsUrl, skip);
+  Future<List<T>> _fetchAsList<T>(String url, T function(dynamic json)) async {
+    int skip = 0;
+    const int concurrentCount = 6;
+    final List<T> resultList = <T>[];
+    bool atEndOfList = false;
+    while (!atEndOfList) {
+      final List<Future<String>> futures = <Future<String>>[];
+      for (int i = 0; i < concurrentCount; i++) {
+        futures.add(_fetchAsString(url, skip));
+        skip += 500;
+      }
+      final List<String> results = await Future.wait(futures);
+      for (String result in results) {
+        try {
+          final List<dynamic> rawList = jsonDecode(result)['value'];
+          if (rawList == null || rawList.isEmpty)
+            break;
+          resultList.addAll(rawList.map<T>(function));
+          if (rawList.length < 500) {
+            atEndOfList = true;
+            break;
+          }
+        } on FormatException {
+          continue;
+        }
+      }
+    }
+    return resultList;
+  }
+
+  Future<List<BusStop>> _fetchBusStopList() async {
+    return _fetchAsList(_kGetBusStopsUrl, BusStop.fromJson);
   }
 
   Future<String> _fetchBusStopArrivalList(String busStopCode) async {
     return _fetchAsString(_kGetBusStopArrivalUrl, 0, '&BusStopCode=' + busStopCode);
   }
 
-  Future<String> _fetchBusServiceList(int skip) async {
-    return _fetchAsString(_kGetBusServicesUrl, skip);
+  Future<List<BusService>> _fetchBusServiceList() async {
+    return _fetchAsList(_kGetBusServicesUrl, BusService.fromJson);
   }
 
-  Future<String> _fetchBusServiceRouteList(int skip) async {
-    return _fetchAsString(_kGetBusRoutesUrl, skip);
+  Future<List<Map<String, dynamic>>> _fetchBusServiceRouteList() async {
+    return _fetchAsList(_kGetBusRoutesUrl, busServiceRouteStopToJson);
+  }
+
+  Future<void> fetchAndStoreBusStops() async {
+    final List<BusStop> busStops = await _fetchBusStopList();
+    cacheBusStops(busStops);
+  }
+
+  Future<void> fetchAndStoreBusServices() async {
+    final List<BusService> busServices = await _fetchBusServiceList();
+    cacheBusServices(busServices);
   }
 
   Future<void> fetchAndStoreBusServiceRoutes() async {
-    int skip = 0;
-    List<dynamic> resultList;
-
-    final Batch batch = await beginBatchTransaction();
-
-    do {
-      final String result = await _fetchBusServiceRouteList(skip);
-      resultList = jsonDecode(result)['value'];
-      for (dynamic busStop in resultList) {
-        cacheBusServiceRouteStop(busStop, batch);
-      }
-      skip += 500;
-    } while (resultList.isNotEmpty);
-    await batch.commit(noResult: true);
-    await setBusServiceRoutesCached();
+    final List<Map<String, dynamic>> busServiceRoutesRaw = await _fetchBusServiceRouteList();
+    cacheBusServiceRoutes(busServiceRoutesRaw);
   }
 }

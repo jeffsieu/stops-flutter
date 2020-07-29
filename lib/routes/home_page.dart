@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:expandable/expandable.dart';
+import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:location/location.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:shimmer/shimmer.dart';
@@ -11,6 +12,7 @@ import '../models/bus.dart';
 import '../models/bus_stop.dart';
 import '../models/user_route.dart';
 import '../routes/add_route_page.dart';
+import '../routes/fetch_data_dialog.dart';
 import '../routes/route_page.dart';
 import '../routes/scan_card_page.dart';
 import '../routes/settings_page.dart';
@@ -51,6 +53,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   @override
   void initState() {
     super.initState();
+    showSetupDialog();
     final QuickActions quickActions = QuickActions();
     quickActions.initialize((String shortcutType) {
       if (shortcutType == 'action_search') {
@@ -58,7 +61,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
       }
     });
     quickActions.setShortcutItems(<ShortcutItem>[
-      const ShortcutItem(type: 'action_search', localizedTitle: 'Search', icon: 'icon_search'),
+      const ShortcutItem(type: 'action_search', localizedTitle: 'Search', icon: 'ic_shortcut_search'),
     ]);
 
     _bottomNavIndex = 0;
@@ -66,6 +69,22 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     _scrollController = ScrollController();
     _fabScaleAnimationController = AnimationController(vsync: this, duration: HomePageContentSwitcher.animationDuration);
     canScroll = true;
+  }
+
+  Future<void> showSetupDialog() async {
+    final bool cachedBusStops = await areBusStopsCached();
+    final bool cachedBusServices = await areBusServicesCached();
+    final bool cachedBusServiceRoutes = await areBusServiceRoutesCached();
+    final bool isFullyCached = cachedBusStops && cachedBusServices && cachedBusServiceRoutes;
+    if (!isFullyCached) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const FetchDataDialog(isSetup: true);
+        },
+      );
+    }
   }
 
   @override
@@ -171,26 +190,32 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             icon: Icon(Icons.map, color: Theme.of(context).hintColor),
             onPressed: _pushSearchRouteWithMap,
           ),
-          PopupMenuButton<String>(
-            tooltip: 'More',
-            icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
-            onSelected: (String item) {
-              if (item == 'Settings') {
-                _pushSettingsRoute();
-              } else if (item == 'Check card value') {
-                _pushScanCardRoute();
-              }
+          FutureBuilder<NFCAvailability>(
+            future: FlutterNfcKit.nfcAvailability,
+            builder: (BuildContext context, AsyncSnapshot<NFCAvailability> snapshot) {
+              return PopupMenuButton<String>(
+                tooltip: 'More',
+                icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
+                onSelected: (String item) {
+                  if (item == 'Settings') {
+                    _pushSettingsRoute();
+                  } else if (item == 'Check card value') {
+                    _pushScanCardRoute();
+                  }
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                  if (snapshot.hasData && snapshot.data == NFCAvailability.available)
+                    const PopupMenuItem<String>(
+                      child: Text('Check card value'),
+                      value: 'Check card value',
+                    ),
+                  const PopupMenuItem<String>(
+                    child: Text('Settings'),
+                    value: 'Settings',
+                  ),
+                ],
+              );
             },
-            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-              const PopupMenuItem<String>(
-                child: Text('Check card value'),
-                value: 'Check card value',
-              ),
-              const PopupMenuItem<String>(
-                child: Text('Settings'),
-                value: 'Settings',
-              ),
-            ],
           ),
         ],
       ),

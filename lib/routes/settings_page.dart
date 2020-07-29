@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 import '../utils/database_utils.dart';
+import 'fetch_data_dialog.dart';
 
 class SettingsPage extends StatefulWidget {
   static const String _kThemeLabelSystem = 'System';
@@ -40,6 +41,7 @@ class SettingsPageState extends State<SettingsPage> {
       body: ListView(
         children: <Widget>[
           _buildThemeTile(),
+          _buildRefreshDataTile(),
           _buildAboutTile(),
         ],
       ),
@@ -101,15 +103,16 @@ class SettingsPageState extends State<SettingsPage> {
             height: IconTheme.of(context).size * 2,
           ),
           applicationName: 'Stops',
-          applicationVersion: '0.6.0',
+          applicationVersion: '0.6.1',
           children: <Widget>[
             RichText(
               text: TextSpan(
                 text: 'Made by ',
+                style: Theme.of(context).textTheme.bodyText2,
                 children: <TextSpan>[
                   TextSpan(
                     text: 'Jeff Sieu',
-                    style: TextStyle(color: Theme.of(context).accentColor),
+                    style: TextStyle(color: Theme.of(context).colorScheme.secondary),
                     recognizer: TapGestureRecognizer()..onTap = () async {
                       const String url = 'https://github.com/jeffsieu';
                       if (await canLaunch(url)) {
@@ -124,6 +127,23 @@ class SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildRefreshDataTile() {
+    return ListTile(
+      title: const Text('Refresh cached data'),
+      subtitle: const Text('Select if there are missing stops/services'),
+      leading: const Icon(Icons.update),
+      onTap: () {
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const FetchDataDialog(isSetup: false);
+          },
         );
       },
     );
