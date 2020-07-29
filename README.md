@@ -4,8 +4,8 @@ Stops is an app built with Flutter that displays live bus timings for bus stops 
 It uses live data exposed by [LTA Datamall](https://www.mytransport.sg/content/mytransport/home/dataMall.html)'s API.
 
 ## Download (Android)
-
-[Download the latest release](https://github.com/jeffsieu/stops-flutter/releases).
+[![Get Stops on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.jeffsieu.stops)
+Or check out the [releases page](https://github.com/jeffsieu/stops-flutter/releases).
 
 ## Features
  - Pin your favorite bus stops
