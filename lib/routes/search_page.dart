@@ -434,7 +434,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       markers: _buildMapMarkers(location),
     );
     return Container(
-        child: _googleMap,
+      padding: EdgeInsets.only(bottom: _resultsSheetCollapsedHeight),
+      child: _googleMap,
     );
   }
 
