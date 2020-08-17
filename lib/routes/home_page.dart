@@ -342,6 +342,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                           textColor: Theme.of(context).accentColor,
                           onPressed: () async {
                             final List<Map<String, dynamic>> trackedBuses = await unfollowAllBuses();
+                            Scaffold.of(context).hideCurrentSnackBar();
                             Scaffold.of(context).showSnackBar(SnackBar(
                               content: const Text('Stopped tracking all buses'),
                               action: SnackBarAction(

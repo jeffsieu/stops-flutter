@@ -162,6 +162,7 @@ class _BusTimingState extends State<BusTimingRow> with TickerProviderStateMixin 
             unfollowBus(stop: widget.busStop.code, bus: service.number);
           } else {
             final SnackBar snackBar = SnackBar(content: Text('Tracking the ${service.number} bus arriving in ${widget.arrivalResult.buses[0].arrivalTime.getMinutesFromNow()} min'));
+            Scaffold.of(context).hideCurrentSnackBar();
             Scaffold.of(context).showSnackBar(snackBar);
 
             final DateTime estimatedArrivalTime = widget.arrivalResult.buses[0].arrivalTime;
