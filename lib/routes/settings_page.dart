@@ -103,7 +103,7 @@ class SettingsPageState extends State<SettingsPage> {
             height: IconTheme.of(context).size * 2,
           ),
           applicationName: 'Stops',
-          applicationVersion: '0.6.3',
+          applicationVersion: '0.6.4',
           children: <Widget>[
             RichText(
               text: TextSpan(
