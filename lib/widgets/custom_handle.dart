@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -60,7 +62,7 @@ class _HandleState extends State<CustomHandle> {
 
   void _onDragUpdated(Offset pointer, bool upward) {
     _currentOffset = _isVertical ? pointer.dy : pointer.dx;
-    _list?.onDragUpdated(_delta, isUpward: upward);
+    _list?.onDragUpdated(_delta);
   }
 
   void _onDragEnded() {
@@ -71,8 +73,7 @@ class _HandleState extends State<CustomHandle> {
   }
 
   void _vibrate() {
-    if (widget.vibrate)
-      HapticFeedback.mediumImpact();
+    if (widget.vibrate) HapticFeedback.mediumImpact();
   }
 
   // A Handle should only initiate a reorder when the list didn't change it scroll
@@ -95,16 +96,17 @@ class _HandleState extends State<CustomHandle> {
     _removeScrollListener();
     _currentDelta = 0.0;
 
-    if (_inDrag)
-      _onDragEnded();
+    if (_inDrag) _onDragEnded();
   }
 
   @override
   Widget build(BuildContext context) {
     _list ??= ImplicitlyAnimatedReorderableList.of(context);
-    assert(_list != null, 'No ancestor ImplicitlyAnimatedReorderableList was found in the hierarchy!');
+    assert(_list != null,
+        'No ancestor ImplicitlyAnimatedReorderableList was found in the hierarchy!');
     _reorderable ??= Reorderable.of(context);
-    assert(_reorderable != null, 'No ancestor Reorderable was found in the hierarchy!');
+    assert(_reorderable != null,
+        'No ancestor Reorderable was found in the hierarchy!');
 
     return Listener(
       onPointerDown: (PointerDownEvent event) {
@@ -116,7 +118,7 @@ class _HandleState extends State<CustomHandle> {
           _addScrollListener();
           _handler = postDuration(
             widget.delay,
-                () => _onDragStarted(pointer),
+            () => _onDragStarted(pointer),
           );
         }
       },
@@ -129,8 +131,7 @@ class _HandleState extends State<CustomHandle> {
           _cancelReorder();
         }
 
-        if (_inDrag)
-          _onDragUpdated(pointer, delta.isNegative);
+        if (_inDrag) _onDragUpdated(pointer, delta.isNegative);
       },
       onPointerUp: (_) => _cancelReorder(),
       onPointerCancel: (_) => _cancelReorder(),

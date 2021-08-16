@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:meta/meta.dart';
@@ -8,18 +10,18 @@ import '../utils/database_utils.dart';
 import '../widgets/highlighted_icon.dart';
 
 class BusStopSearchItem extends StatefulWidget {
-  const BusStopSearchItem({
-    @required Key key,
-    @required this.codeStart,
-    @required this.codeBold,
-    @required this.codeEnd,
-    @required this.nameStart,
-    @required this.nameBold,
-    @required this.nameEnd,
-    @required this.distance,
-    @required this.busStop,
-    this.onTap
-  }) : super (key: key);
+  const BusStopSearchItem(
+      {@required Key key,
+      @required this.codeStart,
+      @required this.codeBold,
+      @required this.codeEnd,
+      @required this.nameStart,
+      @required this.nameBold,
+      @required this.nameEnd,
+      @required this.distance,
+      @required this.busStop,
+      this.onTap})
+      : super(key: key);
 
   final String codeStart;
   final String codeBold;
@@ -29,7 +31,7 @@ class BusStopSearchItem extends StatefulWidget {
   final String nameEnd;
   final String distance;
   final BusStop busStop;
-  final Function onTap;
+  final void Function() onTap;
 
   @override
   State<StatefulWidget> createState() {
@@ -37,7 +39,8 @@ class BusStopSearchItem extends StatefulWidget {
   }
 }
 
-class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerProviderStateMixin {
+class BusStopSearchItemState extends State<BusStopSearchItem>
+    with SingleTickerProviderStateMixin {
   bool _isStarEnabled = false;
 
   BusStopChangeListener _busStopListener;
@@ -96,8 +99,8 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
                     widget.distance,
                     softWrap: false,
                     style: Theme.of(context).textTheme.subtitle2.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
+                          color: Theme.of(context).hintColor,
+                        ),
                   ),
                 ),
               ),
@@ -115,12 +118,12 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
             TextSpan(
                 text: widget.nameBold,
                 style: Theme.of(context).textTheme.headline6.copyWith(
-                  color: Theme.of(context).accentColor,
-                  fontWeight: FontWeight.bold,
-                  decorationColor: Theme.of(context).textTheme.bodyText2.color,
-                )),
-            TextSpan(
-                text: widget.nameEnd),
+                      color: Theme.of(context).accentColor,
+                      fontWeight: FontWeight.bold,
+                      decorationColor:
+                          Theme.of(context).textTheme.bodyText2.color,
+                    )),
+            TextSpan(text: widget.nameEnd),
           ],
         ),
       ),
@@ -135,21 +138,24 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
             TextSpan(
                 text: widget.codeBold,
                 style: Theme.of(context).textTheme.subtitle2.copyWith(
-                  color: Theme.of(context).accentColor,
-                  fontWeight: FontWeight.bold,
-                  decorationColor: Theme.of(context).textTheme.bodyText2.color,
-                )),
-            TextSpan(
-                text: widget.codeEnd),
-            TextSpan(
-                text: ' ⋅ ${widget.busStop.road}'),
+                      color: Theme.of(context).accentColor,
+                      fontWeight: FontWeight.bold,
+                      decorationColor:
+                          Theme.of(context).textTheme.bodyText2.color,
+                    )),
+            TextSpan(text: widget.codeEnd),
+            TextSpan(text: ' ⋅ ${widget.busStop.road}'),
           ],
         ),
       ),
       trailing: IconButton(
         icon: SvgPicture.asset(
-          _isStarEnabled ? 'assets/images/pin.svg': 'assets/images/pin-outline.svg',
-          color: _isStarEnabled ? Theme.of(context).colorScheme.secondary : Theme.of(context).hintColor,
+          _isStarEnabled
+              ? 'assets/images/pin.svg'
+              : 'assets/images/pin-outline.svg',
+          color: _isStarEnabled
+              ? Theme.of(context).colorScheme.secondary
+              : Theme.of(context).hintColor,
         ),
         tooltip: _isStarEnabled ? 'Unpin from home' : 'Pin to home',
         onPressed: () {

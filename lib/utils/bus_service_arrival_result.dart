@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:meta/meta.dart';
 
 import '../models/bus_service.dart';
@@ -18,8 +20,8 @@ class BusServiceArrivalResult {
     ];
     buses.removeWhere((BusArrival b) => b == null);
     return BusServiceArrivalResult._(
-        busService: busService,
-        buses: buses,
+      busService: busService,
+      buses: buses,
     );
   }
 
@@ -37,30 +39,30 @@ class BusArrival {
   });
 
   static BusArrival fromJson(dynamic json) {
-    final String typeString = json[BusAPI.kBusServiceTypeKey];
+    final String typeString = json[BusAPI.kBusServiceTypeKey] as String;
     BusType type;
-    if (typeString == BusAPI.kBusServiceTypeSingle)
+    if (typeString == BusAPI.kBusServiceTypeSingle) {
       type = BusType.single;
-    else if (typeString == BusAPI.kBusServiceTypeDouble)
+    } else if (typeString == BusAPI.kBusServiceTypeDouble) {
       type = BusType.double;
-    else if (typeString == BusAPI.kBusServiceTypeBendy)
-      type = BusType.bendy;
+    } else if (typeString == BusAPI.kBusServiceTypeBendy) type = BusType.bendy;
 
-    final String loadString = json[BusAPI.kBusServiceLoadKey];
+    final String loadString = json[BusAPI.kBusServiceLoadKey] as String;
     BusLoad load;
-    if (loadString == BusAPI.kBusServiceLoadLow)
+    if (loadString == BusAPI.kBusServiceLoadLow) {
       load = BusLoad.low;
-    else if (loadString == BusAPI.kBusServiceLoadMedium)
+    } else if (loadString == BusAPI.kBusServiceLoadMedium) {
       load = BusLoad.medium;
-    else if (loadString == BusAPI.kBusServiceLoadHigh)
-      load = BusLoad.high;
+    } else if (loadString == BusAPI.kBusServiceLoadHigh) load = BusLoad.high;
 
-    final double latitude = double.tryParse(json[BusAPI.kBusServiceLatitudeKey]) ?? 0;
-    final double longitude = double.tryParse(json[BusAPI.kBusServiceLongitudeKey]) ?? 0;
-    final DateTime arrivalTime = DateTime.tryParse(json[BusAPI.kBusServiceArrivalTimeKey]);
+    final double latitude =
+        double.tryParse(json[BusAPI.kBusServiceLatitudeKey] as String) ?? 0;
+    final double longitude =
+        double.tryParse(json[BusAPI.kBusServiceLongitudeKey] as String) ?? 0;
+    final DateTime arrivalTime =
+        DateTime.tryParse(json[BusAPI.kBusServiceArrivalTimeKey] as String);
 
-    if (arrivalTime == null)
-      return null;
+    if (arrivalTime == null) return null;
     return BusArrival._(
       type: type,
       load: load,

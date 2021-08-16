@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -13,7 +15,7 @@ class BusServicePage extends BottomSheetPage {
   BusServicePage(this.serviceNumber) : focusedBusStop = null;
   BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop);
 
-  final String serviceNumber;
+  final String/*!*/ serviceNumber;
   final BusStop focusedBusStop;
 
   @override
@@ -23,7 +25,7 @@ class BusServicePage extends BottomSheetPage {
 }
 
 class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
-  BusService service;
+  BusService/*!*/ service;
   int focusedDirection = 0;
 //  ScrollController controller;
 

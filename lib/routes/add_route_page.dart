@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
@@ -28,8 +30,8 @@ class AddRoutePageState extends State<AddRoutePage> {
   List<BusStop> busStops;
   bool _isReordering;
   Color _colorPickerColor;
-  Color _color;
-  TextEditingController _nameController;
+  Color/*!*/ _color;
+  TextEditingController/*!*/ _nameController;
 
   @override
   void initState() {

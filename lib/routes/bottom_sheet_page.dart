@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 
 import 'package:rubber/rubber.dart';
@@ -13,7 +15,7 @@ abstract class BottomSheetPage extends StatefulWidget {
 abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T> with TickerProviderStateMixin<T> {
   bool initialized = false;
   RubberAnimationController rubberAnimationController;
-  ScrollController sheetScrollController;
+  ScrollController/*!*/ sheetScrollController;
   BusStopDetailSheet busStopDetailSheet;
 
   @override

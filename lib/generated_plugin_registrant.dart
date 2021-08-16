@@ -2,6 +2,8 @@
 // Generated file. Do not edit.
 //
 
+// @dart=2.9
+
 // ignore: unused_import
 import 'dart:ui';
 

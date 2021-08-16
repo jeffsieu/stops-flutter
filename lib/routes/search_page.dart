@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'dart:async';
 import 'dart:math';
 
@@ -9,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:latlong/latlong.dart' as latlong;
 import 'package:location/location.dart';
+import 'package:stops_sg/models/bus_stop_with_distance.dart';
 
 import '../main.dart';
 import '../models/bus_service.dart';
@@ -24,10 +27,11 @@ import '../widgets/card_app_bar.dart';
 import 'bottom_sheet_page.dart';
 import 'bus_service_page.dart';
 
-
 class SearchPage extends BottomSheetPage {
   SearchPage({this.showMap = false}) : isSimpleMode = false;
-  SearchPage.onlyBusStops() : showMap = false, isSimpleMode = true;
+  SearchPage.onlyBusStops()
+      : showMap = false,
+        isSimpleMode = true;
 
   final int _furthestBusStopDistanceMeters = 1000;
   final int offsetDistance = 300;
@@ -62,15 +66,16 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     _queryString = query;
     _textController?.text = _queryString;
   }
+
   Map<BusStop, dynamic> _queryMetadata = <BusStop, dynamic>{};
   final Map<BusStop, double> _distanceMetadata = <BusStop, double>{};
 
-  List<String> _searchHistory = <String>[];
+  List<String/*!*/>/*!*/ _searchHistory = <String>[];
 
   LocationData location;
   bool _isDistanceLoaded = false;
   final bool _showServicesOnly = false;
-  bool _isMapVisible;
+  bool/*!*/ _isMapVisible;
 
   Animation<double> _clearIconAnimation;
   AnimationController _clearIconAnimationController;
@@ -85,7 +90,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
   GoogleMap _googleMap;
   String _googleMapDarkStyle;
 
-  final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
+  final Completer<GoogleMapController> _googleMapController =
+      Completer<GoogleMapController>();
 
   @override
   void initState() {
@@ -96,7 +102,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       duration: const Duration(milliseconds: 300),
     );
 
-    _clearIconAnimation = CurvedAnimation(parent: _clearIconAnimationController, curve: Curves.easeOutCubic, reverseCurve: Curves.easeInCubic);
+    _clearIconAnimation = CurvedAnimation(
+        parent: _clearIconAnimationController,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic);
 
     _mapClipperAnimationController = AnimationController(
       vsync: this,
@@ -109,7 +118,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       reverseCurve: Curves.easeInOutCubic,
     );
 
-    final Animation<double> fabScaleAnimationNoCurve = CurvedAnimation(parent: _mapClipperAnimationController, curve: const Interval(0, 0.7), reverseCurve: const Interval(0.3, 1))
+    final Animation<double> fabScaleAnimationNoCurve = CurvedAnimation(
+            parent: _mapClipperAnimationController,
+            curve: const Interval(0, 0.7),
+            reverseCurve: const Interval(0.3, 1))
         .drive(Tween<double>(begin: 1.0, end: 0.0));
 
     _fabScaleAnimation = CurvedAnimation(
@@ -124,8 +136,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     /* Retrieve user location then sort bus stops accordingly */
     location = LocationUtils.getLatestLocation();
     if (location != null && LocationUtils.isLocationCurrent()) {
-      if (_filteredBusStops != null)
-        _updateBusStopDistances(location);
+      if (_filteredBusStops != null) _updateBusStopDistances(location);
     } else {
       LocationUtils.getLocation().then((LocationData location) {
         setState(() {
@@ -139,16 +150,16 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     _fetchBusStops();
 
     // If normal mode, perform bus service and map-related functions
-    if (widget.isSimpleMode)
-      return;
+    if (widget.isSimpleMode) return;
 
     _fetchBusServices();
     areBusServiceRoutesCached().then((bool stored) {
-      if (!stored)
-        BusAPI().fetchAndStoreBusServiceRoutes();
+      if (!stored) BusAPI().fetchAndStoreBusServiceRoutes();
     });
 
-    rootBundle.loadString('assets/maps/map_style_dark.json').then((String style) {
+    rootBundle
+        .loadString('assets/maps/map_style_dark.json')
+        .then((String style) {
       _googleMapDarkStyle = style;
     });
 
@@ -197,8 +208,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
     if (_isMapVisible) {
       _mapClipperAnimationController.forward();
-    }
-    else {
+    } else {
       _mapClipperAnimationController.reverse();
     }
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
@@ -209,20 +219,24 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         animation: rubberAnimationController,
         builder: (BuildContext context, Widget child) {
           return Transform.translate(
-            offset: Offset(0, _fabTopOffset * rubberAnimationController.value.clamp(0.0, 0.5)),
+            offset: Offset(
+                0,
+                _fabTopOffset *
+                    rubberAnimationController.value.clamp(0.0, 0.5)),
             child: child,
           );
         },
         child: FloatingActionButton.extended(
             onPressed: () => setState(() {
-              _isMapVisible = !_isMapVisible;
-              if (_isMapVisible)
-                _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
-              _hideKeyboard();
-            }),
+                  _isMapVisible = !_isMapVisible;
+                  if (_isMapVisible)
+                    _scrollController.animateTo(0,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOutCubic);
+                  _hideKeyboard();
+                }),
             label: const Text('Choose on map'),
-            icon: const Icon(Icons.map)
-        ),
+            icon: const Icon(Icons.map)),
       ),
     );
 
@@ -253,91 +267,94 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
           });
       },
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.only(left: 16.0, top: 16.0, right: 16.0, bottom: 16.0),
+        contentPadding: const EdgeInsets.only(
+            left: 16.0, top: 16.0, right: 16.0, bottom: 16.0),
         border: InputBorder.none,
-        hintText: widget.isSimpleMode ? 'Search for stops' : 'Search for stops, services',
+        hintText: widget.isSimpleMode
+            ? 'Search for stops'
+            : 'Search for stops, services',
       ),
     );
     return Hero(
-      tag: 'searchField',
-      child: CardAppBar(
-        elevation: 2.0,
-        leading: IconButton(
-          color: Theme.of(context).hintColor,
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: searchField,
-        actions: <Widget>[
-          ScaleTransition(
-            scale: _clearIconAnimation,
-            child: IconButton(
-              color: Theme.of(context).hintColor,
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                setState(() {
-                  _query = '';
-                });
-              },
-            )
+        tag: 'searchField',
+        child: CardAppBar(
+          elevation: 2.0,
+          leading: IconButton(
+            color: Theme.of(context).hintColor,
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
-        ],
-      )
-    );
+          title: searchField,
+          actions: <Widget>[
+            ScaleTransition(
+                scale: _clearIconAnimation,
+                child: IconButton(
+                  color: Theme.of(context).hintColor,
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    setState(() {
+                      _query = '';
+                    });
+                  },
+                )),
+          ],
+        ));
   }
 
   Widget _buildBody() {
     _generateQueryResults();
     final List<Widget> slivers = <Widget>[
       SliverToBoxAdapter(
-        child: Container(
-          alignment: Alignment.topCenter,
-          height: 64.0 + MediaQuery.of(context).padding.top,
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                _isMapVisible = false;
-              });
-            },
-            child: Container(
-              height: _resultsSheetCollapsedHeight,
-              child: FadeTransition(
-                opacity: _mapClipperAnimation,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Icon(Icons.keyboard_arrow_up, color: Theme.of(context).accentColor,),
+          child: Container(
+        alignment: Alignment.topCenter,
+        height: 64.0 + MediaQuery.of(context).padding.top,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _isMapVisible = false;
+            });
+          },
+          child: Container(
+            height: _resultsSheetCollapsedHeight,
+            child: FadeTransition(
+              opacity: _mapClipperAnimation,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Icon(
+                      Icons.keyboard_arrow_up,
+                      color: Theme.of(context).accentColor,
                     ),
-                    Text(
-                      'Hide map',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).accentColor, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+                  ),
+                  Text(
+                    'Hide map',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.subtitle1.copyWith(
+                        color: Theme.of(context).accentColor,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ),
           ),
-        )
-      ),
+        ),
+      )),
       SliverToBoxAdapter(
         child: Container(
           height: 8.0,
         ),
       ),
-      if (_query.isEmpty)
-          _buildHistory(),
-
+      if (_query.isEmpty) _buildHistory(),
       if (!_showServicesOnly && _filteredBusServices.isNotEmpty)
         _buildBusServicesSliverHeader(),
       _buildBusServiceList(),
-
-      if (!_showServicesOnly) ... <Widget> {
-        if (_filteredBusStops.isNotEmpty && (_filteredBusServices.isNotEmpty || _query.isEmpty))
+      if (!_showServicesOnly) ...<Widget>{
+        if (_filteredBusStops.isNotEmpty &&
+            (_filteredBusServices.isNotEmpty || _query.isEmpty))
           _buildBusStopsSliverHeader(),
         _buildBusStopList(),
       },
@@ -356,21 +373,30 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
             AnimatedBuilder(
               animation: _mapClipperAnimation,
               builder: (BuildContext context, Widget child) {
-                return Transform.translate(offset: Offset(0, (MediaQuery.of(context).size.height - _resultsSheetCollapsedHeight) * _mapClipperAnimation.value), child: child);
+                return Transform.translate(
+                    offset: Offset(
+                        0,
+                        (MediaQuery.of(context).size.height -
+                                _resultsSheetCollapsedHeight) *
+                            _mapClipperAnimation.value),
+                    child: child);
               },
               child: Material(
                 elevation: 4.0,
                 color: Theme.of(context).scaffoldBackgroundColor,
                 child: NotificationListener<ScrollNotification>(
                   onNotification: (ScrollNotification notification) {
-                    if (notification is ScrollStartNotification && notification.dragDetails != null) {
+                    if (notification is ScrollStartNotification &&
+                        notification.dragDetails != null) {
                       _hideKeyboard();
                       return true;
                     }
                     return false;
                   },
                   child: CustomScrollView(
-                    physics: _isMapVisible ? const NeverScrollableScrollPhysics() : const ScrollPhysics(),
+                    physics: _isMapVisible
+                        ? const NeverScrollableScrollPhysics()
+                        : const ScrollPhysics(),
                     controller: _scrollController,
                     slivers: slivers,
                   ),
@@ -381,7 +407,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
             AnimatedBuilder(
               animation: _scrollController,
               builder: (BuildContext context, Widget child) {
-                final bool showBackground = _scrollController.offset - kToolbarHeight / 2 - MediaQuery.of(context).padding.top >= 0 && !_isMapVisible;
+                final bool showBackground = _scrollController.offset -
+                            kToolbarHeight / 2 -
+                            MediaQuery.of(context).padding.top >=
+                        0 &&
+                    !_isMapVisible;
                 return Opacity(
                   opacity: showBackground ? 1 : 0,
                   child: child,
@@ -416,7 +446,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildMapWidget() {
     /* Initialize google map */
-    final CameraPosition initialCameraPosition = _getCameraPositionFromLocation();
+    final CameraPosition initialCameraPosition =
+        _getCameraPositionFromLocation();
 
     _googleMap = GoogleMap(
       padding: EdgeInsets.only(top: 100 + MediaQuery.of(context).padding.top),
@@ -427,7 +458,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         if (!_googleMapController.isCompleted)
           _googleMapController.complete(controller);
         if (_isDistanceLoaded)
-          controller.moveCamera(CameraUpdate.newCameraPosition(_getCameraPositionFromLocation()));
+          controller.moveCamera(
+              CameraUpdate.newCameraPosition(_getCameraPositionFromLocation()));
         if (MediaQuery.of(context).platformBrightness == Brightness.dark)
           controller.setMapStyle(_googleMapDarkStyle);
       },
@@ -441,7 +473,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   CameraPosition _getCameraPositionFromLocation() {
     return CameraPosition(
-      target: LatLng(location?.latitude ?? 1.3521, location?.longitude ?? 103.8198),
+      target:
+          LatLng(location?.latitude ?? 1.3521, location?.longitude ?? 103.8198),
       zoom: 18,
     );
   }
@@ -456,10 +489,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     markers.add(Marker(
       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
       markerId: MarkerId('you_are_here'),
-      position: LatLng(
-          location.latitude,
-          location.longitude
-      ),
+      position: LatLng(location.latitude, location.longitude),
       infoWindow: const InfoWindow(title: 'You are here', snippet: ''),
     ));
 
@@ -469,11 +499,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       markers.add(Marker(
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
         markerId: MarkerId('${busStop.code}'),
-        position: LatLng(
-            busStop.latitude,
-            busStop.longitude
-        ),
-        infoWindow: InfoWindow(title: busStop.displayName, snippet: busStop.road),
+        position: LatLng(busStop.latitude, busStop.longitude),
+        infoWindow:
+            InfoWindow(title: busStop.displayName, snippet: busStop.road),
         onTap: () {
           showBusDetailSheet(busStop, UserRoute.home);
         },
@@ -489,36 +517,45 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     } else {
       _filteredBusServices =
           _filterBusServices(_busServices, _query).toList(growable: false);
-      _filteredBusServices.sort((BusService a, BusService b) =>
-          compareBusNumber(a.number, b.number));
+      _filteredBusServices.sort(
+          (BusService a, BusService b) => compareBusNumber(a.number, b.number));
     }
 
-    final double maxDistance = _distanceMetadata.isNotEmpty ? _distanceMetadata.values.toList().reduce(max) : 0;
+    final double maxDistance = _distanceMetadata.isNotEmpty
+        ? _distanceMetadata.values.toList().reduce(max)
+        : 0;
 
     if (_query.isNotEmpty) {
       final bool isQueryAllNumbers = num.tryParse(_queryString) != null;
-      final num Function(BusStop) distanceFunction = (BusStop busStop) {
+      final double Function(BusStop) distanceFunction = (BusStop busStop) {
         final String busStopName = busStop.displayName.toLowerCase();
-        final String queryLengthBusStopName = busStopName.length > _query.length ? busStopName.substring(0, _query.length) : busStopName;
-        final List<String> busStopNameParts = busStopName.split(RegExp(r'( |/)'));
+        final String queryLengthBusStopName = busStopName.length > _query.length
+            ? busStopName.substring(0, _query.length)
+            : busStopName;
+        final List<String> busStopNameParts =
+            busStopName.split(RegExp(r'( |/)'));
         double minTokenDifference = double.maxFinite;
 
         for (String part in busStopNameParts) {
-          if (part.isEmpty)
-            continue;
+          if (part.isEmpty) continue;
           if (_query.length < part.length)
             part = part.substring(0, _query.length);
-          minTokenDifference = min(minTokenDifference, jw.normalizedDistance(part, _query.toLowerCase()));
+          minTokenDifference = min(minTokenDifference,
+              jw.normalizedDistance(part, _query.toLowerCase()));
         }
 
-        double distance = jw.normalizedDistance(queryLengthBusStopName, _query.toLowerCase()) - 0.01;
+        double distance = jw.normalizedDistance(
+                queryLengthBusStopName, _query.toLowerCase()) -
+            0.01;
 
         if (minTokenDifference < distance) {
-          distance = minTokenDifference - 0.01 * (_query.length / busStopName.length);
+          distance =
+              minTokenDifference - 0.01 * (_query.length / busStopName.length);
         }
 
         if (isQueryAllNumbers) {
-          final double codeDistance = busStop.code.startsWith(_queryString) ? -1 : 1;
+          final double codeDistance =
+              busStop.code.startsWith(_queryString) ? -1 : 1;
           distance = min(distance, codeDistance);
         }
 
@@ -529,16 +566,27 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         return distance;
       };
 
-      final List<List<dynamic>> sets = _busStops.map((BusStop busStop) => <dynamic>[distanceFunction(busStop), busStop]).
-      where((List<dynamic> set) => set[0] < widget.searchDifferenceThreshold).toList();
-      sets.sort((List<dynamic> set1, List<dynamic> set2) => set1[0].compareTo(set2[0]));
-      _filteredBusStops = sets.map<BusStop>((List<dynamic> set) => set[1]).toList();
+      final List<BusStopWithDistance> busStopsWithDistance = _busStops
+          .map((BusStop busStop) =>
+              BusStopWithDistance(busStop, distanceFunction(busStop)))
+          .where(
+              (busStop) => busStop.distance < widget.searchDifferenceThreshold)
+          .toList();
+      busStopsWithDistance.sort(
+          (BusStopWithDistance b1, BusStopWithDistance b2) =>
+              b1.distance.compareTo(b2.distance));
+      _filteredBusStops = busStopsWithDistance
+          .map((BusStopWithDistance b) => b.busStop)
+          .toList();
     } else {
       _filteredBusStops = _busStops;
     }
-    final Iterable<dynamic> metadataIterable = _filteredBusStops.map<dynamic>((BusStop busStop) => <dynamic>[busStop, _calculateQueryMetadata(busStop, _query)]);
-    _queryMetadata = Map<BusStop, dynamic>.fromIterable(metadataIterable, key: (dynamic item) => item[0], value: (dynamic item) => item[1]);
-
+    final Iterable<dynamic> metadataIterable = _filteredBusStops.map<dynamic>(
+        (BusStop busStop) =>
+            <dynamic>[busStop, _calculateQueryMetadata(busStop, _query)]);
+    _queryMetadata = Map<BusStop, dynamic>.fromIterable(metadataIterable,
+        key: (dynamic item) => item[0] as BusStop,
+        value: (dynamic item) => item[1]);
 
     if (location != null && !_isDistanceLoaded)
       _updateBusStopDistances(location);
@@ -546,41 +594,45 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildHistory() {
     return FutureBuilder<List<String>>(
-      future: getHistory(),
-      initialData: _searchHistory,
-      builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
-        if (snapshot.data == null || snapshot.data.isEmpty)
-          return SliverToBoxAdapter(child: Container());
-        _searchHistory = snapshot.data;
-        return SliverToBoxAdapter(
-          child: InkWell(
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (BuildContext context, int position) {
-                position = snapshot.data.length - 1 - position;
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  leading: Container(
-                    width: 32.0,
-                    alignment: Alignment.center,
-                    child: Icon(Icons.history, color: Theme.of(context).hintColor),
-                  ),
-                  title: Text(snapshot.data[position], style: Theme.of(context).textTheme.headline6),
-                  onTap: () => setState(() {
-                    _query = snapshot.data[position];
-                    _textController.text = _query;
-                    _textController.selection = TextSelection(baseOffset: _query.length, extentOffset: _query.length);
-                  }),
-                );
-              },
-              itemCount: snapshot.data != null ? snapshot.data.length : 0,
+        future: getHistory(),
+        initialData: _searchHistory,
+        builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
+          if (snapshot.data == null || snapshot.data.isEmpty)
+            return SliverToBoxAdapter(child: Container());
+          _searchHistory = snapshot.data;
+          return SliverToBoxAdapter(
+            child: InkWell(
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (BuildContext context, int position) {
+                  position = snapshot.data.length - 1 - position;
+                  return ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 24.0),
+                    leading: Container(
+                      width: 32.0,
+                      alignment: Alignment.center,
+                      child: Icon(Icons.history,
+                          color: Theme.of(context).hintColor),
+                    ),
+                    title: Text(snapshot.data[position],
+                        style: Theme.of(context).textTheme.headline6),
+                    onTap: () => setState(() {
+                      _query = snapshot.data[position];
+                      _textController.text = _query;
+                      _textController.selection = TextSelection(
+                          baseOffset: _query.length,
+                          extentOffset: _query.length);
+                    }),
+                  );
+                },
+                itemCount: snapshot.data != null ? snapshot.data.length : 0,
+              ),
             ),
-          ),
-        );
-      }
-    );
+          );
+        });
   }
 
   Widget _buildBusServicesSliverHeader() {
@@ -590,8 +642,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
         child: Text(
           'Services',
           style: Theme.of(context).textTheme.headline4.copyWith(
-            color: BusService.listColor(context),
-          ),
+                color: BusService.listColor(context),
+              ),
         ),
       ),
     );
@@ -601,8 +653,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.only(top: 24.0, left: 80.0, bottom: 8.0),
-        child:
-        Text('Bus stops', style: Theme.of(context).textTheme.headline4),
+        child: Text('Bus stops', style: Theme.of(context).textTheme.headline4),
       ),
     );
   }
@@ -617,54 +668,60 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
             busService: busService,
           );
         },
-        childCount: _showServicesOnly ? _filteredBusServices.length :  min(_filteredBusServices.length, 3),
+        childCount: _showServicesOnly
+            ? _filteredBusServices.length
+            : min(_filteredBusServices.length, 3),
       ),
     );
   }
 
   Widget _buildBusStopList() {
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int position) {
-          final BusStop busStop = _filteredBusStops[position];
-          final Map<String, dynamic> metadata = _queryMetadata[busStop];
+        delegate: SliverChildBuilderDelegate(
+      (BuildContext context, int position) {
+        final BusStop busStop = _filteredBusStops[position];
+        final Map<String, dynamic> metadata =
+            _queryMetadata[busStop] as Map<String, dynamic>;
 
-          final String distance = _distanceMetadata.containsKey(busStop) ? getDistanceVerboseFromMeters(_distanceMetadata[busStop]) : '';
+        final String distance = _distanceMetadata.containsKey(busStop)
+            ? getDistanceVerboseFromMeters(_distanceMetadata[busStop])
+            : '';
 
-          final String name = busStop.displayName;
-          final String busStopCode = busStop.code;
+        final String name = busStop.displayName;
+        final String busStopCode = busStop.code;
 
-          final String nameStart =
-          name.substring(0, metadata['DescriptionStart']);
-          final String nameBold = name.substring(
-              metadata['DescriptionStart'], metadata['DescriptionEnd']);
-          final String nameEnd = name.substring(
-              metadata['DescriptionEnd'], name.length);
+        final String nameStart =
+            name.substring(0, metadata['DescriptionStart'] as int);
+        final String nameBold = name.substring(
+            metadata['DescriptionStart'] as int,
+            metadata['DescriptionEnd'] as int);
+        final String nameEnd =
+            name.substring(metadata['DescriptionEnd'] as int, name.length);
 
-          final String busStopCodeStart =
-          busStopCode.substring(0, metadata['BusStopCodeStart']);
-          final String busStopCodeBold = busStopCode.substring(
-              metadata['BusStopCodeStart'], metadata['BusStopCodeEnd']);
-          final String busStopCodeEnd = busStopCode.substring(
-              metadata['BusStopCodeEnd'], busStopCode.length);
-          return BusStopSearchItem(
-            key: Key(busStopCode),
-            // necessary to let Flutter rebuild component when search is performed
-            // (otherwise the filter works but clicking the item will show information for a different bus stop
-            codeStart: busStopCodeStart,
-            codeBold: busStopCodeBold,
-            codeEnd: busStopCodeEnd,
-            nameStart: nameStart,
-            nameBold: nameBold,
-            nameEnd: nameEnd,
-            distance: distance,
-            busStop: busStop,
-            onTap: () => _onBusStopSearchItemTapped(busStop),
-          );
-        },
-        childCount: _showServicesOnly ? 0 : _filteredBusStops.length,
-      )
-    );
+        final String busStopCodeStart =
+            busStopCode.substring(0, metadata['BusStopCodeStart'] as int);
+        final String busStopCodeBold = busStopCode.substring(
+            metadata['BusStopCodeStart'] as int,
+            metadata['BusStopCodeEnd'] as int);
+        final String busStopCodeEnd = busStopCode.substring(
+            metadata['BusStopCodeEnd'] as int, busStopCode.length);
+        return BusStopSearchItem(
+          key: Key(busStopCode),
+          // necessary to let Flutter rebuild component when search is performed
+          // (otherwise the filter works but clicking the item will show information for a different bus stop
+          codeStart: busStopCodeStart,
+          codeBold: busStopCodeBold,
+          codeEnd: busStopCodeEnd,
+          nameStart: nameStart,
+          nameBold: nameBold,
+          nameEnd: nameEnd,
+          distance: distance,
+          busStop: busStop,
+          onTap: () => _onBusStopSearchItemTapped(busStop),
+        );
+      },
+      childCount: _showServicesOnly ? 0 : _filteredBusStops.length,
+    ));
   }
 
   void _hideKeyboard() {
@@ -695,7 +752,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
       final double distanceMeters = const latlong.Distance().as(
           latlong.LengthUnit.Meter,
           latlong.LatLng(location.latitude, location.longitude),
-          latlong.LatLng(busStop.latitude, busStop.longitude));
+          latlong.LatLng(busStop.latitude, busStop.longitude)) as double;
       _distanceMetadata[busStop] = distanceMeters;
     }
 
@@ -736,13 +793,17 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
     });
   }
 
-  static Iterable<BusService> _filterBusServices(List<BusService> list, String query) => list.where((BusService busService) =>
-      busService.number.toLowerCase().startsWith(query.toLowerCase()));
+  static Iterable<BusService> _filterBusServices(
+          List<BusService> list, String query) =>
+      list.where((BusService busService) =>
+          busService.number.toLowerCase().startsWith(query.toLowerCase()));
 
-  static Map<String, dynamic> _calculateQueryMetadata(BusStop busStop, String query) {
+  static Map<String, dynamic> _calculateQueryMetadata(
+      BusStop busStop, String query) {
     final String queryLowercase = query.toLowerCase();
     final String busStopCodeLowercase = busStop.code.toLowerCase();
-    final String busStopDisplayNameLowercase = busStop.displayName.toLowerCase();
+    final String busStopDisplayNameLowercase =
+        busStop.displayName.toLowerCase();
 //    final String busStopDefaultNameLowercase = busStop.defaultName.toLowerCase();
     // TODO(jeffsieu): Enable search by default name as well.
 
@@ -773,7 +834,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage> {
 
   void _pushBusServiceRoute(BusService busService) {
     final Widget page = BusServicePage(busService.number);
-    final Route<void> route = MaterialPageRoute<void>(builder: (BuildContext context) => page);
+    final Route<void> route =
+        MaterialPageRoute<void>(builder: (BuildContext context) => page);
     pushHistory(_query); // add query to history
     Navigator.push(context, route);
   }

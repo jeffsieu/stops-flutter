@@ -11,7 +11,8 @@ class CEPASCardTransaction {
     } else {
       amountRaw = <int>[0] + amountRaw;
     }
-    amountCents = ByteData.sublistView(Uint8List.fromList(amountRaw), 0, 4).getInt32(0);
+    amountCents =
+        ByteData.sublistView(Uint8List.fromList(amountRaw), 0, 4).getInt32(0);
 
     /* Date is expressed in seconds, but the epoch is January 1 1995, SGT */
     final int seconds = ByteData.sublistView(data, 4, 8).getInt32(0);
@@ -19,10 +20,11 @@ class CEPASCardTransaction {
     additionalData = String.fromCharCodes(Uint8List.sublistView(data, 8, 16));
   }
 
-  DateTime time;
-  int amountCents;
-  int _typeRaw;
-  String additionalData;
+  late final DateTime time;
+  late final int amountCents;
+  late final int _typeRaw;
+  late final String additionalData;
+
   String get type {
     switch (_typeRaw) {
       case 48:

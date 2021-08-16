@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';

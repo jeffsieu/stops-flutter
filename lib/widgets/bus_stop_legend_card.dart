@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 
 import '../utils/bus_service_arrival_result.dart';
@@ -25,7 +27,7 @@ class BusStopLegendCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.info_outline, color: Theme.of(context).textTheme.headline4.color),
+              Icon(Icons.info_outline, color: Theme.of(context).textTheme.headline4!.color),
               Container(width: 16.0),
               Text(
                   'Legend',

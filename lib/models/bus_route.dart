@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:meta/meta.dart';
 
 import '../utils/bus_api.dart';
@@ -13,7 +15,7 @@ class BusServiceRoute {
     distances = <double>[];
   }
 
-  List<BusStop> busStops;
+  List<BusStop>/*!*/ busStops;
   List<double> distances;
   BusService service;
   int direction;
@@ -24,16 +26,16 @@ class BusServiceRoute {
 
   static BusServiceRoute fromJson(dynamic json) {
     return BusServiceRoute(
-      direction: json[BusAPI.kBusServiceDirectionKey],
+      direction: json[BusAPI.kBusServiceDirectionKey] as int/*!*/,
     );
   }
 
   @override
   bool operator ==(dynamic other) {
-    if (other.runtimeType != runtimeType)
-      return false;
-    final BusServiceRoute otherBusServiceRoute = other;
-    return otherBusServiceRoute.number == number && otherBusServiceRoute.direction == direction;
+    if (other.runtimeType != runtimeType) return false;
+    final BusServiceRoute otherBusServiceRoute = other as BusServiceRoute;
+    return otherBusServiceRoute.number == number &&
+        otherBusServiceRoute.direction == direction;
   }
 
   @override

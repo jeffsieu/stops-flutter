@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -31,7 +33,8 @@ class RoutePageState extends State<RoutePage> {
         child: StreamBuilder<List<BusStop>>(
           initialData: widget.route.busStops,
           stream: routeBusStopsStream(widget.route),
-          builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
+          builder:
+              (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
             switch (snapshot.connectionState) {
               case ConnectionState.none:
               case ConnectionState.waiting:
@@ -42,8 +45,11 @@ class RoutePageState extends State<RoutePage> {
               done:
               case ConnectionState.active:
               case ConnectionState.done:
-                if (snapshot.hasData && widget.route.busStops != snapshot.data) {
-                  widget.route.busStops..clear()..addAll(snapshot.data);
+                if (snapshot.hasData &&
+                    widget.route.busStops != snapshot.data) {
+                  widget.route.busStops
+                    ..clear()
+                    ..addAll(snapshot.data);
                 }
                 return CustomScrollView(
                   shrinkWrap: true,
@@ -52,12 +58,19 @@ class RoutePageState extends State<RoutePage> {
                     SliverToBoxAdapter(
                       child: _buildHeader(),
                     ),
-                    if (widget.route.busStops == null || widget.route.busStops.isEmpty)
+                    if (widget.route.busStops == null ||
+                        widget.route.busStops.isEmpty)
                       SliverToBoxAdapter(
                         child: Container(
                           padding: const EdgeInsets.all(32.0),
                           child: Center(
-                            child: Text('This route has no stops.\n\nTap the edit icon to add stops to this route.', style: Theme.of(context).textTheme.headline4.copyWith(color: Theme.of(context).hintColor)),
+                            child: Text(
+                                'This route has no stops.\n\nTap the edit icon to add stops to this route.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headline4
+                                    .copyWith(
+                                        color: Theme.of(context).hintColor)),
                           ),
                         ),
                       ),
@@ -65,13 +78,15 @@ class RoutePageState extends State<RoutePage> {
                       delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int position) {
                           final bool isDivider = position % 2 == 1;
-                          if (isDivider)
-                            return const Divider(height: 1);
+                          if (isDivider) return const Divider(height: 1);
                           final int itemPosition = position ~/ 2;
-                          final BusStop busStop = widget.route.busStops[itemPosition];
-                          return BusStopOverviewItem(busStop, key: Key(busStop.code));
+                          final BusStop busStop =
+                              widget.route.busStops[itemPosition];
+                          return BusStopOverviewItem(busStop,
+                              key: Key(busStop.code));
                         },
-                        childCount: widget.route.busStops.length + max(0, widget.route.busStops.length - 1),
+                        childCount: widget.route.busStops.length +
+                            max(0, widget.route.busStops.length - 1) as int,
                       ),
                     ),
                   ],
@@ -98,9 +113,10 @@ class RoutePageState extends State<RoutePage> {
           Container(width: 16.0),
           Expanded(
             child: Text(widget.route.name,
-                style: Theme.of(context).textTheme.headline4
-                    .copyWith(color: widget.route.color.of(context))
-            ),
+                style: Theme.of(context)
+                    .textTheme
+                    .headline4
+                    .copyWith(color: widget.route.color.of(context))),
           ),
           IconButton(
             color: widget.route.color.of(context),
@@ -114,7 +130,8 @@ class RoutePageState extends State<RoutePage> {
   }
 
   Future<void> _pushEditRouteRoute() async {
-    final UserRoute route = await Navigator.push(context, FadePageRoute<UserRoute>(child: AddRoutePage.edit(widget.route)));
+    final UserRoute route = await Navigator.push(context,
+        FadePageRoute<UserRoute>(child: AddRoutePage.edit(widget.route)));
     if (route != null) {
       widget.route.update(route);
       await updateUserRoute(route);

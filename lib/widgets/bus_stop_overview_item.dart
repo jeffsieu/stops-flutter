@@ -11,7 +11,7 @@ import '../widgets/bus_timing_row.dart';
 import '../widgets/route_model.dart';
 
 class BusStopOverviewItem extends StatefulWidget {
-  const BusStopOverviewItem(this.busStop, {Key key}) : super(key: key);
+  const BusStopOverviewItem(this.busStop, {Key? key}) : super(key: key);
 
   final BusStop busStop;
 
@@ -22,20 +22,20 @@ class BusStopOverviewItem extends StatefulWidget {
 }
 
 class BusStopOverviewItemState extends State<BusStopOverviewItem> {
-  List<BusServiceArrivalResult> _latestData;
+  List<BusServiceArrivalResult>? _latestData;
 
-  Stream<List<BusServiceArrivalResult>> _busArrivalStream;
-  BusStopChangeListener _busStopListener;
+  late final Stream<List<BusServiceArrivalResult>> _busArrivalStream =
+      BusAPI().busStopArrivalStream(widget.busStop);
+  // ignore: prefer_function_declarations_over_variables
+  late final BusStopChangeListener? _busStopListener = (BusStop busStop) {
+    setState(() {
+      widget.busStop.displayName = busStop.displayName;
+    });
+  };
 
   @override
   void initState() {
     super.initState();
-    _busArrivalStream = BusAPI().busStopArrivalStream(widget.busStop);
-    _busStopListener = (BusStop busStop) {
-      setState(() {
-        widget.busStop.displayName = busStop.displayName;
-      });
-    };
     registerBusStopListener(widget.busStop, _busStopListener);
   }
 
@@ -64,13 +64,16 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
             Padding(
               padding: const EdgeInsets.only(left: 16.0, right: 16.0),
               child: Center(
-                child: Column(
-                  children: <Widget>[
-                    Text(name, style: Theme.of(context).textTheme.headline6),
-                    Text('$code · $road', style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).hintColor)),
-                  ],
-                )
-              ),
+                  child: Column(
+                children: <Widget>[
+                  Text(name, style: Theme.of(context).textTheme.headline6),
+                  Text('$code · $road',
+                      style: Theme.of(context)
+                          .textTheme
+                          .subtitle2!
+                          .copyWith(color: Theme.of(context).hintColor)),
+                ],
+              )),
             ),
             _buildPinnedServices(widget.busStop.pinnedServices),
           ],
@@ -79,52 +82,58 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
     );
   }
 
-  Widget _buildPinnedServices(List<BusService> pinnedServices) {
-    if (pinnedServices == null || pinnedServices.isEmpty)
-      return Container();
+  Widget _buildPinnedServices(List<BusService>? pinnedServices) {
+    if (pinnedServices == null || pinnedServices.isEmpty) return Container();
     return Padding(
       padding: const EdgeInsets.only(top: 8.0),
       child: StreamBuilder<List<BusServiceArrivalResult>>(
         initialData: _latestData,
         stream: _busArrivalStream,
-        builder: (BuildContext context, AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
+        builder: (BuildContext context,
+            AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.none:
-              return const Center(
-                  child: Text(BusAPI.kNoInternetError));
+              return const Center(child: Text(BusAPI.kNoInternetError));
             case ConnectionState.active:
             case ConnectionState.waiting:
               if (snapshot.data == null)
-                return const Center(
-                    child: Text(BusAPI.kLoadingMessage));
+                return const Center(child: Text(BusAPI.kLoadingMessage));
               continue done;
             done:
             case ConnectionState.done:
-              final List<BusServiceArrivalResult> busArrivals = snapshot.data
-                .where((BusServiceArrivalResult result) => pinnedServices.contains(result.busService))
-                .toList(growable: false);
-              busArrivals.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
-                compareBusNumber(a.busService.number, b.busService.number));
+              final List<BusServiceArrivalResult> busArrivals = snapshot.data!
+                  .where((BusServiceArrivalResult result) =>
+                      pinnedServices.contains(result.busService))
+                  .toList(growable: false);
+              busArrivals.sort((BusServiceArrivalResult a,
+                      BusServiceArrivalResult b) =>
+                  compareBusNumber(a.busService.number, b.busService.number));
               _latestData = snapshot.data;
               return Padding(
                 padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                child: busArrivals.isNotEmpty ?
-                AbsorbPointer(
-                  absorbing: true,
-                  child: Wrap(
-                    spacing: 16.0,
-                    direction: Axis.horizontal,
-                    children: <Widget>[
-                      for (BusServiceArrivalResult arrivalResult in busArrivals)
-                        BusTimingRow.unfocusable(widget.busStop, arrivalResult.busService, arrivalResult)
-                    ],
-                  ),
-                ) : Center(
-                  child: Text(BusAPI.kNoPinnedBusesError, style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).hintColor)),
-                ),
+                child: busArrivals.isNotEmpty
+                    ? AbsorbPointer(
+                        absorbing: true,
+                        child: Wrap(
+                          spacing: 16.0,
+                          direction: Axis.horizontal,
+                          children: <Widget>[
+                            for (BusServiceArrivalResult arrivalResult
+                                in busArrivals)
+                              BusTimingRow.unfocusable(widget.busStop,
+                                  arrivalResult.busService, arrivalResult)
+                          ],
+                        ),
+                      )
+                    : Center(
+                        child: Text(BusAPI.kNoPinnedBusesError,
+                            style: Theme.of(context)
+                                .textTheme
+                                .subtitle1!
+                                .copyWith(color: Theme.of(context).hintColor)),
+                      ),
               );
           }
-          throw Exception('Something terribly wrong has happened');
         },
       ),
     );
@@ -132,6 +141,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
 
   void _showDetailSheet() {
     FocusScope.of(context).requestFocus(FocusNode());
-    HomePage.of(context).showBusDetailSheet(widget.busStop, RouteModel.of(context).route);
+    HomePage.of(context)!
+        .showBusDetailSheet(widget.busStop, RouteModel.of(context)!.route);
   }
 }

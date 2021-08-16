@@ -41,7 +41,7 @@ android {
 
     defaultConfig {
         applicationId "com.jeffsieu.stops"
-        minSdkVersion 19
+        minSdkVersion 20
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

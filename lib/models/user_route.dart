@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:meta/meta.dart';
 
 import 'package:flutter/foundation.dart';
@@ -23,18 +25,19 @@ class UserRoute {
     @required this.name,
     @required this.color,
   }) : busStops = <BusStop>[];
-  static UserRoute home = UserRoute._(id: defaultRouteId, name: defaultRouteName, color: null);
+  static UserRoute home = UserRoute._(
+      id: defaultRouteId, name: defaultRouteName, color: Colors.transparent);
 
   final int id;
   String name;
-  Color color;
-  List<BusStop> busStops;
+  Color /*!*/ color;
+  List<BusStop> /*!*/ busStops;
 
   static UserRoute fromMap(Map<String, dynamic> map) {
     return UserRoute._(
-      id: map['id'],
-      name: map['name'],
-      color: Color(map['color']),
+      id: map['id'] as int /*!*/,
+      name: map['name'] as String /*!*/,
+      color: Color(map['color'] as int),
     );
   }
 
@@ -53,10 +56,11 @@ class UserRoute {
 
   @override
   bool operator ==(dynamic other) {
-    if (other.runtimeType != runtimeType)
-      return false;
-    final UserRoute otherRoute = other;
-    return id == otherRoute.id && color == otherRoute.color && listEquals(busStops, otherRoute.busStops);
+    if (other.runtimeType != runtimeType) return false;
+    final UserRoute otherRoute = other as UserRoute;
+    return id == otherRoute.id &&
+        color == otherRoute.color &&
+        listEquals(busStops, otherRoute.busStops);
   }
 
   @override
@@ -72,6 +76,9 @@ class UserRoute {
 
 extension ContextColor on Color {
   Color of(BuildContext context) {
-    return HSLColor.fromColor(this).withLightness(Theme.of(context).brightness == Brightness.light ? 0.45 : 0.75).toColor();
+    return HSLColor.fromColor(this)
+        .withLightness(
+            Theme.of(context).brightness == Brightness.light ? 0.45 : 0.75)
+        .toColor();
   }
 }

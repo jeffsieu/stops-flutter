@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 
 class CardAppBar extends StatelessWidget {
@@ -11,14 +13,14 @@ class CardAppBar extends StatelessWidget {
 
   final Widget leading;
   final Widget title;
-  final Function onTap;
+  final void Function() onTap;
   final List<Widget> actions;
   final double elevation;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-    clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.antiAlias,
       type: MaterialType.card,
       elevation: elevation ?? 0,
       shape: Theme.of(context).cardTheme.shape,
@@ -27,13 +29,11 @@ class CardAppBar extends StatelessWidget {
         onTap: onTap,
         child: Row(
           children: <Widget>[
-            if (leading != null)
-              leading,
+            if (leading != null) leading,
             Expanded(
               child: title,
             ),
-            if (actions != null)
-              ...actions,
+            if (actions != null) ...actions,
           ],
         ),
       ),

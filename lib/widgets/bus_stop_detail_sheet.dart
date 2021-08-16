@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -80,9 +82,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     _busStop = busStop;
     _route = route;
     if (_busStop == null || _route == null) {
-      setState(() {
-
-      });
+      setState(() {});
       return;
     }
     final bool starred = await isBusStopInRoute(busStop, route);
@@ -105,11 +105,13 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       // to the finger
       if (!_isAnimating) {
         _isAnimating = true;
-        widget.rubberAnimationController.launchTo(
+        widget.rubberAnimationController
+            .launchTo(
           widget.rubberAnimationController.value,
           widget.rubberAnimationController.halfBound,
           velocity: BusStopDetailSheet._launchVelocity,
-        ).whenCompleteOrCancel(() {
+        )
+            .whenCompleteOrCancel(() {
           _isAnimating = false;
         });
       }
@@ -130,13 +132,13 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   @override
   void initState() {
     super.initState();
-    timingListAnimationController = AnimationController(duration: BusStopDetailSheet.updateAnimationDuration, vsync: this);
+    timingListAnimationController = AnimationController(
+        duration: BusStopDetailSheet.updateAnimationDuration, vsync: this);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_busStop == null)
-      return Container();
+    if (_busStop == null) return Container();
 
     final Widget scrollView = ListView(
       padding: const EdgeInsets.all(0),
@@ -197,8 +199,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
         final double dismissed = widget.rubberAnimationController.lowerBound;
         const double animationStart = 0.75;
         final double animationRange = completed - animationStart;
-        final double animationStartBound = dismissed + (completed - dismissed) * animationStart;
-        final double paddingHeightScale = ((widget.rubberAnimationController.value - animationStartBound) / animationRange).clamp(0.0, 1.0);
+        final double animationStartBound =
+            dismissed + (completed - dismissed) * animationStart;
+        final double paddingHeightScale =
+            ((widget.rubberAnimationController.value - animationStartBound) /
+                    animationRange)
+                .clamp(0.0, 1.0) as double;
         return Container(
           padding: EdgeInsets.only(
             top: 48.0 + extraPadding * paddingHeightScale,
@@ -219,10 +225,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                 vsync: this,
                 duration: BusStopDetailSheet.updateAnimationDuration * 0.1,
                 child: AnimatedSwitcher(
-                  duration: BusStopDetailSheet.updateAnimationDuration * widget.titleFadeInDurationFactor,
+                  duration: BusStopDetailSheet.updateAnimationDuration *
+                      widget.titleFadeInDurationFactor,
                   switchInCurve: const Interval(0.25, 1),
                   switchOutCurve: const Interval(0.75, 1),
-                  layoutBuilder: (Widget currentChild, List<Widget> previousChildren) {
+                  layoutBuilder:
+                      (Widget currentChild, List<Widget> previousChildren) {
                     return Stack(
                       children: <Widget>[
                         ...previousChildren,
@@ -231,16 +239,24 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                       alignment: Alignment.topCenter,
                     );
                   },
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    final bool entering = child.key == ValueKey<String>(_busStop.code);
-                    final Animatable<double> curve = CurveTween(curve: entering ? Curves.easeOutCubic : Curves.linear);
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                    final bool entering =
+                        child.key == ValueKey<String>(_busStop.code);
+                    final Animatable<double> curve = CurveTween(
+                        curve: entering ? Curves.easeOutCubic : Curves.linear);
                     return FadeTransition(
                       opacity: animation,
                       child: SlideTransition(
-                        position: animation
-                            .drive(curve)
-                            .drive(Tween<Offset>(begin: Offset(0, 0.5 * (entering ? 1 : -1)), end: Offset.zero)),
-                        child: entering ? child : Align(alignment: Alignment.topCenter, heightFactor: 1 - animation.value, child: child),
+                        position: animation.drive(curve).drive(Tween<Offset>(
+                            begin: Offset(0, 0.5 * (entering ? 1 : -1)),
+                            end: Offset.zero)),
+                        child: entering
+                            ? child
+                            : Align(
+                                alignment: Alignment.topCenter,
+                                heightFactor: 1 - animation.value,
+                                child: child),
                       ),
                     );
                   },
@@ -253,7 +269,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           style: Theme.of(context).textTheme.headline5),
                       Text('${_busStop.code} · ${_busStop.road}',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).hintColor)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .subtitle2
+                              .copyWith(color: Theme.of(context).hintColor)),
                     ],
                   ),
                 ),
@@ -284,11 +303,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     return PopupMenuButton<_MenuOption>(
       icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
       onSelected: (_MenuOption option) {
-        switch(option) {
+        switch (option) {
           case _MenuOption.edit:
             setState(() {
               _isEditing = !_isEditing;
-              if (widget.rubberAnimationController.value != widget.rubberAnimationController.upperBound)
+              if (widget.rubberAnimationController.value !=
+                  widget.rubberAnimationController.upperBound)
                 widget.rubberAnimationController.launchTo(
                     widget.rubberAnimationController.value,
                     widget.rubberAnimationController.upperBound,
@@ -315,7 +335,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
             }
             break;
           case _MenuOption.googleMaps:
-            launch('geo:${_busStop.latitude},${_busStop.longitude}?q=${_busStop.defaultName} ${_busStop.code}');
+            launch(
+                'geo:${_busStop.latitude},${_busStop.longitude}?q=${_busStop.defaultName} ${_busStop.code}');
             break;
         }
       },
@@ -324,8 +345,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           value: _MenuOption.rename,
           child: Text('Rename'),
         ),
-        if (_isStarEnabled)
-          const PopupMenuDivider(),
+        if (_isStarEnabled) const PopupMenuDivider(),
         if (_isStarEnabled)
           const PopupMenuItem<_MenuOption>(
             value: _MenuOption.edit,
@@ -333,7 +353,11 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           ),
         PopupMenuItem<_MenuOption>(
           value: _MenuOption.favorite,
-          child: Text(_isStarEnabled ? _route == UserRoute.home ? 'Unpin from home' : 'Remove from route' : 'Pin to home'),
+          child: Text(_isStarEnabled
+              ? _route == UserRoute.home
+                  ? 'Unpin from home'
+                  : 'Remove from route'
+              : 'Pin to home'),
         ),
         const PopupMenuDivider(),
         const PopupMenuItem<_MenuOption>(
@@ -351,30 +375,35 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           vsync: this,
           duration: BusStopDetailSheet.editAnimationDuration * 2,
           curve: Curves.easeInOutCirc,
-          child: _isEditing ? Container(
-            padding: const EdgeInsets.only(left: 32.0, right: 32.0, bottom: 8.0),
-            child: Column(
-              children: <Widget>[
-                Text(
-                  'Pinned bus services',
-                  style: Theme.of(context).textTheme.headline4,
-                ),
-                Text(
-                  'Arrival times of pinned buses are displayed on the ${_route == UserRoute.home ? 'homepage' : 'route page'}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyText2.copyWith(color: Theme.of(context).hintColor),
-                )
-              ],
-            )
-          ) : Container(),
+          child: _isEditing
+              ? Container(
+                  padding: const EdgeInsets.only(
+                      left: 32.0, right: 32.0, bottom: 8.0),
+                  child: Column(
+                    children: <Widget>[
+                      Text(
+                        'Pinned bus services',
+                        style: Theme.of(context).textTheme.headline4,
+                      ),
+                      Text(
+                        'Arrival times of pinned buses are displayed on the ${_route == UserRoute.home ? 'homepage' : 'route page'}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyText2
+                            .copyWith(color: Theme.of(context).hintColor),
+                      )
+                    ],
+                  ))
+              : Container(),
         ),
         FutureBuilder<List<BusService>>(
-          initialData: const <BusService>[],
-          future: getServicesIn(_busStop),
-          builder: (BuildContext context, AsyncSnapshot<List<BusService>> snapshot) {
-            return _buildTimingList(snapshot.data);
-          }
-        ),
+            initialData: const <BusService>[],
+            future: getServicesIn(_busStop),
+            builder: (BuildContext context,
+                AsyncSnapshot<List<BusService>> snapshot) {
+              return _buildTimingList(snapshot.data);
+            }),
       ],
     );
   }
@@ -382,136 +411,166 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   Widget _buildTimingList(List<BusService> allServices) {
     _latestData = BusAPI().getLatestArrival(_busStop);
     return StreamBuilder<List<BusServiceArrivalResult>>(
-        key: Key(_busStop.code),
-        initialData: _latestData,
-        stream: _busArrivalStream,
-        builder: (BuildContext context, AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.none:
-              return _messageBox(BusAPI.kNoInternetError);
-            case ConnectionState.active:
-            case ConnectionState.waiting:
-              if (snapshot.data == null) {
-                return const Center(child: CircularProgressIndicator());
+      key: Key(_busStop.code),
+      initialData: _latestData,
+      stream: _busArrivalStream,
+      builder: (BuildContext context,
+          AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
+        switch (snapshot.connectionState) {
+          case ConnectionState.none:
+            return _messageBox(BusAPI.kNoInternetError);
+          case ConnectionState.active:
+          case ConnectionState.waiting:
+            if (snapshot.data == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            continue done;
+          done:
+          case ConnectionState.done:
+            if (snapshot.hasError)
+              return _messageBox('Error: ${snapshot.error}');
+
+            final List<BusServiceArrivalResult> buses = snapshot.data;
+            buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
+                compareBusNumber(a.busService.number, b.busService.number));
+            _latestData = snapshot.data;
+
+            // Calculate the positions that the bus services will be displayed at
+            // If the bus service has no arrival timings, it will not show and
+            // will have a position of -1
+            final List<int> displayedPositions = List<int>(allServices.length);
+            displayedPositions.fillRange(0, allServices.length, -1);
+            for (int i = 0, j = 0;
+                i < allServices.length && j < buses.length;
+                i++) {
+              if (allServices[i] == buses[j].busService) {
+                displayedPositions[i] = j;
+                j++;
               }
-              continue done;
-            done:
-            case ConnectionState.done:
-              if (snapshot.hasError)
-                return _messageBox('Error: ${snapshot.error}');
+            }
 
-              final List<BusServiceArrivalResult> buses = snapshot.data;
-              buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
-                  compareBusNumber(a.busService.number, b.busService.number));
-              _latestData = snapshot.data;
-
-              // Calculate the positions that the bus services will be displayed at
-              // If the bus service has no arrival timings, it will not show and
-              // will have a position of -1
-              final List<int> displayedPositions = List<int>(allServices.length);
-              displayedPositions.fillRange(0, allServices.length, -1);
-              for (int i = 0, j = 0; i < allServices.length && j < buses.length; i++) {
-                if (allServices[i] == buses[j].busService) {
-                  displayedPositions[i] = j;
-                  j++;
-                }
-              }
-
-              return Stack(
-                children: <Widget>[
-                  if (buses.isEmpty)
-                    AnimatedOpacity(
-                      duration: BusStopDetailSheet.editAnimationDuration,
-                      opacity: _isEditing ? 0 : 1,
-                      child: _messageBox(BusAPI.kNoBusesError),
-                    ),
-                  MediaQuery.removePadding(
-                    context: context,
-                    removeTop: true,
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (BuildContext context, int position) {
-                        final int displayedPosition = displayedPositions[position];
-                        final bool isDisplayed = displayedPosition != -1;
-
-                        BusServiceArrivalResult arrivalResult;
-                        if (isDisplayed)
-                          arrivalResult = buses[displayedPosition];
-
-                        final double startOffset = (displayedPosition * BusStopDetailSheet.rowAnimationOffset).clamp(0.0, 1.0);
-                        final double endOffset = (displayedPosition * BusStopDetailSheet.rowAnimationOffset + BusStopDetailSheet.rowAnimationDuration).clamp(0.0, 1.0);
-                        final Animation<double> animation = timingListAnimationController
-                            .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor - BusStopDetailSheet.rowAnimationOffset, 1))) // animate after previous code disappears
-                            .drive(CurveTween(curve: Interval(startOffset, endOffset))); // delay animation based on position
-
-                        final Widget item = BusTimingRow(
-                            _busStop,
-                            allServices[position],
-                            arrivalResult,
-                            _isEditing,
-                            key: Key(_busStop.code +
-                                allServices[position].number),
-                        );
-
-                        // Animate if displayed
-                        if (isDisplayed)
-                          return SlideTransition(
-                            position: animation
-                                .drive(CurveTween(curve: Curves.easeOutQuint))
-                                .drive(Tween<Offset>(
-                                        begin: const Offset(0, 0.5),
-                                        end: Offset.zero,
-                                )
-                            ),
-                            child: FadeTransition(
-                              opacity: animation,
-                              child: item,
-                            ),
-                          );
-                        else
-                          return item;
-                      },
-                      separatorBuilder: (BuildContext context, int position) {
-                        // Checks if the item below the divider is shown, and not the first item
-                        // If it is, then show the divider
-                        final int displayedPositionBottom = displayedPositions[position+1];
-                        final bool isBottomDisplayed = displayedPositionBottom > 0;
-                        final bool isDisplayed = _isEditing || isBottomDisplayed;
-                        return isDisplayed ? const Divider(height: 4.0) : Container();
-                      },
-                      itemCount: allServices.length,
-                    ),
+            return Stack(
+              children: <Widget>[
+                if (buses.isEmpty)
+                  AnimatedOpacity(
+                    duration: BusStopDetailSheet.editAnimationDuration,
+                    opacity: _isEditing ? 0 : 1,
+                    child: _messageBox(BusAPI.kNoBusesError),
                   ),
-                ],
-              );
-          }
-          return null;
-        },
-      );
+                MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (BuildContext context, int position) {
+                      final int displayedPosition =
+                          displayedPositions[position];
+                      final bool isDisplayed = displayedPosition != -1;
+
+                      BusServiceArrivalResult arrivalResult;
+                      if (isDisplayed) arrivalResult = buses[displayedPosition];
+
+                      final double startOffset = (displayedPosition *
+                              BusStopDetailSheet.rowAnimationOffset)
+                          .clamp(0.0, 1.0) as double;
+                      final double endOffset = (displayedPosition *
+                                  BusStopDetailSheet.rowAnimationOffset +
+                              BusStopDetailSheet.rowAnimationDuration)
+                          .clamp(0.0, 1.0) as double;
+                      final Animation<double> animation =
+                          timingListAnimationController
+                              .drive(CurveTween(
+                                  curve: Interval(
+                                      widget.titleFadeInDurationFactor -
+                                          BusStopDetailSheet.rowAnimationOffset,
+                                      1))) // animate after previous code disappears
+                              .drive(CurveTween(
+                                  curve: Interval(startOffset,
+                                      endOffset))); // delay animation based on position
+
+                      final Widget item = BusTimingRow(
+                        _busStop,
+                        allServices[position],
+                        arrivalResult,
+                        _isEditing,
+                        key: Key(_busStop.code + allServices[position].number),
+                      );
+
+                      // Animate if displayed
+                      if (isDisplayed)
+                        return SlideTransition(
+                          position: animation
+                              .drive(CurveTween(curve: Curves.easeOutQuint))
+                              .drive(Tween<Offset>(
+                                begin: const Offset(0, 0.5),
+                                end: Offset.zero,
+                              )),
+                          child: FadeTransition(
+                            opacity: animation,
+                            child: item,
+                          ),
+                        );
+                      else
+                        return item;
+                    },
+                    separatorBuilder: (BuildContext context, int position) {
+                      // Checks if the item below the divider is shown, and not the first item
+                      // If it is, then show the divider
+                      final int displayedPositionBottom =
+                          displayedPositions[position + 1];
+                      final bool isBottomDisplayed =
+                          displayedPositionBottom > 0;
+                      final bool isDisplayed = _isEditing || isBottomDisplayed;
+                      return isDisplayed
+                          ? const Divider(height: 4.0)
+                          : Container();
+                    },
+                    itemCount: allServices.length,
+                  ),
+                ),
+              ],
+            );
+        }
+        return null;
+      },
+    );
   }
 
   Widget _messageBox(String text) {
     return Center(
-        child: Text(text, style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).hintColor)),
+      child: Text(text,
+          style: Theme.of(context)
+              .textTheme
+              .subtitle1
+              .copyWith(color: Theme.of(context).hintColor)),
     );
   }
 
   Widget _buildFooter(BuildContext context) {
     final int rowCount = _latestData?.length ?? 0;
-    final double startOffset = (rowCount * BusStopDetailSheet.rowAnimationOffset).clamp(0.0, 1.0);
-    final double endOffset = (rowCount * BusStopDetailSheet.rowAnimationOffset + BusStopDetailSheet.rowAnimationDuration).clamp(0.0, 1.0);
+    final double startOffset =
+        (rowCount * BusStopDetailSheet.rowAnimationOffset).clamp(0.0, 1.0)
+            as double;
+    final double endOffset = (rowCount * BusStopDetailSheet.rowAnimationOffset +
+            BusStopDetailSheet.rowAnimationDuration)
+        .clamp(0.0, 1.0) as double;
     final Animation<double> animation = timingListAnimationController
-        .drive(CurveTween(curve: Interval(widget.titleFadeInDurationFactor-BusStopDetailSheet.rowAnimationOffset, 1))) // animate after previous code disappears
-        .drive(CurveTween(curve: Interval(startOffset, endOffset))); // delay animation based on position
+        .drive(CurveTween(
+            curve: Interval(
+                widget.titleFadeInDurationFactor -
+                    BusStopDetailSheet.rowAnimationOffset,
+                1))) // animate after previous code disappears
+        .drive(CurveTween(
+            curve: Interval(
+                startOffset, endOffset))); // delay animation based on position
     return SlideTransition(
       position: animation
           .drive(CurveTween(curve: Curves.easeOutQuint))
           .drive(Tween<Offset>(
-        begin: const Offset(0, 0.5),
-        end: Offset.zero,
-      )
-      ),
+            begin: const Offset(0, 0.5),
+            end: Offset.zero,
+          )),
       child: FadeTransition(
         opacity: animation,
         child: Padding(
@@ -530,7 +589,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
               baseOffset: 0, extentOffset: textController.text.length);
           return Dialog(
             child: Padding(
-              padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+              padding:
+                  const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -571,7 +631,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           onPressed: () {
                             textController.text = _busStop.defaultName;
                           },
-                          child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                          child: const Text('RESET',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1)),
                         ),
                         const Spacer(),
                         FlatButton(
@@ -579,7 +642,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                          child: const Text('CANCEL',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1)),
                         ),
                         Container(width: 8.0),
                         FlatButton(
@@ -588,7 +654,10 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                             final String newName = textController.text;
                             Navigator.pop(context, newName);
                           },
-                          child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                          child: const Text('SAVE',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1)),
                         )
                       ],
                     ),
@@ -611,6 +680,4 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   }
 }
 
-enum _MenuOption {
-  edit, favorite, googleMaps, rename
-}
+enum _MenuOption { edit, favorite, googleMaps, rename }

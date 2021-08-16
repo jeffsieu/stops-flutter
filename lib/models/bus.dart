@@ -5,8 +5,8 @@ import 'bus_stop.dart';
 
 class Bus {
   Bus({
-    @required this.busStop,
-    @required this.busService,
+    required this.busStop,
+    required this.busService,
   });
 
   final BusStop busStop;
