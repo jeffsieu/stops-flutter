@@ -1,7 +1,4 @@
-// @dart=2.9
-
 import 'package:flutter/material.dart';
-import 'package:meta/meta.dart';
 
 import '../utils/bus_api.dart';
 import 'bus_route.dart';
@@ -9,26 +6,28 @@ import 'bus_stop.dart';
 
 class BusService {
   BusService._({
-    @required this.number,
-    @required this.operator,
+    required this.number,
+    required this.operator,
   });
 
-  List<BusServiceRoute> _routes;
+  List<BusServiceRoute>? _routes;
   final String number;
   final String operator;
 
-  set routes(List<BusServiceRoute> routes) {
+  set routes(List<BusServiceRoute>? routes) {
     _routes = routes;
-    for (final BusServiceRoute route in _routes) route.service = this;
+    for (final BusServiceRoute route in routes!) {
+      route.service = this;
+    }
   }
 
-  List<BusServiceRoute> get routes => _routes;
-  int get directionCount => _routes.length;
-  List<BusStop> get origin => _routes
-      .map<BusStop>((BusServiceRoute route) => route.origin)
+  List<BusServiceRoute>? get routes => _routes;
+  int? get directionCount => _routes?.length;
+  List<BusStop>? get origins => _routes
+      ?.map<BusStop>((BusServiceRoute route) => route.origin)
       .toList(growable: false);
-  List<BusStop> get destination => _routes
-      .map<BusStop>((BusServiceRoute route) => route.destination)
+  List<BusStop>? get destinations => _routes
+      ?.map<BusStop>((BusServiceRoute route) => route.destination)
       .toList(growable: false);
 
   static BusService fromJson(dynamic json) {
@@ -48,7 +47,7 @@ class BusService {
   static Color listColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.light
         ? Colors.redAccent
-        : Colors.redAccent[100];
+        : Colors.redAccent[100]!;
   }
 
   Map<String, dynamic> toMap() {

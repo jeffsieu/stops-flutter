@@ -1,4 +1,3 @@
-import 'package:meta/meta.dart';
 
 import 'bus_service.dart';
 import 'bus_stop.dart';

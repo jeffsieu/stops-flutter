@@ -46,10 +46,11 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
 //          .toDouble();
 //      controller = ScrollController(initialScrollOffset: 56 * index);
     }
-    if (mounted)
+    if (mounted) {
       setState(() {
         this.service = service;
       });
+    }
   }
 
   @override
@@ -88,10 +89,10 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                 controller: tabController,
                 tabs: <Widget>[
                   Tab(
-                    text: 'To ${service.destination[0].defaultName}',
+                    text: 'To ${service.destinations[0].defaultName}',
                   ),
                   Tab(
-                    text: 'To ${service.destination[1].defaultName}',
+                    text: 'To ${service.destinations[1].defaultName}',
                   ),
                 ],
               ) : null,

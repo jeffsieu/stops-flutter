@@ -11,14 +11,13 @@ import '../utils/database_utils.dart';
 
 class BusAPI {
   factory BusAPI() {
-    _singleton._loadAPIKey();
     return _singleton;
   }
 
   BusAPI._internal();
 
   static const String _kApiTag = 'AccountKey';
-  late final String _kApiKey;
+  String? _kApiKey;
 
   static const String _kRootUrl =
       'http://datamall2.mytransport.sg/ltaodataservice/';
@@ -76,12 +75,11 @@ class BusAPI {
 
   /*
    * Load LTA API key from secrets.json file in root directory
-   * and store in memory
    */
-  Future<void> _loadAPIKey() async {
+  static Future<String> _loadAPIKey() async {
     final String jsonString =
         await rootBundle.loadString('assets/secrets.json');
-    _kApiKey = json.decode(jsonString)['lta_api_key'] as String;
+    return json.decode(jsonString)['lta_api_key'] as String;
   }
 
   late final StreamController<List<BusStop>> busStopStreamController =
@@ -121,7 +119,7 @@ class BusAPI {
 
   Future<DateTime?> getArrivalTime(
       BusStop busStop, String busServiceNumber) async {
-    List<BusServiceArrivalResult> arrivalResults =
+    final List<BusServiceArrivalResult> arrivalResults =
         getLatestArrival(busStop) ?? await busStopArrivalStream(busStop).first;
     for (BusServiceArrivalResult arrivalResult in arrivalResults) {
       if (arrivalResult.busService.number == busServiceNumber) {
@@ -182,7 +180,9 @@ class BusAPI {
       [String extraParams = '']) async {
     final HttpClientRequest request = await HttpClient()
         .getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
-    request.headers.set(_kApiTag, _kApiKey);
+
+    _kApiKey ??= await _loadAPIKey();
+    request.headers.set(_kApiTag, _kApiKey!);
     request.headers.set('Content-Type', 'application/json');
 
     final HttpClientResponse response = await request.close();
@@ -195,8 +195,8 @@ class BusAPI {
     int skip = 0;
     const int concurrentCount = 6;
     final List<T> resultList = <T>[];
-    bool atEndOfList = false;
-    while (!atEndOfList) {
+    bool isAtListEnd = false;
+    while (!isAtListEnd) {
       final List<Future<String>> futures = <Future<String>>[];
       for (int i = 0; i < concurrentCount; i++) {
         futures.add(_fetchAsString(url, skip));
@@ -205,12 +205,12 @@ class BusAPI {
       final List<String> results = await Future.wait(futures);
       for (String result in results) {
         try {
-          final List<dynamic> rawList =
-              jsonDecode(result)['value'] as List<dynamic>;
+          final List<dynamic>? rawList =
+              jsonDecode(result)['value'] as List<dynamic>?;
           if (rawList == null || rawList.isEmpty) break;
           resultList.addAll(rawList.map<T>(function));
           if (rawList.length < 500) {
-            atEndOfList = true;
+            isAtListEnd = true;
             break;
           }
         } on FormatException {
