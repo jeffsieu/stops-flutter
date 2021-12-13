@@ -1,8 +1,7 @@
-// @dart=2.9
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info/package_info.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -15,6 +14,8 @@ class SettingsPage extends StatefulWidget {
   static const String _kThemeLabelLight = 'Light';
   static const String _kThemeLabelDark = 'Dark';
 
+  const SettingsPage({Key? key}) : super(key: key);
+
   @override
   State createState() {
     return SettingsPageState();
@@ -22,7 +23,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class SettingsPageState extends State<SettingsPage> {
-  ThemeMode _themeMode;
+  ThemeMode? _themeMode;
 
   @override
   void initState() {
@@ -86,8 +87,7 @@ class SettingsPageState extends State<SettingsPage> {
                   ],
                 ),
               );
-            }
-        );
+            });
       },
     );
   }
@@ -96,16 +96,19 @@ class SettingsPageState extends State<SettingsPage> {
     return ListTile(
       title: const Text('About'),
       leading: const Icon(Icons.info_outline),
-      onTap: () {
+      onTap: () async {
+        final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+        final String appName = packageInfo.appName;
+        final String appVersion = packageInfo.version;
         showAboutDialog(
           context: context,
           applicationIcon: Image.asset(
             'assets/images/icon/icon_squircle.png',
-            width: IconTheme.of(context).size * 2,
-            height: IconTheme.of(context).size * 2,
+            width: IconTheme.of(context).size! * 2,
+            height: IconTheme.of(context).size! * 2,
           ),
-          applicationName: 'Stops',
-          applicationVersion: '0.6.4',
+          applicationName: appName,
+          applicationVersion: appVersion,
           children: <Widget>[
             RichText(
               text: TextSpan(
@@ -114,16 +117,18 @@ class SettingsPageState extends State<SettingsPage> {
                 children: <TextSpan>[
                   TextSpan(
                     text: 'Jeff Sieu',
-                    style: TextStyle(color: Theme.of(context).colorScheme.secondary),
-                    recognizer: TapGestureRecognizer()..onTap = () async {
-                      const String url = 'https://github.com/jeffsieu';
-                      if (await canLaunch(url)) {
-                        await launch(
-                          url,
-                          forceSafariVC: false,
-                        );
-                      }
-                    },
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () async {
+                        const String url = 'https://github.com/jeffsieu';
+                        if (await canLaunch(url)) {
+                          await launch(
+                            url,
+                            forceSafariVC: false,
+                          );
+                        }
+                      },
                   ),
                 ],
               ),
@@ -151,11 +156,13 @@ class SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  String _getThemeLabel(ThemeMode themeMode) {
+  String _getThemeLabel(ThemeMode? themeMode) {
     switch (themeMode) {
       case ThemeMode.system:
         final Brightness brightness = MediaQuery.of(context).platformBrightness;
-        final String brightnessLabel = brightness == Brightness.light ? SettingsPage._kThemeLabelLight : SettingsPage._kThemeLabelDark;
+        final String brightnessLabel = brightness == Brightness.light
+            ? SettingsPage._kThemeLabelLight
+            : SettingsPage._kThemeLabelDark;
         return '${SettingsPage._kThemeLabelSystem} ($brightnessLabel)';
       case ThemeMode.light:
         return SettingsPage._kThemeLabelLight;
@@ -166,10 +173,10 @@ class SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _onThemeModeChanged(ThemeMode themeMode) async {
-    await setThemeMode(themeMode);
+  Future<void> _onThemeModeChanged(ThemeMode? themeMode) async {
+    await setThemeMode(themeMode!);
     Navigator.pop(context);
-    final StopsAppState appState = StopsApp.of(context);
+    final StopsAppState appState = StopsApp.of(context)!;
     appState.setState(() {
       appState.themeMode = themeMode;
     });

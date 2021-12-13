@@ -1,21 +1,17 @@
-// @dart=2.9
-
 import 'package:flutter/material.dart';
 
 import '../models/user_route.dart';
 
 class RouteModel extends InheritedWidget {
   const RouteModel({
-    Key key,
-    @required this.route,
-    @required Widget child,
-  }) : assert(route != null),
-        assert(child != null),
-        super(key: key, child: child);
+    Key? key,
+    required this.route,
+    required Widget child,
+  }) : super(key: key, child: child);
 
   final UserRoute route;
 
-  static RouteModel of(BuildContext context) {
+  static RouteModel? of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<RouteModel>();
   }
 

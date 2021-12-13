@@ -1,14 +1,14 @@
-// @dart=2.9
+
 
 import 'package:flutter/material.dart';
 
 class FadePageRoute<T> extends PageRoute<T> {
-  FadePageRoute({@required this.child});
+  FadePageRoute({required this.child});
   @override
-  Color get barrierColor => null;
+  Color? get barrierColor => null;
 
   @override
-  String get barrierLabel => null;
+  String? get barrierLabel => null;
 
   final Widget child;
 

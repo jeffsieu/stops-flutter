@@ -1,5 +1,3 @@
-// @dart=2.9
-
 import 'package:flutter/material.dart';
 
 import '../models/bus_stop.dart';
@@ -7,7 +5,7 @@ import '../models/user_route.dart';
 import 'custom_handle.dart';
 
 class RouteListItem extends StatelessWidget {
-  const RouteListItem(this.route);
+  const RouteListItem(this.route, {Key? key}) : super(key: key);
 
   final UserRoute route;
 
@@ -29,7 +27,14 @@ class RouteListItem extends StatelessWidget {
           ),
         ),
         title: Text(route.name, style: Theme.of(context).textTheme.headline6),
-        subtitle: Text(route.busStops.map<String>((BusStop busStop) => busStop.displayName).join(' > '), style: Theme.of(context).textTheme.subtitle2.copyWith(color: Theme.of(context).hintColor)),
+        subtitle: Text(
+            route.busStops
+                .map<String>((BusStop busStop) => busStop.displayName)
+                .join(' > '),
+            style: Theme.of(context)
+                .textTheme
+                .subtitle2!
+                .copyWith(color: Theme.of(context).hintColor)),
         trailing: PopupMenuButton<RouteAction>(
           icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
           tooltip: 'Route options',
@@ -38,8 +43,10 @@ class RouteListItem extends StatelessWidget {
           },
           itemBuilder: (BuildContext context) {
             return <PopupMenuItem<RouteAction>>[
-              const PopupMenuItem<RouteAction>(child: Text('Edit'), value: RouteAction.edit),
-              const PopupMenuItem<RouteAction>(child: Text('Delete'), value: RouteAction.delete),
+              const PopupMenuItem<RouteAction>(
+                  child: Text('Edit'), value: RouteAction.edit),
+              const PopupMenuItem<RouteAction>(
+                  child: Text('Delete'), value: RouteAction.delete),
             ];
           },
         ),
@@ -54,6 +61,4 @@ class RouteActionNotification extends Notification {
   final RouteAction action;
 }
 
-enum RouteAction {
-  select, delete, edit
-}
+enum RouteAction { select, delete, edit }

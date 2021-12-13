@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
 
 import '../models/bus_service.dart';
@@ -70,9 +71,6 @@ class BusAPI {
   final Map<BusStop, List<BusServiceArrivalResult>> _arrivalCache =
       <BusStop, List<BusServiceArrivalResult>>{};
 
-  bool _areBusStopsLoaded = false;
-  bool _areBusServicesLoaded = false;
-
   /*
    * Load LTA API key from secrets.json file in root directory
    */
@@ -82,36 +80,19 @@ class BusAPI {
     return json.decode(jsonString)['lta_api_key'] as String;
   }
 
-  late final StreamController<List<BusStop>> busStopStreamController =
-      StreamController<List<BusStop>>(onListen: () async {
-    if (!_areBusStopsLoaded) {
+  Future<List<BusStop>> fetchBusStops() async {
+    if (_busStops.isEmpty) {
       _busStops.addAll(await getCachedBusStops());
-      _areBusStopsLoaded = true;
     }
-    busStopStreamController.add(_busStops);
-  });
+    return _busStops;
+  }
 
-  late final StreamController<List<BusService>> busServiceStreamController =
-      StreamController<List<BusService>>(onListen: () async {
-    if (!_areBusServicesLoaded) {
+  Future<List<BusService>> fetchBusServices() async {
+    if (_busServices.isEmpty) {
       _busServices.addAll(await getCachedBusServices());
-      _areBusServicesLoaded = true;
     }
-    busServiceStreamController.add(_busServices);
-  });
-
-  /*
-   * A stream that returns a list of bus stops.
-   *
-   * Every time the stream will return 500 more
-   * bus stops until the whole list is loaded,
-   * after which any subsequent listens to the
-   * stream will return the full list of stops.
-   */
-  Stream<List<BusStop>> busStopsStream() => busStopStreamController.stream;
-
-  Stream<List<BusService>> busServicesStream() =>
-      busServiceStreamController.stream;
+    return _busServices;
+  }
 
   List<BusServiceArrivalResult>? getLatestArrival(BusStop busStop) {
     return _arrivalCache[busStop];
@@ -123,7 +104,7 @@ class BusAPI {
         getLatestArrival(busStop) ?? await busStopArrivalStream(busStop).first;
     for (BusServiceArrivalResult arrivalResult in arrivalResults) {
       if (arrivalResult.busService.number == busServiceNumber) {
-        return arrivalResult.buses[0].arrivalTime;
+        return arrivalResult.buses.firstOrNull?.arrivalTime;
       }
     }
     return null;

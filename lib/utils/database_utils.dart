@@ -1,20 +1,18 @@
-// @dart=2.9
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
-import 'package:latlong/latlong.dart' as latlong;
-import 'package:meta/meta.dart';
+import 'package:latlong2/latlong.dart' as latlong;
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/sqlite_api.dart';
 
 import '../models/bus.dart';
-import '../models/bus_route.dart';
 import '../models/bus_service.dart';
+import '../models/bus_service_route.dart';
+import '../models/bus_service_with_routes.dart';
 import '../models/bus_stop.dart';
+import '../models/bus_stop_with_distance.dart';
 import '../models/user_route.dart';
 import 'bus_api.dart';
 import 'bus_utils.dart';
@@ -123,9 +121,8 @@ Future<void> _initializeDatabase(Database db) async {
 
 Future<ThemeMode> getThemeMode() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  final int themeModeIndex = prefs.containsKey(_themeModeKey)
-      ? prefs.getInt(_themeModeKey)
-      : ThemeMode.system.index;
+  final int themeModeIndex =
+      prefs.getInt(_themeModeKey) ?? ThemeMode.system.index;
   return ThemeMode.values[themeModeIndex];
 }
 
@@ -134,7 +131,7 @@ Future<void> setThemeMode(ThemeMode themeMode) async {
   prefs.setInt(_themeModeKey, themeMode.index);
 }
 
-Future<Map<String, dynamic>> getNearestBusStops(
+Future<List<BusStopWithDistance>> getNearestBusStops(
     double latitude, double longitude) async {
   const int numberOfEntries = 5;
 
@@ -151,20 +148,19 @@ Future<Map<String, dynamic>> getNearestBusStops(
   ];
 
   final Database database = await _accessDatabase();
-  final List<Map<String, dynamic>> result =
+  final List<Map<String, dynamic>> results =
       await database.rawQuery(fullQuery, args);
-  final List<BusStop> busStops = List<BusStop>.generate(
-      result.length, (int i) => BusStop.fromMap(result[i]));
-  final List<num> distances = List<num>.generate(result.length, (int i) {
-    final num distanceMeters = const latlong.Distance().as(
+
+  // Generate list of bus stops
+  return results.map((Map<String, dynamic> result) {
+    final BusStop busStop = BusStop.fromMap(result);
+    final double distanceMeters = const latlong.Distance().as(
         latlong.LengthUnit.Meter,
         latlong.LatLng(
-            result[i]['latitude'] as double, result[i]['longitude'] as double),
+            result['latitude'] as double, result['longitude'] as double),
         latlong.LatLng(latitude, longitude));
-    return distanceMeters;
-  });
-
-  return <String, dynamic>{'busStops': busStops, 'distances': distances};
+    return BusStopWithDistance(busStop, distanceMeters);
+  }).toList();
 }
 
 Future<void> updateBusStop(BusStop busStop) async {
@@ -179,15 +175,15 @@ Stream<List<BusStop>> routeBusStopsStream(UserRoute route) {
         StreamController<List<BusStop>>.broadcast();
   }
   getBusStopsInRoute(route).then((List<BusStop> busStops) {
-    _userRouteBusStopStreamControllers[route].add(busStops);
+    _userRouteBusStopStreamControllers[route]!.add(busStops);
   });
-  return _userRouteBusStopStreamControllers[route].stream;
+  return _userRouteBusStopStreamControllers[route]!.stream;
 }
 
 Future<void> _updateRouteBusStopsStream(UserRoute route) async {
   _userRouteBusStopStreamControllers.putIfAbsent(
       route, () => StreamController<List<BusStop>>.broadcast());
-  _userRouteBusStopStreamControllers[route]
+  _userRouteBusStopStreamControllers[route]!
       .add(await getBusStopsInRoute(route));
 }
 
@@ -221,8 +217,8 @@ Future<void> addBusStopToRoute(
   _updateBusStopListeners(busStop);
   await _updateRouteBusStopsStream(route);
 
-  Scaffold.of(context).hideCurrentSnackBar();
-  Scaffold.of(context).showSnackBar(SnackBar(
+  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
     content: Text(
         'Pinned ${busStop.displayName} to ${route == UserRoute.home ? "home" : route.name}'),
 //    action: SnackBarAction(
@@ -251,8 +247,8 @@ Future<void> removeBusStopFromRoute(
   _updateBusStopListeners(busStop);
   await _updateRouteBusStopsStream(route);
 
-  Scaffold.of(context).hideCurrentSnackBar();
-  Scaffold.of(context).showSnackBar(SnackBar(
+  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
     content: Text(
         'Unpinned ${busStop.displayName} from ${route == UserRoute.home ? "home" : route.name}'),
     action: SnackBarAction(
@@ -301,12 +297,12 @@ Future<void> updateUserRoute(UserRoute route) async {
   final Database database = await _accessDatabase();
   final Map<String, dynamic> routeEntry = route.toMap();
   await database.update('user_route', routeEntry,
-      where: 'id = ?', whereArgs: <int>[route.id]);
+      where: 'id = ?', whereArgs: <int>[route.id!]);
   final List<Map<String, dynamic>> oldBusStops =
       List<Map<String, dynamic>>.from(await database.query(
           'user_route_bus_stop',
           where: 'routeId = ?',
-          whereArgs: <int>[route.id]));
+          whereArgs: <int>[route.id!]));
 
   for (BusStop busStop in route.busStops) {
     oldBusStops
@@ -351,7 +347,7 @@ Future<List<UserRoute>> getUserRoutes() async {
     final List<Map<String, dynamic>> busStops = await database.query(
         'user_route_bus_stop',
         where: 'routeId = ?',
-        whereArgs: <int>[route.id],
+        whereArgs: <int>[route.id!],
         orderBy: 'position');
     for (Map<String, dynamic> entry in busStops) {
       final BusStop busStop =
@@ -365,11 +361,11 @@ Future<List<UserRoute>> getUserRoutes() async {
 
 Future<void> deleteUserRoute(UserRoute userRoute) async {
   final Database database = await _accessDatabase();
-  final int position = (await database
-          .query('user_route', where: 'id = ?', whereArgs: <int>[userRoute.id]))
+  final int position = (await database.query('user_route',
+          where: 'id = ?', whereArgs: <int>[userRoute.id!]))
       .first['position'] as int;
   await database
-      .delete('user_route', where: 'id = ?', whereArgs: <int>[userRoute.id]);
+      .delete('user_route', where: 'id = ?', whereArgs: <int>[userRoute.id!]);
   await database.rawUpdate(
       'UPDATE user_route SET position = position - 1 WHERE position > ?',
       <int>[position]);
@@ -423,13 +419,13 @@ Future<void> moveBusStopPositionInRoute(
 
 void registerBusStopListener(BusStop busStop, BusStopChangeListener listener) {
   _busStopListeners.putIfAbsent(busStop, () => <BusStopChangeListener>[]);
-  _busStopListeners[busStop].add(listener);
+  _busStopListeners[busStop]!.add(listener);
 }
 
 void unregisterBusStopListener(
     BusStop busStop, BusStopChangeListener listener) {
   if (_busStopListeners.containsKey(busStop)) {
-    final List<BusStopChangeListener> listeners = _busStopListeners[busStop];
+    final List<BusStopChangeListener> listeners = _busStopListeners[busStop]!;
     listeners.remove(listener);
     if (listeners.isEmpty) _busStopListeners.remove(busStop);
   }
@@ -437,16 +433,16 @@ void unregisterBusStopListener(
 
 void _updateBusStopListeners(BusStop busStop) {
   if (_busStopListeners[busStop] != null) {
-    for (BusStopChangeListener listener in _busStopListeners[busStop]) {
+    for (BusStopChangeListener listener in _busStopListeners[busStop]!) {
       listener(busStop);
     }
   }
 }
 
 Future<void> followBus(
-    {@required String stop,
-    @required String bus,
-    @required DateTime arrivalTime}) async {
+    {required String stop,
+    required String bus,
+    required DateTime arrivalTime}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey)) {
     prefs.setStringList(_isBusFollowedKey, <String>[]);
@@ -455,8 +451,8 @@ Future<void> followBus(
     prefs.setStringList(_busTimingsKey, <String>[]);
   }
 
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   assert(followedBuses.length == followedBusTimings.length);
 
@@ -476,7 +472,7 @@ Future<void> followBus(
   // detach itself after a certain call)
   if (_busFollowStatusListeners[key] == null) return;
   final List<BusFollowStatusListener> listeners =
-      List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]);
+      List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]!);
 
   for (BusFollowStatusListener listener in listeners) {
     listener(stop, bus, true);
@@ -494,8 +490,8 @@ Future<List<Bus>> getFollowedBuses() async {
     return <Bus>[];
   }
   final List<Bus> followedBuses = <Bus>[];
-  final List<String> followedBusesRaw = prefs.getStringList(_isBusFollowedKey);
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+  final List<String> followedBusesRaw = prefs.getStringList(_isBusFollowedKey)!;
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   assert(followedBusesRaw.length == followedBusTimings.length);
 
@@ -512,8 +508,7 @@ Future<List<Bus>> getFollowedBuses() async {
   for (int i = 0; i < followedBusesRaw.length; i++) {
     final List<String> tokens = followedBusesRaw[i].split(' ');
     final BusStop busStop = await getCachedBusStopWithCode(tokens[0]);
-    final BusService busService =
-        await getCachedBusServiceWithNumber(tokens[1]);
+    final BusService busService = await getCachedBusService(tokens[1]);
     followedBuses.add(Bus(busStop: busStop, busService: busService));
   }
 
@@ -523,7 +518,7 @@ Future<List<Bus>> getFollowedBuses() async {
   return followedBuses;
 }
 
-Future<void> unfollowBus({@required String stop, @required String bus}) async {
+Future<void> unfollowBus({required String stop, required String bus}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey)) {
     prefs.setStringList(_isBusFollowedKey, <String>[]);
@@ -532,8 +527,8 @@ Future<void> unfollowBus({@required String stop, @required String bus}) async {
     prefs.setStringList(_busTimingsKey, <String>[]);
   }
 
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   assert(followedBuses.length == followedBusTimings.length);
 
@@ -558,7 +553,7 @@ Future<void> unfollowBus({@required String stop, @required String bus}) async {
   // detach itself after a certain call)
   if (_busFollowStatusListeners[key] == null) return;
   final List<BusFollowStatusListener> listeners =
-      List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]);
+      List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]!);
 
   for (BusFollowStatusListener listener in listeners) {
     listener(stop, bus, false);
@@ -569,8 +564,8 @@ Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
 
   final List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   for (int i = 0; i < followedBuses.length; i++) {
     final List<String> tokens = followedBuses[i].split(' ');
@@ -604,8 +599,7 @@ Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
   return result;
 }
 
-Future<bool> isBusFollowed(
-    {@required String stop, @required String bus}) async {
+Future<bool> isBusFollowed({required String stop, required String bus}) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey)) {
     return false;
@@ -613,8 +607,8 @@ Future<bool> isBusFollowed(
   if (!prefs.containsKey(_busTimingsKey)) {
     return false;
   }
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey);
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey);
+  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   if (followedBuses.length != followedBusTimings.length) {
     followedBuses.clear();
@@ -653,14 +647,14 @@ void addBusFollowStatusListener(
     String stop, String bus, BusFollowStatusListener listener) {
   final String key = _followerKey(stop, bus);
   _busFollowStatusListeners.putIfAbsent(key, () => <BusFollowStatusListener>[]);
-  _busFollowStatusListeners[key].add(listener);
+  _busFollowStatusListeners[key]!.add(listener);
 }
 
 void removeBusFollowStatusListener(
     String stop, String bus, BusFollowStatusListener listener) {
   final String key = _followerKey(stop, bus);
   if (_busFollowStatusListeners.containsKey(key)) {
-    _busFollowStatusListeners[key].remove(listener);
+    _busFollowStatusListeners[key]!.remove(listener);
   }
 }
 
@@ -668,9 +662,7 @@ void removeBusFollowStatusListener(
 Future<int> getBusServiceSkip(String serviceNumber) async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   final String key = serviceNumber;
-  return prefs.containsKey(key + _busServiceSkipNumberKey)
-      ? prefs.getInt(key + _busServiceSkipNumberKey)
-      : -1;
+  return prefs.getInt(key + _busServiceSkipNumberKey) ?? -1;
 }
 
 Future<void> storeBusServiceSkip(String serviceNumber, int skip) async {
@@ -711,7 +703,7 @@ Future<List<String>> getHistory() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   for (int i = 0; i < 3; i++) {
     if (prefs.containsKey('$_searchHistoryKey $i')) {
-      history.add(prefs.getString('$_searchHistoryKey $i'));
+      history.add(prefs.getString('$_searchHistoryKey $i')!);
     } else {
       break;
     }
@@ -788,12 +780,19 @@ Future<List<BusService>> getCachedBusServices() async {
       maps.length, (int i) => BusService.fromMap(maps[i]));
 }
 
-Future<BusService> getCachedBusServiceWithNumber(String serviceNumber) async {
+Future<BusService> getCachedBusService(String serviceNumber) async {
   final Database database = await _accessDatabase();
   final List<Map<String, dynamic>> maps = await database.query('bus_service',
       where: 'number = ?', whereArgs: <dynamic>[serviceNumber]);
-
   return BusService.fromMap(maps.first);
+}
+
+Future<BusServiceWithRoutes> getCachedBusServiceWithRoutes(
+    String serviceNumber) async {
+  final BusService service = await getCachedBusService(serviceNumber);
+  final List<BusServiceRoute> routes = await getCachedBusRoutes(service);
+
+  return BusServiceWithRoutes.fromBusService(service, routes);
 }
 
 Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {
@@ -801,7 +800,7 @@ Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {
   final int direction = busStop[BusAPI.kBusServiceDirectionKey] as int;
   final String busStopCode = busStop[BusAPI.kBusStopCodeKey] as String;
   final double distance =
-      (busStop[BusAPI.kBusStopDistanceKey] as double)?.toDouble() ?? 0;
+      double.parse(busStop[BusAPI.kBusStopDistanceKey].toString());
 
   final Map<String, dynamic> json = <String, dynamic>{
     'serviceNumber': serviceNumber,
@@ -819,7 +818,7 @@ Future<void> cacheBusServiceRoutes(
   for (dynamic busStop in busServiceRoutesRaw) {
     batch.insert(
       'bus_route',
-      busStop as Map<String, Object>,
+      busStop as Map<String, dynamic>,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -840,20 +839,27 @@ Future<List<BusServiceRoute>> getCachedBusRoutes(BusService busService) async {
       where: 'serviceNumber = ?',
       whereArgs: <dynamic>[busService.number],
       orderBy: 'distance');
-  final Map<int, BusServiceRoute> routes = <int, BusServiceRoute>{};
+  final Map<int, List<BusStopWithDistance>> routeBusStops =
+      <int, List<BusStopWithDistance>>{};
   for (Map<String, dynamic> bs in maps) {
     final int direction = bs['direction'] as int;
     final double distance = bs['distance'] as double;
     final String busStopCode = bs['busStopCode'] as String;
     final BusStop busStop = await getCachedBusStopWithCode(busStopCode);
+    final BusStopWithDistance busStopWithDistance =
+        BusStopWithDistance(busStop, distance);
 
-    if (!routes.containsKey(direction)) {
-      routes[direction] = BusServiceRoute(direction: direction);
-    }
-    routes[direction].busStops.add(busStop);
-    routes[direction].distances.add(distance);
+    routeBusStops.putIfAbsent(direction, () => <BusStopWithDistance>[]);
+    routeBusStops[direction]!.add(busStopWithDistance);
   }
-  return routes.values.toList(growable: false);
+  return routeBusStops.entries
+      .map((MapEntry<int, List<BusStopWithDistance>> entry) {
+    return BusServiceRoute(
+      service: busService,
+      direction: entry.key,
+      busStops: entry.value,
+    );
+  }).toList();
 }
 
 Future<void> pinBusService(
@@ -886,7 +892,7 @@ Future<void> unpinBusService(
 Future<bool> isBusServicePinned(
     BusStop busStop, BusService busService, UserRoute route) async {
   final Database database = await _accessDatabase();
-  final int routeId = route?.id ?? defaultRouteId;
+  final int routeId = route.id ?? defaultRouteId;
   final List<Map<String, dynamic>> result = await database.query(
     'pinned_bus_service',
     where: 'routeId = ? and busStopCode = ? and busServiceNumber = ?',
@@ -902,7 +908,7 @@ Future<bool> isBusServicePinned(
 Future<List<BusService>> getPinnedServicesIn(
     BusStop busStop, UserRoute route) async {
   final Database database = await _accessDatabase();
-  final int routeId = route.id;
+  final int routeId = route.id!;
   final List<Map<String, dynamic>> result = await database.rawQuery(
     'SELECT * FROM pinned_bus_service INNER JOIN bus_service '
     'ON pinned_bus_service.busServiceNumber = bus_service.number '

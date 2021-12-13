@@ -1,34 +1,21 @@
-// @dart=2.9
-
-import 'package:meta/meta.dart';
-
-import '../utils/bus_api.dart';
 import 'bus_service.dart';
 import 'bus_stop.dart';
+import 'bus_stop_with_distance.dart';
 
 class BusServiceRoute {
   BusServiceRoute({
-    @required this.direction,
-    this.busStops,
-  }) {
-    busStops = <BusStop>[];
-    distances = <double>[];
-  }
+    required this.service,
+    required this.direction,
+    required this.busStops,
+  });
 
-  List<BusStop>/*!*/ busStops;
-  List<double> distances;
+  List<BusStopWithDistance> busStops;
   BusService service;
   int direction;
 
-  BusStop get origin => busStops.first;
-  BusStop get destination => busStops.last;
+  BusStop get origin => busStops.first.busStop;
+  BusStop get destination => busStops.last.busStop;
   String get number => service.number;
-
-  static BusServiceRoute fromJson(dynamic json) {
-    return BusServiceRoute(
-      direction: json[BusAPI.kBusServiceDirectionKey] as int/*!*/,
-    );
-  }
 
   @override
   bool operator ==(dynamic other) {

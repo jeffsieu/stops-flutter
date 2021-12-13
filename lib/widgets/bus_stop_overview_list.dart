@@ -1,5 +1,3 @@
-// @dart=2.9
-
 import 'package:flutter/material.dart';
 
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
@@ -15,6 +13,8 @@ import '../widgets/custom_handle.dart';
 import '../widgets/route_model.dart';
 
 class BusStopOverviewList extends StatefulWidget {
+  const BusStopOverviewList({Key? key}) : super(key: key);
+
   @override
   State createState() {
     return BusStopOverviewListState();
@@ -22,105 +22,123 @@ class BusStopOverviewList extends StatefulWidget {
 }
 
 class BusStopOverviewListState extends State<BusStopOverviewList> {
-  List<BusStop> _busStops;
-
-  @override
-  void initState() {
-    super.initState();
-    _busStops = <BusStop>[];
-  }
+  final List<BusStop> _busStops = <BusStop>[];
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<BusStop>>(
-      stream: routeBusStopsStream(UserRoute.home),
-      builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
-        switch (snapshot.connectionState) {
-          case ConnectionState.none:
-            return _messageBox(BusAPI.kNoInternetError);
+        stream: routeBusStopsStream(UserRoute.home),
+        builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
+          switch (snapshot.connectionState) {
+            case ConnectionState.none:
+              return _messageBox(BusAPI.kNoInternetError);
             case ConnectionState.waiting:
               if (snapshot.data == null) {
                 return const Center(child: CircularProgressIndicator());
               }
-            continue done;
+              continue done;
             done:
-          case ConnectionState.active:
-          case ConnectionState.done:
-            if (snapshot.hasData && _busStops != snapshot.data) {
-              if (snapshot.data.isEmpty)
-                return Container(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Center(
-                    child: Text('Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.', style: Theme.of(context).textTheme.headline4.copyWith(color: Theme.of(context).hintColor)),
-                  ),
-                );
-              else {
-                // Only update list when database is updated, otherwise the list is updated with old positions
-                _busStops..clear()..addAll(snapshot.data);
+            case ConnectionState.active:
+            case ConnectionState.done:
+              if (snapshot.hasData && _busStops != snapshot.data) {
+                if (snapshot.data?.isEmpty ?? true) {
+                  return Container(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Center(
+                      child: Text(
+                          'Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headline4!
+                              .copyWith(color: Theme.of(context).hintColor)),
+                    ),
+                  );
+                } else {
+                  // Only update list when database is updated, otherwise the list is updated with old positions
+                  _busStops
+                    ..clear()
+                    ..addAll(snapshot.data!);
+                }
               }
-            }
-            return MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: ImplicitlyAnimatedReorderableList<BusStop>(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                items: _busStops,
-                areItemsTheSame: (BusStop busStop, BusStop otherBusStop) => busStop == otherBusStop,
-                onReorderStarted: (BusStop busStop, int position) {
-                  ReorderStatusNotification(true).dispatch(context);
-                },
-                onReorderFinished: (BusStop busStop, int from, int to, List<BusStop> newBusStops) async {
-                  ReorderStatusNotification(false).dispatch(context);
-                  _busStops..clear()..addAll(newBusStops);
-                  await moveBusStopPositionInRoute(from, to, RouteModel.of(context).route);
-                  setState(() {});
-                },
-                itemBuilder: (BuildContext context, Animation<double> itemAnimation, BusStop busStop, int position) {
-                  return Reorderable(
-                    key: Key(busStop.code),
-                    builder: (BuildContext context, Animation<double> dragAnimation, bool inDrag) {
-                      const double initialElevation = 0.0;
-                      final Color materialColor = Color.lerp(Theme.of(context).scaffoldBackgroundColor, Colors.white, dragAnimation.value / 10);
-                      final double elevation = Tween<double>(begin: initialElevation, end: 10.0).animate(CurvedAnimation(parent: dragAnimation, curve: Curves.easeOutCubic)).value;
+              return MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: ImplicitlyAnimatedReorderableList<BusStop>(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  items: _busStops,
+                  areItemsTheSame: (BusStop busStop, BusStop otherBusStop) =>
+                      busStop == otherBusStop,
+                  onReorderStarted: (BusStop busStop, int position) {
+                    ReorderStatusNotification(true).dispatch(context);
+                  },
+                  onReorderFinished: (BusStop busStop, int from, int to,
+                      List<BusStop> newBusStops) async {
+                    ReorderStatusNotification(false).dispatch(context);
+                    _busStops
+                      ..clear()
+                      ..addAll(newBusStops);
+                    await moveBusStopPositionInRoute(
+                        from, to, RouteModel.of(context)!.route);
+                    setState(() {});
+                  },
+                  itemBuilder: (BuildContext context,
+                      Animation<double> itemAnimation,
+                      BusStop busStop,
+                      int position) {
+                    return Reorderable(
+                      key: Key(busStop.code),
+                      builder: (BuildContext context,
+                          Animation<double> dragAnimation, bool inDrag) {
+                        const double initialElevation = 0.0;
+                        final Color materialColor = Color.lerp(
+                            Theme.of(context).scaffoldBackgroundColor,
+                            Colors.white,
+                            dragAnimation.value / 10)!;
+                        final double elevation =
+                            Tween<double>(begin: initialElevation, end: 10.0)
+                                .animate(CurvedAnimation(
+                                    parent: dragAnimation,
+                                    curve: Curves.easeOutCubic))
+                                .value;
 
-                      Widget busStopItem = BusStopOverviewItem(busStop, key: Key(busStop.code + busStop.pinnedServices.length.toString()));
+                        Widget busStopItem = BusStopOverviewItem(busStop,
+                            key: Key(busStop.code +
+                                busStop.pinnedServices.hashCode.toString()));
 
-                      if (position > 0)
-                        busStopItem = Column(
-                          children: <Widget>[
-                            Divider(height: 1 - dragAnimation.value),
-                            busStopItem,
-                          ],
+                        if (position > 0) {
+                          busStopItem = Column(
+                            children: <Widget>[
+                              Divider(height: 1 - dragAnimation.value),
+                              busStopItem,
+                            ],
+                          );
+                        }
+
+                        final Widget child = CustomHandle(
+                          delay: const Duration(milliseconds: 500),
+                          child: Material(
+                            color: materialColor,
+                            elevation: elevation,
+                            child: busStopItem,
+                          ),
                         );
 
-                      final Widget child = CustomHandle(
-                        delay: const Duration(milliseconds: 500),
-                        child: Material(
-                          color: materialColor,
-                          elevation: elevation,
-                          child: busStopItem,
-                        ),
-                      );
+                        if (dragAnimation.value > 0.0) return child;
 
-                      if (dragAnimation.value > 0.0)
-                        return child;
-
-                      return SizeFadeTransition(
-                        sizeFraction: 0.75,
-                        curve: Curves.easeInOut,
-                        animation: itemAnimation,
-                        child: child,
-                      );
-                    },
-                  );
-                },
-              ),
-            );
-        }
-        return null;
-      }
-    );
+                        return SizeFadeTransition(
+                          sizeFraction: 0.75,
+                          curve: Curves.easeInOut,
+                          animation: itemAnimation,
+                          child: child,
+                        );
+                      },
+                    );
+                  },
+                ),
+              );
+          }
+        });
   }
 
   Widget _messageBox(String text) {

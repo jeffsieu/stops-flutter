@@ -1,9 +1,7 @@
-// @dart=2.9
-
+import 'package:collection/collection.dart';
+import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'package:expandable/expandable.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:location/location.dart';
 import 'package:quick_actions/quick_actions.dart';
@@ -12,6 +10,7 @@ import 'package:shimmer/shimmer.dart';
 import '../main.dart';
 import '../models/bus.dart';
 import '../models/bus_stop.dart';
+import '../models/bus_stop_with_distance.dart';
 import '../models/user_route.dart';
 import '../routes/add_route_page.dart';
 import '../routes/fetch_data_dialog.dart';
@@ -36,28 +35,34 @@ import 'fade_page_route.dart';
 import 'search_page.dart';
 
 class HomePage extends BottomSheetPage {
+  HomePage({Key? key}) : super(key: key);
+
   @override
   _HomePageState createState() => _HomePageState();
 
-  static _HomePageState of(BuildContext context) =>
+  static _HomePageState? of(BuildContext context) =>
       context.findAncestorStateOfType<_HomePageState>();
 }
 
-class _HomePageState extends BottomSheetPageState<HomePage> {
-  Widget _busStopOverviewList;
-  int _bottomNavIndex;
-  Map<String, dynamic> _nearestBusStops;
-  List<Bus> _followedBuses;
-  ScrollController _scrollController;
-  bool canScroll;
-  AnimationController _fabScaleAnimationController;
-  UserRoute _activeRoute;
+class _HomePageState extends BottomSheetPageState<HomePage>
+    with WidgetsBindingObserver {
+  final Widget _busStopOverviewList = const BusStopOverviewList();
+  int _bottomNavIndex = 0;
+  List<BusStopWithDistance>? _nearestBusStops;
+  List<Bus>? _followedBuses;
+  final ScrollController _scrollController = ScrollController();
+  bool canScroll = true;
+  late final AnimationController _fabScaleAnimationController =
+      AnimationController(
+          vsync: this, duration: HomePageContentSwitcher.animationDuration);
+  UserRoute? _activeRoute;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance?.addObserver(this);
     showSetupDialog();
-    final QuickActions quickActions = QuickActions();
+    const QuickActions quickActions = QuickActions();
     quickActions.initialize((String shortcutType) {
       if (shortcutType == 'action_search') {
         _pushSearchRoute();
@@ -69,13 +74,20 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
           localizedTitle: 'Search',
           icon: 'ic_shortcut_search'),
     ]);
+  }
 
-    _bottomNavIndex = 0;
-    _busStopOverviewList = BusStopOverviewList();
-    _scrollController = ScrollController();
-    _fabScaleAnimationController = AnimationController(
-        vsync: this, duration: HomePageContentSwitcher.animationDuration);
-    canScroll = true;
+  @override
+  void dispose() {
+    WidgetsBinding.instance?.removeObserver(this);
+    _fabScaleAnimationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      refresh();
+    }
   }
 
   Future<void> showSetupDialog() async {
@@ -123,10 +135,11 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
           elevation: 8.0,
           currentIndex: _bottomNavIndex,
           onTap: (int index) {
-            if (index == 0)
+            if (index == 0) {
               _fabScaleAnimationController.reverse();
-            else
+            } else {
               _fabScaleAnimationController.forward();
+            }
             setState(() {
               _bottomNavIndex = index;
 
@@ -138,11 +151,11 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
-              title: Text('Home'),
+              label: 'Home',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.directions),
-              title: Text('Routes'),
+              label: 'Routes',
             ),
           ],
         ),
@@ -268,7 +281,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
           left: 0,
           right: 0,
           child: AppBar(
-            brightness: Theme.of(context).brightness,
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarBrightness: Theme.of(context).brightness,
+            ),
             backgroundColor: Colors.transparent,
             leading: null,
             automaticallyImplyLeading: false,
@@ -284,7 +299,6 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   Widget _buildTrackedBuses() {
     return AnimatedSize(
       alignment: Alignment.topCenter,
-      vsync: this,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOutCubic,
       child: StreamBuilder<List<Bus>>(
@@ -292,10 +306,11 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
         stream: followedBusesStream(),
         builder: (BuildContext context, AsyncSnapshot<List<Bus>> snapshot) {
           if (snapshot.hasData &&
-              snapshot.connectionState != ConnectionState.waiting)
-            _followedBuses = snapshot.data;
+              snapshot.connectionState != ConnectionState.waiting) {
+            _followedBuses = snapshot.data!;
+          }
           final bool hasTrackedBuses =
-              snapshot.hasData && snapshot.data.isNotEmpty;
+              snapshot.hasData && snapshot.data!.isNotEmpty;
           return AnimatedOpacity(
             opacity: hasTrackedBuses ? 1 : 0,
             duration: hasTrackedBuses
@@ -319,7 +334,6 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                           ),
                           AnimatedSize(
                             alignment: Alignment.topCenter,
-                            vsync: this,
                             duration: const Duration(milliseconds: 400),
                             curve: Curves.easeInOutCubic,
                             child: ListView.builder(
@@ -327,7 +341,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                               physics: const NeverScrollableScrollPhysics(),
                               itemBuilder:
                                   (BuildContext context, int position) {
-                                final Bus bus = snapshot.data[position];
+                                final Bus bus = snapshot.data![position];
                                 return ListTile(
                                   onTap: () {
                                     showBusDetailSheet(
@@ -341,19 +355,19 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                                         AsyncSnapshot<
                                                 List<BusServiceArrivalResult>>
                                             snapshot) {
-                                      DateTime arrivalTime;
+                                      DateTime? arrivalTime;
                                       if (snapshot.hasData) {
                                         for (BusServiceArrivalResult arrivalResult
-                                            in snapshot.data) {
+                                            in snapshot.data!) {
                                           if (arrivalResult.busService ==
                                               bus.busService) {
                                             arrivalTime = arrivalResult
-                                                .buses[0].arrivalTime;
+                                                .buses.firstOrNull?.arrivalTime;
                                           }
                                         }
                                       }
                                       return Text(
-                                        snapshot.hasData
+                                        arrivalTime != null
                                             ? '${bus.busService.number} - ${arrivalTime.getMinutesFromNow()} min'
                                             : '',
                                         style: Theme.of(context)
@@ -365,23 +379,28 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                                   subtitle: Text(bus.busStop.displayName),
                                 );
                               },
-                              itemCount: snapshot.data.length,
+                              itemCount: snapshot.data?.length ?? 0,
                             ),
                           ),
                           Row(
                             children: <Widget>[
-                              FlatButton.icon(
+                              TextButton.icon(
                                 icon: const Icon(Icons.notifications_off),
-                                label: const Text(
+                                label: Text(
                                   'STOP TRACKING ALL BUSES',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        Theme.of(context).colorScheme.secondary,
+                                  ),
                                 ),
-                                textColor: Theme.of(context).accentColor,
                                 onPressed: () async {
                                   final List<Map<String, dynamic>>
                                       trackedBuses = await unfollowAllBuses();
-                                  Scaffold.of(context).hideCurrentSnackBar();
-                                  Scaffold.of(context).showSnackBar(SnackBar(
+                                  ScaffoldMessenger.of(context)
+                                      .hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
                                     content: const Text(
                                         'Stopped tracking all buses'),
                                     action: SnackBarAction(
@@ -399,7 +418,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                                         }
 
                                         // Update the bus stop detail sheet to reflect change in bus stop follow status
-                                        widget.bottomSheetKey.currentState
+                                        widget.bottomSheetKey.currentState!
                                             .setState(() {});
                                       },
                                     ),
@@ -420,30 +439,31 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Widget _buildSuggestions() {
-    return FutureBuilder<Map<String, dynamic>>(
+    return FutureBuilder<List<BusStopWithDistance>?>(
       future: _getNearestBusStops(),
       initialData: _nearestBusStops,
-      builder:
-          (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+      builder: (BuildContext context,
+          AsyncSnapshot<List<BusStopWithDistance>?> snapshot) {
         if (snapshot.hasData &&
-            snapshot.connectionState == ConnectionState.done)
-          _nearestBusStops = snapshot.data;
-        else if (snapshot.connectionState == ConnectionState.done ||
+            snapshot.connectionState == ConnectionState.done) {
+          _nearestBusStops = snapshot.data!;
+        } else if (snapshot.connectionState == ConnectionState.done ||
             !LocationUtils.isLocationAllowed()) {
           return Container();
         }
-        final bool isLoaded = _nearestBusStops != null &&
-            _nearestBusStops['busStops'].length == 5;
+        final bool isLoaded = _nearestBusStops?.isNotEmpty ?? false;
 
         final Widget refreshButton = Row(
           children: <Widget>[
-            FlatButton.icon(
+            TextButton.icon(
               icon: const Icon(Icons.refresh),
-              label: const Text(
+              label: Text(
                 'REFRESH LOCATION',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
               ),
-              textColor: Theme.of(context).accentColor,
               onPressed: refreshLocation,
             ),
           ],
@@ -464,7 +484,8 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
             child: Column(
               children: <Widget>[
                 ExpandablePanel(
-                  theme: const ExpandableThemeData(
+                  theme: ExpandableThemeData(
+                    iconColor: Theme.of(context).hintColor,
                     tapHeaderToExpand: true,
                     hasIcon: true,
                     headerAlignment: ExpandablePanelHeaderAlignment.center,
@@ -479,11 +500,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      if (isLoaded)
-                        _buildSuggestionItem(
-                            _nearestBusStops['busStops'][0] as BusStop,
-                            _nearestBusStops['distances'][0] as double),
-                      if (!isLoaded) _buildSuggestionItem(null, null),
+                      _buildSuggestionItem(_nearestBusStops?.firstOrNull),
                     ],
                   ),
                   expanded: ListView.separated(
@@ -494,13 +511,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
                     separatorBuilder: (BuildContext context, int position) =>
                         const Divider(),
                     itemBuilder: (BuildContext context, int position) {
-                      final BusStop busStop = isLoaded
-                          ? _nearestBusStops['busStops'][position] as BusStop
-                          : null;
-                      final double distanceInMeters = isLoaded
-                          ? _nearestBusStops['distances'][position] as double
-                          : null;
-                      return _buildSuggestionItem(busStop, distanceInMeters);
+                      final BusStopWithDistance? busStopWithDistance =
+                          isLoaded ? _nearestBusStops![position] : null;
+                      return _buildSuggestionItem(busStopWithDistance);
                     },
                   ),
                 ),
@@ -513,14 +526,13 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     );
   }
 
-  Widget _buildSuggestionItem(BusStop busStop, double distanceInMeters) {
-    final bool showShimmer = busStop == null || distanceInMeters == null;
+  Widget _buildSuggestionItem(BusStopWithDistance? busStopWithDistance) {
     final double factor = MediaQuery.of(context).textScaleFactor;
     Widget child;
-    if (showShimmer) {
+    if (busStopWithDistance == null) {
       child = Shimmer.fromColors(
         baseColor: Color.lerp(
-            Theme.of(context).hintColor, Theme.of(context).canvasColor, 0.9),
+            Theme.of(context).hintColor, Theme.of(context).canvasColor, 0.9)!,
         highlightColor: Theme.of(context).canvasColor,
         child: Column(
           children: <Widget>[
@@ -551,7 +563,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
         ),
       );
     } else {
-      final String distanceText = '${distanceInMeters.floor()} m away';
+      final String distanceText =
+          '${busStopWithDistance.distance.floor()} m away';
+      final BusStop busStop = busStopWithDistance.busStop;
       final String busStopNameText = busStop.displayName;
       final String busStopCodeText = '${busStop.code} · ${busStop.road}';
       child = Column(
@@ -560,13 +574,13 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
           Text(distanceText,
               style: Theme.of(context)
                   .textTheme
-                  .bodyText1
+                  .bodyText1!
                   .copyWith(color: Theme.of(context).hintColor)),
           Text(busStopNameText, style: Theme.of(context).textTheme.headline6),
           Text(busStopCodeText,
               style: Theme.of(context)
                   .textTheme
-                  .bodyText1
+                  .bodyText1!
                   .copyWith(color: Theme.of(context).hintColor)),
         ],
       );
@@ -574,7 +588,10 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(8.0),
-      onTap: () => showBusDetailSheet(busStop, UserRoute.home),
+      onTap: busStopWithDistance != null
+          ? () =>
+              showBusDetailSheet(busStopWithDistance.busStop, UserRoute.home)
+          : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
         child: child,
@@ -584,7 +601,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   Widget _buildContent() {
     if (_bottomNavIndex == 1 && _activeRoute != null) {
-      return RoutePage(_activeRoute);
+      return RoutePage(_activeRoute!);
     } else {
       return MediaQuery.removePadding(
         key: ValueKey<int>(_bottomNavIndex),
@@ -640,18 +657,18 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
           return false;
         },
-        child: RouteList(),
+        child: const RouteList(),
       ),
     ];
   }
 
-  Future<Map<String, dynamic>> _getNearestBusStops() async {
-    final LocationData locationData = await LocationUtils.getLocation();
+  Future<List<BusStopWithDistance>?> _getNearestBusStops() async {
+    final LocationData? locationData = await LocationUtils.getLocation();
     if (locationData == null) {
       return null;
     } else {
       return await getNearestBusStops(
-          locationData.latitude, locationData.longitude);
+          locationData.latitude!, locationData.longitude!);
     }
   }
 
@@ -669,7 +686,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   Future<void> _pushAddRouteRoute() async {
     final Route<UserRoute> route =
         FadePageRoute<UserRoute>(child: const AddRoutePage());
-    final UserRoute userRoute = await Navigator.push(context, route);
+    final UserRoute? userRoute = await Navigator.push(context, route);
 
     if (userRoute != null) storeUserRoute(userRoute);
   }
@@ -682,7 +699,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Future<void> _pushEditRouteRoute(UserRoute route) async {
-    final UserRoute editedRoute = await Navigator.push(
+    final UserRoute? editedRoute = await Navigator.push(
         context, FadePageRoute<UserRoute>(child: AddRoutePage.edit(route)));
     if (editedRoute != null) {
       updateUserRoute(editedRoute);
@@ -705,14 +722,14 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   void _pushSettingsRoute() {
-    final Widget page = SettingsPage();
+    const Widget page = SettingsPage();
     final Route<void> route =
         MaterialPageRoute<void>(builder: (BuildContext context) => page);
     Navigator.push(context, route);
   }
 
   void _pushScanCardRoute() {
-    final Widget page = ScanCardPage();
+    const Widget page = ScanCardPage();
     final Route<void> route =
         MaterialPageRoute<void>(builder: (BuildContext context) => page);
     Navigator.push(context, route);

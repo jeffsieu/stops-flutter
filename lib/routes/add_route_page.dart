@@ -1,5 +1,3 @@
-// @dart=2.9
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
@@ -15,10 +13,12 @@ import '../widgets/color_picker.dart';
 import '../widgets/never_focus_node.dart';
 
 class AddRoutePage extends StatefulWidget {
-  const AddRoutePage() : route = null;
-  const AddRoutePage.edit(this.route);
+  const AddRoutePage({Key? key})
+      : route = null,
+        super(key: key);
+  const AddRoutePage.edit(this.route, {Key? key}) : super(key: key);
 
-  final UserRoute route;
+  final UserRoute? route;
 
   @override
   State createState() {
@@ -27,24 +27,20 @@ class AddRoutePage extends StatefulWidget {
 }
 
 class AddRoutePageState extends State<AddRoutePage> {
-  List<BusStop> busStops;
-  bool _isReordering;
-  Color _colorPickerColor;
-  Color/*!*/ _color;
-  TextEditingController/*!*/ _nameController;
+  List<BusStop> busStops = <BusStop>[];
+  bool _isReordering = false;
+  Color? _colorPickerColor;
+  Color _color = Colors.red;
+  final TextEditingController _nameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    busStops = <BusStop>[];
-    _color = Colors.red;
-    _isReordering = false;
-    _nameController = TextEditingController();
 
     if (widget.route != null) {
-      busStops = List<BusStop>.from(widget.route.busStops);
-      _color = widget.route.color;
-      _nameController.text = widget.route.name;
+      busStops = List<BusStop>.from(widget.route!.busStops);
+      _color = widget.route!.color;
+      _nameController.text = widget.route!.name;
     }
   }
 
@@ -71,7 +67,9 @@ class AddRoutePageState extends State<AddRoutePage> {
       body: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: ListView(
-          physics: _isReordering ? const NeverScrollableScrollPhysics() : const ScrollPhysics(),
+          physics: _isReordering
+              ? const NeverScrollableScrollPhysics()
+              : const ScrollPhysics(),
           children: <Widget>[
             Row(
               children: <Widget>[
@@ -88,8 +86,11 @@ class AddRoutePageState extends State<AddRoutePage> {
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                       child: Center(
-                        child: Icon(Icons.palette,
-                          color: _color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                        child: Icon(
+                          Icons.palette,
+                          color: _color.computeLuminance() > 0.5
+                              ? Colors.black
+                              : Colors.white,
                         ),
                       ),
                     ),
@@ -141,8 +142,8 @@ class AddRoutePageState extends State<AddRoutePage> {
             contentPadding: const EdgeInsets.all(16.0),
             border: InputBorder.none,
             hintText: 'Add bus stops',
-            hintStyle: const TextStyle().copyWith(color:
-              Theme.of(context).hintColor),
+            hintStyle:
+                const TextStyle().copyWith(color: Theme.of(context).hintColor),
           ),
         ),
       ),
@@ -150,107 +151,123 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   Widget _buildBusStops() {
-    return Container(
-      child: ImplicitlyAnimatedReorderableList<BusStop>(
-        shrinkWrap: true,
-        items: busStops,
-        areItemsTheSame: (BusStop oldBusStop, BusStop newBusStop) => oldBusStop == newBusStop,
-        onReorderStarted: (BusStop busStop, int position) {
-          _isReordering = true;
-        },
-        onReorderFinished: (BusStop item, int from, int to, List<BusStop> newBusStops) {
-          setState(() {
-            busStops = newBusStops;
-          });
-        },
-        itemBuilder: (BuildContext context, Animation<double> itemAnimation, BusStop busStop, int position) {
-          return Reorderable(
-            key: ValueKey<BusStop>(busStop),
-            builder: (BuildContext context, Animation<double> dragAnimation, bool inDrag) {
-              const double initialElevation = 2.0;
-              final double elevation = Tween<double>(begin: initialElevation, end: 10.0).animate(CurvedAnimation(parent: dragAnimation, curve: Curves.easeOutCubic)).value;
-              final Color materialColor = Color.lerp(Theme.of(context).cardColor, Colors.white, dragAnimation.value / 10);
+    return ImplicitlyAnimatedReorderableList<BusStop>(
+      shrinkWrap: true,
+      items: busStops,
+      areItemsTheSame: (BusStop oldBusStop, BusStop newBusStop) =>
+          oldBusStop == newBusStop,
+      onReorderStarted: (BusStop busStop, int position) {
+        _isReordering = true;
+      },
+      onReorderFinished:
+          (BusStop item, int from, int to, List<BusStop> newBusStops) {
+        setState(() {
+          busStops = newBusStops;
+        });
+      },
+      itemBuilder: (BuildContext context, Animation<double> itemAnimation,
+          BusStop busStop, int position) {
+        return Reorderable(
+          key: ValueKey<BusStop>(busStop),
+          builder: (BuildContext context, Animation<double> dragAnimation,
+              bool inDrag) {
+            const double initialElevation = 2.0;
+            final double elevation =
+                Tween<double>(begin: initialElevation, end: 10.0)
+                    .animate(CurvedAnimation(
+                        parent: dragAnimation, curve: Curves.easeOutCubic))
+                    .value;
+            final Color? materialColor = Color.lerp(Theme.of(context).cardColor,
+                Colors.white, dragAnimation.value / 10);
 
-              final Widget card = Material(
-                color: materialColor,
-                elevation: elevation,
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Handle(
-                        child: ListTile(
-                          leading: Container(
-                            width: 24,
-                            child: Text('${position + 1}.',
-                                style: Theme.of(context).textTheme.headline6.copyWith(color: _color),
-                                textAlign: TextAlign.right,
-                            ),
+            final Widget card = Material(
+              color: materialColor,
+              elevation: elevation,
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Handle(
+                      child: ListTile(
+                        leading: SizedBox(
+                          width: 24,
+                          child: Text(
+                            '${position + 1}.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headline6!
+                                .copyWith(color: _color),
+                            textAlign: TextAlign.right,
                           ),
-                          title: Text(busStop.displayName),
                         ),
+                        title: Text(busStop.displayName),
                       ),
                     ),
-                    IconButton(
-                      padding: const EdgeInsets.all(16.0),
-                      color: Theme.of(context).hintColor,
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => setState(() {
-                        busStops.remove(busStop);
-                      }),
-                    ),
-                  ],
-                ),
-              );
+                  ),
+                  IconButton(
+                    padding: const EdgeInsets.all(16.0),
+                    color: Theme.of(context).hintColor,
+                    icon: const Icon(Icons.clear),
+                    onPressed: () => setState(() {
+                      busStops.remove(busStop);
+                    }),
+                  ),
+                ],
+              ),
+            );
 
-              if (dragAnimation.value > 0.0) {
-                return card;
-              }
+            if (dragAnimation.value > 0.0) {
+              return card;
+            }
 
-              return SizeFadeTransition(
-                sizeFraction: 0.75,
-                curve: Curves.easeInOut,
-                animation: itemAnimation,
-                child: card,
-              );
-            },
-          );
-        },
-      ),
+            return SizeFadeTransition(
+              sizeFraction: 0.75,
+              curve: Curves.easeInOut,
+              animation: itemAnimation,
+              child: card,
+            );
+          },
+        );
+      },
     );
   }
 
   Future<void> _showColorDialog() async {
     _colorPickerColor = _color;
-    final Color selectedColor = await showDialog<Color>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Route color'),
-          content: ColorPicker(
-            colors: Colors.primaries.map((Color a) => a.of(context)).toList(),
-            size: 48.0,
-            initialColor: _color.of(context),
-            onColorChanged: (Color color) {
-              _colorPickerColor = color;
-            },
-          ),
-          actions: <Widget>[
-            ButtonTheme(
-              minWidth: 0,
-              height: 36,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              child: FlatButton(
-                textColor: Theme.of(context).accentColor,
-                onPressed: () {
-                  Navigator.pop(context, _colorPickerColor);
-                },
-                child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-              ),
-            )
-          ],
-        );
-      }
-    );
+    final Color? selectedColor = await showDialog<Color>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Route color'),
+            content: ColorPicker(
+              colors: Colors.primaries.map((Color a) => a.of(context)).toList(),
+              size: 48.0,
+              initialColor: _color.of(context),
+              onColorChanged: (Color color) {
+                _colorPickerColor = color;
+              },
+            ),
+            actions: <Widget>[
+              ButtonTheme(
+                minWidth: 0,
+                height: 36,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, _colorPickerColor);
+                  },
+                  child: Text(
+                    'OK',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.secondary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ),
+              )
+            ],
+          );
+        });
     _colorPickerColor = null;
     if (selectedColor != null) {
       setState(() {
@@ -262,7 +279,7 @@ class AddRoutePageState extends State<AddRoutePage> {
   Future<void> _pushSearchRoute() async {
     final Widget page = SearchPage.onlyBusStops();
     final FadePageRoute<BusStop> route = FadePageRoute<BusStop>(child: page);
-    final BusStop selectedBusStop = await Navigator.push(context, route);
+    final BusStop? selectedBusStop = await Navigator.push(context, route);
     if (selectedBusStop != null) {
       setState(() {
         busStops.add(selectedBusStop);
@@ -271,6 +288,12 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   void _popRoute() {
-    Navigator.pop(context, UserRoute.withId(id: widget.route?.id, name: _nameController.text, color: _color, busStops: busStops));
+    Navigator.pop(
+        context,
+        UserRoute.withId(
+            id: widget.route?.id,
+            name: _nameController.text,
+            color: _color,
+            busStops: busStops));
   }
 }

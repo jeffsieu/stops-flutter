@@ -4,6 +4,7 @@ analyzer:
   exclude: 
     - build/**
     - test/**.mocks.dart
+    - src/lib/widgets/custom_handle.dart
   language:
     strict-raw-types: true
   strong-mode:

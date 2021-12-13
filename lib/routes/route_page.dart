@@ -1,5 +1,3 @@
-// @dart=2.9
-
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -13,7 +11,7 @@ import '../widgets/bus_stop_overview_item.dart';
 import '../widgets/route_model.dart';
 
 class RoutePage extends StatefulWidget {
-  const RoutePage(this.route);
+  const RoutePage(this.route, {Key? key}) : super(key: key);
   final UserRoute route;
 
   @override
@@ -49,7 +47,7 @@ class RoutePageState extends State<RoutePage> {
                     widget.route.busStops != snapshot.data) {
                   widget.route.busStops
                     ..clear()
-                    ..addAll(snapshot.data);
+                    ..addAll(snapshot.data!);
                 }
                 return CustomScrollView(
                   shrinkWrap: true,
@@ -58,8 +56,7 @@ class RoutePageState extends State<RoutePage> {
                     SliverToBoxAdapter(
                       child: _buildHeader(),
                     ),
-                    if (widget.route.busStops == null ||
-                        widget.route.busStops.isEmpty)
+                    if (widget.route.busStops.isEmpty)
                       SliverToBoxAdapter(
                         child: Container(
                           padding: const EdgeInsets.all(32.0),
@@ -68,7 +65,7 @@ class RoutePageState extends State<RoutePage> {
                                 'This route has no stops.\n\nTap the edit icon to add stops to this route.',
                                 style: Theme.of(context)
                                     .textTheme
-                                    .headline4
+                                    .headline4!
                                     .copyWith(
                                         color: Theme.of(context).hintColor)),
                           ),
@@ -92,7 +89,6 @@ class RoutePageState extends State<RoutePage> {
                   ],
                 );
             }
-            return null;
           },
         ),
       ),
@@ -115,7 +111,7 @@ class RoutePageState extends State<RoutePage> {
             child: Text(widget.route.name,
                 style: Theme.of(context)
                     .textTheme
-                    .headline4
+                    .headline4!
                     .copyWith(color: widget.route.color.of(context))),
           ),
           IconButton(
@@ -130,7 +126,7 @@ class RoutePageState extends State<RoutePage> {
   }
 
   Future<void> _pushEditRouteRoute() async {
-    final UserRoute route = await Navigator.push(context,
+    final UserRoute? route = await Navigator.push(context,
         FadePageRoute<UserRoute>(child: AddRoutePage.edit(widget.route)));
     if (route != null) {
       widget.route.update(route);

@@ -17,7 +17,7 @@ Color getBusOperatorColor(String operator) {
   }
 }
 
-Color getBusLoadColor(BusLoad load, Brightness brightness) {
+Color getBusLoadColor(BusLoad? load, Brightness brightness) {
   MaterialColor color;
   switch (load) {
     case BusLoad.low:
@@ -32,13 +32,14 @@ Color getBusLoadColor(BusLoad load, Brightness brightness) {
     default:
       return Colors.transparent;
   }
-  if (brightness == Brightness.light)
+  if (brightness == Brightness.light) {
     return color;
-  else
+  } else {
     return color.shade300;
+  }
 }
 
-String getBusTypeVerbose(BusType type) {
+String getBusTypeVerbose(BusType? type) {
   switch (type) {
     case BusType.single:
       return '';

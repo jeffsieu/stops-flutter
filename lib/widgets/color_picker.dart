@@ -1,24 +1,23 @@
-// @dart=2.9
-
 import 'package:flutter/material.dart';
 
 class ColorPicker extends StatefulWidget {
   const ColorPicker({
-    @required this.colors,
-    @required this.size,
-    @required this.onColorChanged,
+    required this.colors,
+    required this.size,
+    required this.onColorChanged,
     this.initialColor,
     this.spacing,
     this.runSpacing,
     this.shape = const CircleBorder(),
-  });
+    Key? key,
+  }) : super(key: key);
 
   final double size;
   final List<Color> colors;
-  final Color initialColor;
+  final Color? initialColor;
   final void Function(Color) onColorChanged;
-  final double spacing;
-  final double runSpacing;
+  final double? spacing;
+  final double? runSpacing;
   final ShapeBorder shape;
 
   @override
@@ -28,14 +27,16 @@ class ColorPicker extends StatefulWidget {
 }
 
 class _ColorPickerState extends State<ColorPicker> {
-  Color selectedColor;
+  Color? selectedColor;
 
   @override
   void initState() {
     super.initState();
     assert(widget.colors.isNotEmpty, 'colors cannot be empty');
-    if (widget.initialColor != null)
-      assert(widget.colors.contains(widget.initialColor), 'colors must contain initial color');
+    if (widget.initialColor != null) {
+      assert(widget.colors.contains(widget.initialColor),
+          'colors must contain initial color');
+    }
     selectedColor = widget.initialColor ?? widget.colors[0];
   }
 
@@ -45,8 +46,7 @@ class _ColorPickerState extends State<ColorPicker> {
       spacing: widget.spacing ?? 8.0,
       runSpacing: widget.runSpacing ?? 8.0,
       children: <Widget>[
-        for (Color color in widget.colors)
-          buildColorWidget(color),
+        for (Color color in widget.colors) buildColorWidget(color),
       ],
     );
   }
@@ -61,14 +61,17 @@ class _ColorPickerState extends State<ColorPicker> {
         onTap: () => _onColorTapped(color),
         child: Stack(
           children: <Widget>[
-            Container(
+            SizedBox(
               width: widget.size,
               height: widget.size,
             ),
             if (isSelected)
               Positioned.fill(
                 child: Center(
-                    child: Icon(Icons.done, color: color.computeLuminance() > 0.5 ? Colors.black : Colors.white),
+                  child: Icon(Icons.done,
+                      color: color.computeLuminance() > 0.5
+                          ? Colors.black
+                          : Colors.white),
                 ),
               ),
           ],

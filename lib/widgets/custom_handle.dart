@@ -1,5 +1,3 @@
-// @dart=2.9
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,14 +8,11 @@ import 'package:implicitly_animated_reorderable_list/src/util/handler.dart';
 
 class CustomHandle extends StatefulWidget {
   const CustomHandle({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
     this.delay = Duration.zero,
     this.vibrate = true,
-  })  : assert(delay != null),
-        assert(child != null),
-        assert(vibrate != null),
-        super(key: key);
+  }) : super(key: key);
 
   final Widget child;
   final Duration delay;
@@ -30,19 +25,19 @@ class CustomHandle extends StatefulWidget {
 
 class _HandleState extends State<CustomHandle> {
   // A custom handler used to cancel the pending onDragStart callbacks.
-  Handler _handler;
+  Handler? _handler;
   // The parent Reorderable item.
-  ReorderableState _reorderable;
+  ReorderableState? _reorderable;
   // The parent list.
-  ImplicitlyAnimatedReorderableListState _list;
+  ImplicitlyAnimatedReorderableListState? _list;
   // Whether the ImplicitlyAnimatedReorderableList has a
   // scrollDirection of Axis.vertical.
   bool get _isVertical => _list?.isVertical ?? true;
 
   bool _inDrag = false;
 
-  double _initialOffset;
-  double _currentOffset;
+  double? _initialOffset;
+  double? _currentOffset;
   double get _delta => (_currentOffset ?? 0) - (_initialOffset ?? 0);
 
   final double _deltaThreshold = 4.0;
@@ -55,7 +50,7 @@ class _HandleState extends State<CustomHandle> {
     _initialOffset = _isVertical ? pointer.dy : pointer.dx;
 
     _list?.onDragStarted(_reorderable?.key);
-    _reorderable.rebuild();
+    _reorderable!.rebuild();
 
     _vibrate();
   }

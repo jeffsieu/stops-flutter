@@ -1,5 +1,3 @@
-// @dart=2.9
-
 import 'dart:typed_data';
 
 import 'package:android_alarm_manager/android_alarm_manager.dart';
@@ -29,7 +27,7 @@ const int alarmManagerTaskId = 0;
 
 const AndroidInitializationSettings androidSettings =
     AndroidInitializationSettings('ic_notification');
-const Future<dynamic> Function(int, String, String, String)
+const Future<dynamic> Function(int, String?, String?, String?)?
     onDidReceiveLocalNotification = null;
 const IOSInitializationSettings iosSettings = IOSInitializationSettings(
     onDidReceiveLocalNotification: onDidReceiveLocalNotification);
@@ -39,7 +37,7 @@ const InitializationSettings initializationSettings =
 AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
   _busArrivalChannelId,
   _busArrivalChannelName,
-  _busArrivalChannelDescription,
+  channelDescription: _busArrivalChannelDescription,
   timeoutAfter: 30000,
   priority: Priority.high,
   importance: Importance.max,
@@ -71,28 +69,35 @@ Future<void> updateNotifications() async {
   final List<String> shortMessageParts = <String>[];
   final List<String> longMessageParts = <String>[];
 
-  DateTime earliestNotificationTime;
+  DateTime? earliestNotificationTime;
 
   int busCount = 0;
-  int leastMinutesLeft;
+  int? leastMinutesLeft;
   for (Bus followedBus in followedBuses) {
     final String busNumber = followedBus.busService.number;
     final String stopCode = followedBus.busStop.code;
-    final DateTime arrivalTime =
+    final DateTime? arrivalTime =
         await BusAPI().getArrivalTime(followedBus.busStop, busNumber);
-    arrivalTimes.add(arrivalTime);
-    final int minutesLeft = arrivalTime.getMinutesFromNow();
+
+    int minutesLeft = 0;
+    if (arrivalTime != null) {
+      arrivalTimes.add(arrivalTime);
+      minutesLeft = arrivalTime.getMinutesFromNow();
+    } else {
+      // No more bus arrival timings; assume that bus has arrived.
+    }
 
     if (minutesLeft >= 2) {
       final DateTime nextNotificationTime =
-          arrivalTime.subtract(Duration(minutes: minutesLeft - 1));
+          arrivalTime!.subtract(Duration(minutes: minutesLeft - 1));
 
       if (earliestNotificationTime == null ||
           earliestNotificationTime.isAfter(nextNotificationTime)) {
         earliestNotificationTime = nextNotificationTime;
       }
-      if (leastMinutesLeft == null || minutesLeft < leastMinutesLeft)
+      if (leastMinutesLeft == null || minutesLeft < leastMinutesLeft) {
         leastMinutesLeft = minutesLeft;
+      }
       shortMessageParts.add('$busNumber ($minutesLeft min)');
       longMessageParts.add('$busNumber - $minutesLeft min');
       busCount++;
@@ -121,7 +126,7 @@ Future<void> updateNotifications() async {
       AndroidNotificationDetails(
     _busArrivalSilentChannelId,
     _busArrivalSilentChannelName,
-    _busArrivalSilentChannelDescription,
+    channelDescription: _busArrivalSilentChannelDescription,
     importance: Importance.low,
     priority: Priority.high,
     ongoing: true,

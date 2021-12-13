@@ -1,7 +1,3 @@
-// @dart=2.9
-
-import 'package:meta/meta.dart';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -9,34 +5,34 @@ import '../utils/database_utils.dart';
 import 'bus_stop.dart';
 
 class UserRoute {
-  UserRoute({
-    @required this.name,
-    @required this.color,
-    @required this.busStops,
-  }) : id = null;
+  // UserRoute({
+  //   required this.name,
+  //   required this.color,
+  //   required this.busStops,
+  // }) : id = null;
   UserRoute.withId({
-    @required this.id,
-    @required this.name,
-    @required this.color,
-    @required this.busStops,
+    required this.id,
+    required this.name,
+    required this.color,
+    required this.busStops,
   });
   UserRoute._({
-    @required this.id,
-    @required this.name,
-    @required this.color,
+    required this.id,
+    required this.name,
+    required this.color,
   }) : busStops = <BusStop>[];
   static UserRoute home = UserRoute._(
       id: defaultRouteId, name: defaultRouteName, color: Colors.transparent);
 
-  final int id;
+  final int? id;
   String name;
-  Color /*!*/ color;
-  List<BusStop> /*!*/ busStops;
+  Color color;
+  List<BusStop> busStops;
 
   static UserRoute fromMap(Map<String, dynamic> map) {
     return UserRoute._(
-      id: map['id'] as int /*!*/,
-      name: map['name'] as String /*!*/,
+      id: map['id'] as int,
+      name: map['name'] as String,
       color: Color(map['color'] as int),
     );
   }

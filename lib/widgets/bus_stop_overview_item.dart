@@ -27,7 +27,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
   late final Stream<List<BusServiceArrivalResult>> _busArrivalStream =
       BusAPI().busStopArrivalStream(widget.busStop);
   // ignore: prefer_function_declarations_over_variables
-  late final BusStopChangeListener? _busStopListener = (BusStop busStop) {
+  late final BusStopChangeListener _busStopListener = (BusStop busStop) {
     setState(() {
       widget.busStop.displayName = busStop.displayName;
     });
@@ -96,8 +96,9 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
               return const Center(child: Text(BusAPI.kNoInternetError));
             case ConnectionState.active:
             case ConnectionState.waiting:
-              if (snapshot.data == null)
+              if (snapshot.data == null) {
                 return const Center(child: Text(BusAPI.kLoadingMessage));
+              }
               continue done;
             done:
             case ConnectionState.done:

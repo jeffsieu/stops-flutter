@@ -1,46 +1,28 @@
 import 'package:flutter/material.dart';
 
 import '../utils/bus_api.dart';
-import 'bus_route.dart';
-import 'bus_stop.dart';
 
 class BusService {
-  BusService._({
+  @protected
+  BusService({
     required this.number,
     required this.operator,
   });
 
-  List<BusServiceRoute>? _routes;
   final String number;
   final String operator;
 
-  set routes(List<BusServiceRoute>? routes) {
-    _routes = routes;
-    for (final BusServiceRoute route in routes!) {
-      route.service = this;
-    }
-  }
-
-  List<BusServiceRoute>? get routes => _routes;
-  int? get directionCount => _routes?.length;
-  List<BusStop>? get origins => _routes
-      ?.map<BusStop>((BusServiceRoute route) => route.origin)
-      .toList(growable: false);
-  List<BusStop>? get destinations => _routes
-      ?.map<BusStop>((BusServiceRoute route) => route.destination)
-      .toList(growable: false);
-
   static BusService fromJson(dynamic json) {
-    return BusService._(
-      number: json[BusAPI.kBusServiceNumberKey] as String/*!*/,
+    return BusService(
+      number: json[BusAPI.kBusServiceNumberKey] as String,
       operator: json[BusAPI.kBusServiceOperatorKey] as String,
     );
   }
 
   static BusService fromMap(Map<String, dynamic> map) {
-    return BusService._(
-      number: map['number'] as String/*!*/,
-      operator: map['operator'] as String/*!*/,
+    return BusService(
+      number: map['number'] as String,
+      operator: map['operator'] as String,
     );
   }
 
