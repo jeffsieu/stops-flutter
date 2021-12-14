@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:implicitly_animated_reorderable_list/transitions.dart';
+import 'package:stops_sg/models/bus_stop_with_pinned_services.dart';
 
 import '../main.dart';
 import '../models/bus_stop.dart';
@@ -294,6 +295,9 @@ class AddRoutePageState extends State<AddRoutePage> {
             id: widget.route?.id,
             name: _nameController.text,
             color: _color,
-            busStops: busStops));
+            busStops: busStops
+                .map((BusStop busStop) =>
+                    BusStopWithPinnedServices.fromBusStop(busStop, []))
+                .toList()));
   }
 }

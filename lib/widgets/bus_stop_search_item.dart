@@ -163,8 +163,9 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
       ),
       trailing: widget.isMapEnabled
           ? IconButton(
+              tooltip: 'Show on map',
               icon: Icon(
-                Icons.pin_drop_rounded,
+                Icons.my_location_outlined,
                 color: Theme.of(context).hintColor,
               ),
               onPressed: widget.onShowOnMapTap,

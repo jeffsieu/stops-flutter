@@ -600,15 +600,20 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       child: FadeTransition(
         opacity: animation,
         child: Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Missing bus services?',
-                  style: Theme.of(context)
-                      .textTheme
-                      .subtitle1!
-                      .copyWith(color: Theme.of(context).hintColor)),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text('Missing bus services?',
+                      style: Theme.of(context)
+                          .textTheme
+                          .subtitle2!
+                          .copyWith(color: Theme.of(context).hintColor)),
+                ),
+              ),
               const SizedBox(height: 8.0),
               const BusStopLegendCard(),
             ],

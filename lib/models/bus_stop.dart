@@ -1,5 +1,4 @@
 import '../utils/bus_api.dart';
-import 'bus_service.dart';
 
 class BusStop {
   BusStop({
@@ -17,7 +16,6 @@ class BusStop {
   String road;
   double latitude;
   double longitude;
-  List<BusService>? pinnedServices;
 
   static BusStop fromJson(dynamic json) {
     return BusStop(
@@ -68,9 +66,10 @@ class BusStop {
 
   @override
   bool operator ==(dynamic other) {
-    if (other.runtimeType != runtimeType) return false;
-    final BusStop otherBusStop = other as BusStop;
-    return code == otherBusStop.code;
+    if (other is BusStop) {
+      return other.code == code;
+    }
+    return false;
   }
 
   @override

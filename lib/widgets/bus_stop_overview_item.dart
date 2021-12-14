@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stops_sg/models/bus_stop_with_pinned_services.dart';
 
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
@@ -13,7 +14,7 @@ import '../widgets/route_model.dart';
 class BusStopOverviewItem extends StatefulWidget {
   const BusStopOverviewItem(this.busStop, {Key? key}) : super(key: key);
 
-  final BusStop busStop;
+  final BusStopWithPinnedServices busStop;
 
   @override
   State<StatefulWidget> createState() {
@@ -53,39 +54,100 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
 
     _latestData = BusAPI().getLatestArrival(widget.busStop);
 
-    return InkWell(
-      onTap: _showDetailSheet,
-      child: Container(
-        padding: const EdgeInsets.only(top: 32.0, bottom: 32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-              child: Center(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Ink(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Theme.of(context).dividerColor,
+                ),
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(8.0),
+                ),
+              ),
+              child: InkWell(
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(8.0),
+                ),
+                onTap: _showDetailSheet,
+                child: Container(
+                  padding: const EdgeInsets.only(top: 48.0, bottom: 16.0),
                   child: Column(
-                children: <Widget>[
-                  Text(name, style: Theme.of(context).textTheme.headline6),
-                  Text('$code · $road',
-                      style: Theme.of(context)
-                          .textTheme
-                          .subtitle2!
-                          .copyWith(color: Theme.of(context).hintColor)),
-                ],
-              )),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _buildPinnedServices(widget.busStop.pinnedServices),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            _buildPinnedServices(widget.busStop.pinnedServices),
-          ],
-        ),
+          ),
+          IgnorePointer(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4.0, left: 28.0, right: 28.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Ink(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Text(name,
+                          style: Theme.of(context).textTheme.headline6),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: Text('$code · $road',
+                        style: Theme.of(context)
+                            .textTheme
+                            .subtitle2!
+                            .copyWith(color: Theme.of(context).hintColor)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPinnedServices(List<BusService>? pinnedServices) {
-    if (pinnedServices == null || pinnedServices.isEmpty) return Container();
+  Widget _buildPinnedServices(List<BusService> pinnedServices) {
+    if (pinnedServices.isEmpty) {
+      return Center(
+        child: ListTile(
+          title: Text(
+            'No pinned services',
+            style: TextStyle(
+              color: Theme.of(context).hintColor,
+            ),
+          ),
+          leading: Stack(
+            children: [
+              Icon(Icons.push_pin, color: Theme.of(context).hintColor),
+              // Close icon scaled down and placed at the bottom right
+              Positioned(
+                right: 0.0,
+                bottom: 0.0,
+                child: Icon(
+                  Icons.close,
+                  size: 16.0,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Padding(
-      padding: const EdgeInsets.only(top: 8.0),
+      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
       child: StreamBuilder<List<BusServiceArrivalResult>>(
         initialData: _latestData,
         stream: _busArrivalStream,
@@ -110,30 +172,27 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                       BusServiceArrivalResult b) =>
                   compareBusNumber(a.busService.number, b.busService.number));
               _latestData = snapshot.data;
-              return Padding(
-                padding: const EdgeInsets.only(left: 16.0, right: 16.0),
-                child: busArrivals.isNotEmpty
-                    ? AbsorbPointer(
-                        absorbing: true,
-                        child: Wrap(
-                          spacing: 16.0,
-                          direction: Axis.horizontal,
-                          children: <Widget>[
-                            for (BusServiceArrivalResult arrivalResult
-                                in busArrivals)
-                              BusTimingRow.unfocusable(widget.busStop,
-                                  arrivalResult.busService, arrivalResult)
-                          ],
-                        ),
-                      )
-                    : Center(
-                        child: Text(BusAPI.kNoPinnedBusesError,
-                            style: Theme.of(context)
-                                .textTheme
-                                .subtitle1!
-                                .copyWith(color: Theme.of(context).hintColor)),
+              return busArrivals.isNotEmpty
+                  ? AbsorbPointer(
+                      absorbing: false,
+                      child: Wrap(
+                        spacing: 16.0,
+                        direction: Axis.horizontal,
+                        children: <Widget>[
+                          for (BusServiceArrivalResult arrivalResult
+                              in busArrivals)
+                            BusTimingRow.unfocusable(widget.busStop,
+                                arrivalResult.busService, arrivalResult)
+                        ],
                       ),
-              );
+                    )
+                  : Center(
+                      child: Text(BusAPI.kNoPinnedBusesError,
+                          style: Theme.of(context)
+                              .textTheme
+                              .subtitle1!
+                              .copyWith(color: Theme.of(context).hintColor)),
+                    );
           }
         },
       ),

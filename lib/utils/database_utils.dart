@@ -13,6 +13,7 @@ import '../models/bus_service_route.dart';
 import '../models/bus_service_with_routes.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_stop_with_distance.dart';
+import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import 'bus_api.dart';
 import 'bus_utils.dart';
@@ -44,9 +45,9 @@ final Map<BusStop, List<BusStopChangeListener>> _busStopListeners =
     <BusStop, List<BusStopChangeListener>>{};
 final StreamController<List<Bus>> _followedBusesController =
     StreamController<List<Bus>>.broadcast(onListen: updateFollowedBusesStream);
-final Map<UserRoute, StreamController<List<BusStop>>>
+final Map<UserRoute, StreamController<List<BusStopWithPinnedServices>>>
     _userRouteBusStopStreamControllers =
-    <UserRoute, StreamController<List<BusStop>>>{};
+    <UserRoute, StreamController<List<BusStopWithPinnedServices>>>{};
 
 Future<Database> _accessDatabase() async {
   return openDatabase(
@@ -169,36 +170,41 @@ Future<void> updateBusStop(BusStop busStop) async {
       where: 'code = ?', whereArgs: <String>[busStop.code]);
 }
 
-Stream<List<BusStop>> routeBusStopsStream(UserRoute route) {
+Stream<List<BusStopWithPinnedServices>> routeBusStopsStream(UserRoute route) {
   if (!_userRouteBusStopStreamControllers.containsKey(route)) {
     _userRouteBusStopStreamControllers[route] =
-        StreamController<List<BusStop>>.broadcast();
+        StreamController<List<BusStopWithPinnedServices>>.broadcast();
   }
-  getBusStopsInRoute(route).then((List<BusStop> busStops) {
+  getBusStopsInRoute(route).then((List<BusStopWithPinnedServices> busStops) {
     _userRouteBusStopStreamControllers[route]!.add(busStops);
   });
   return _userRouteBusStopStreamControllers[route]!.stream;
 }
 
 Future<void> _updateRouteBusStopsStream(UserRoute route) async {
-  _userRouteBusStopStreamControllers.putIfAbsent(
-      route, () => StreamController<List<BusStop>>.broadcast());
+  _userRouteBusStopStreamControllers.putIfAbsent(route,
+      () => StreamController<List<BusStopWithPinnedServices>>.broadcast());
   _userRouteBusStopStreamControllers[route]!
       .add(await getBusStopsInRoute(route));
 }
 
-Future<List<BusStop>> getBusStopsInRoute(UserRoute route) async {
+Future<List<BusStopWithPinnedServices>> getBusStopsInRoute(
+    UserRoute route) async {
   final Database database = await _accessDatabase();
   final List<Map<String, dynamic>> result = await database.rawQuery(
       'SELECT * FROM bus_stop JOIN user_route_bus_stop ON code = busStopCode WHERE routeId = ${route.id} ORDER BY position');
   final List<BusStop> busStops = List<BusStop>.generate(
       result.length, (int i) => BusStop.fromMap(result[i]));
+  final List<BusStopWithPinnedServices> busStopsWithPinnedServices =
+      <BusStopWithPinnedServices>[];
 
   for (BusStop busStop in busStops) {
-    busStop.pinnedServices = await getPinnedServicesIn(busStop, route);
+    List<BusService> pinnedServices = await getPinnedServicesIn(busStop, route);
+    busStopsWithPinnedServices
+        .add(BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices));
   }
 
-  return busStops;
+  return busStopsWithPinnedServices;
 }
 
 Future<void> addBusStopToRoute(
@@ -352,8 +358,11 @@ Future<List<UserRoute>> getUserRoutes() async {
     for (Map<String, dynamic> entry in busStops) {
       final BusStop busStop =
           await getCachedBusStopWithCode(entry['busStopCode'] as String);
-      busStop.pinnedServices = await getPinnedServicesIn(busStop, route);
-      route.busStops.add(busStop);
+      final List<BusService> pinnedServices =
+          await getPinnedServicesIn(busStop, route);
+      final BusStopWithPinnedServices busStopWithPinnedServices =
+          BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices);
+      route.busStops.add(busStopWithPinnedServices);
     }
   }
   return routes;

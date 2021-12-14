@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:edit_distance/edit_distance.dart';
@@ -46,6 +47,7 @@ class SearchPage extends BottomSheetPage {
   final bool showMap;
   final bool isSimpleMode;
   final GlobalKey _resultsSheetKey = GlobalKey();
+  final GlobalKey _markerIconKey = GlobalKey();
 
   @override
   State<StatefulWidget> createState() {
@@ -61,6 +63,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   // The number of pixels to offset the FAB by animates out
   // via a fade down
   final double _resultsSheetCollapsedHeight = 132;
+  final LatLng _defaultCameraPosition = const LatLng(1.3521, 103.8198);
 
   List<BusService> _busServices = <BusService>[];
   late List<BusService> _filteredBusServices;
@@ -75,7 +78,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     _textController.text = _queryString;
   }
 
-  Map<BusStop, dynamic> _queryMetadata = <BusStop, dynamic>{};
+  Map<BusStop, _QueryMetadata> _queryMetadata = <BusStop, _QueryMetadata>{};
   final Map<BusStop, double> _distanceMetadata = <BusStop, double>{};
 
   List<String> _searchHistory = <String>[];
@@ -84,11 +87,18 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   bool _isDistanceLoaded = false;
   final bool _showServicesOnly = false;
   late bool _isMapVisible = widget.showMap;
+  bool _isRefocusButtonVisible = true;
   BusStop? _focusedBusStop;
   LatLng? _focusedLocation;
 
   BusStop? get _displayedBusStop =>
       _focusedBusStop ?? _filteredBusStops.firstOrNull;
+
+  LatLng get _markerOrigin =>
+      _focusedLocation ??
+      (location != null
+          ? LatLng(location!.latitude!, location!.longitude!)
+          : _defaultCameraPosition);
 
   late final AnimationController _clearIconAnimationController =
       AnimationController(
@@ -100,11 +110,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic);
 
+  // Controlelrs
   final TextEditingController _textController = TextEditingController();
-
   late final TabController _tabController =
       TabController(length: 2, vsync: this);
-
   late final AnimationController _mapClipperAnimationController =
       AnimationController(
     vsync: this,
@@ -121,14 +130,12 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     springDescription: SpringDescription.withDampingRatio(
         mass: 1, ratio: DampingRatio.NO_BOUNCY, stiffness: Stiffness.LOW),
   );
-
   final ScrollController _scrollController = ScrollController();
+  final Completer<GoogleMapController> _googleMapController =
+      Completer<GoogleMapController>();
 
   late GoogleMap _googleMap;
   late final String _googleMapDarkStyle;
-
-  final Completer<GoogleMapController> _googleMapController =
-      Completer<GoogleMapController>();
 
   @override
   void initState() {
@@ -140,10 +147,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
     _tabController.index = widget.showMap ? 1 : 0;
     _resultsSheetAnimationController.addListener(() {
-      final double visibilityBound =
-          (_resultsSheetAnimationController.upperBound! +
-                  _resultsSheetAnimationController.lowerBound!) /
-              2;
+      final double visibilityBound = lerpDouble(
+          _resultsSheetAnimationController.upperBound!,
+          _resultsSheetAnimationController.lowerBound!,
+          0.9)!;
       _tabController.animateTo(
           _resultsSheetAnimationController.value < visibilityBound ? 1 : 0);
       final bool shouldMapBeVisible =
@@ -155,6 +162,13 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             _isMapVisible = shouldMapBeVisible;
           });
         }
+      }
+
+      // Update map visibility wwhen bottom sheet has finish animating
+      // or when it has been fully closed.
+      if (_resultsSheetAnimationController.value >=
+          _resultsSheetAnimationController.upperBound!) {
+        updateMapVisibility();
       }
 
       late void Function(AnimationStatus) statusListener;
@@ -177,6 +191,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     // Update distances to latest location
     if (location != null) {
       _updateBusStopDistances(location!);
+      _isRefocusButtonVisible = false;
       if (!LocationUtils.isLocationCurrent()) {}
     }
 
@@ -188,6 +203,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         });
         if (location != null) {
           _updateBusStopDistances(location);
+          setState(() {
+            _isRefocusButtonVisible = false;
+          });
         }
       });
     }
@@ -499,6 +517,28 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             alignment: Alignment.topCenter,
             children: <Widget>[
               _buildMapWidget(),
+              if (LocationUtils.isLocationAllowed())
+                Positioned(
+                  bottom: _resultsSheetCollapsedHeight + 16.0,
+                  child: FloatingActionButton.extended(
+                      label: const Text('Focus on my location'),
+                      icon: const Icon(Icons.my_location),
+                      onPressed: () async {
+                        final GoogleMapController controller =
+                            await _googleMapController.future;
+                        final double currentZoom =
+                            await controller.getZoomLevel();
+                        controller.animateCamera(
+                          CameraUpdate.newCameraPosition(
+                            CameraPosition(
+                              target: LatLng(
+                                  location!.latitude!, location!.longitude!),
+                              zoom: currentZoom,
+                            ),
+                          ),
+                        );
+                      }),
+                ),
               Padding(
                 padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top +
@@ -507,31 +547,35 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: () async {
-                        final GoogleMapController controller =
-                            await _googleMapController.future;
-                        final LatLngBounds visibleRegion =
-                            await controller.getVisibleRegion();
-                        final double centerLatitude =
-                            (visibleRegion.northeast.latitude +
-                                    visibleRegion.southwest.latitude) /
-                                2;
-                        final double centerLongitude =
-                            (visibleRegion.northeast.longitude +
-                                    visibleRegion.southwest.longitude) /
-                                2;
-                        setState(() {
-                          _focusedLocation =
-                              LatLng(centerLatitude, centerLongitude);
-                        });
-                      },
-                      child: Text(
-                          'Search this area for ${_query.isEmpty ? 'stops' : '"$_query"'}',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary)),
-                      style: ElevatedButton.styleFrom(
-                        primary: Theme.of(context).cardColor,
+                    Opacity(
+                      opacity: _isRefocusButtonVisible ? 1.0 : 0.0,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final GoogleMapController controller =
+                              await _googleMapController.future;
+                          final LatLngBounds visibleRegion =
+                              await controller.getVisibleRegion();
+                          final double centerLatitude =
+                              (visibleRegion.northeast.latitude +
+                                      visibleRegion.southwest.latitude) /
+                                  2;
+                          final double centerLongitude =
+                              (visibleRegion.northeast.longitude +
+                                      visibleRegion.southwest.longitude) /
+                                  2;
+                          setState(() {
+                            _focusedLocation =
+                                LatLng(centerLatitude, centerLongitude);
+                          });
+                        },
+                        child: Text(
+                            'Search this area for ${_query.isEmpty ? 'stops' : '"$_query"'}',
+                            style: TextStyle(
+                                color:
+                                    Theme.of(context).colorScheme.secondary)),
+                        style: ElevatedButton.styleFrom(
+                          primary: Theme.of(context).cardColor,
+                        ),
                       ),
                     ),
                   ],
@@ -607,6 +651,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       compassEnabled: true,
       zoomControlsEnabled: false,
       myLocationEnabled: _isMapVisible,
+      myLocationButtonEnabled: false,
       mapType: MapType.normal,
       initialCameraPosition: initialCameraPosition,
       onMapCreated: (GoogleMapController controller) {
@@ -621,15 +666,28 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           controller.setMapStyle(_googleMapDarkStyle);
         }
       },
+      onCameraMove: (CameraPosition position) {
+        // If the distance to _focusedLocation is greater than the threshold,
+        // make the re-focus button visible.
+        final double distanceMeters = const latlong.Distance().as(
+            latlong.LengthUnit.Meter,
+            latlong.LatLng(_markerOrigin.latitude, _markerOrigin.longitude),
+            latlong.LatLng(
+                position.target.latitude, position.target.longitude));
+        bool shouldShowRefocusButton =
+            distanceMeters > SearchPage._furthestBusStopDistanceMeters;
+        if (shouldShowRefocusButton != _isRefocusButtonVisible) {
+          setState(() {
+            _isRefocusButtonVisible = shouldShowRefocusButton;
+          });
+        }
+      },
       onTap: (_) {
         setState(() {
           _focusedBusStop = null;
         });
       },
-      markers: _buildMapMarkersAround(_focusedLocation ??
-          (location != null
-              ? LatLng(location!.latitude!, location!.longitude!)
-              : null)),
+      markers: _buildMapMarkersAround(_markerOrigin),
     );
 
     return _googleMap;
@@ -637,8 +695,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   CameraPosition _getCameraPositionFromLocation() {
     return CameraPosition(
-      target:
-          LatLng(location?.latitude ?? 1.3521, location?.longitude ?? 103.8198),
+      target: location != null
+          ? LatLng(location!.latitude!, location!.longitude!)
+          : _defaultCameraPosition,
       zoom: 18,
     );
   }
@@ -751,11 +810,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     } else {
       _filteredBusStops = _busStops;
     }
-    final Iterable<dynamic> metadataIterable = _filteredBusStops.map<dynamic>(
-        (BusStop busStop) =>
-            <dynamic>[busStop, _calculateQueryMetadata(busStop, _query)]);
     _queryMetadata = {
-      for (var item in metadataIterable) item[0] as BusStop: item[1]
+      for (BusStop busStop in _filteredBusStops)
+        busStop: _calculateQueryMetadata(busStop, _query)
     };
 
     if (_focusedBusStop != null) {
@@ -941,7 +998,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   Widget _buildBusStopSearchItem(BusStop busStop,
       {bool isFocusedBusStopItem = false}) {
-    final Map<String, dynamic> metadata = _queryMetadata[busStop];
+    final _QueryMetadata metadata = _queryMetadata[busStop]!;
 
     final String distance = _distanceMetadata.containsKey(busStop)
         ? getDistanceVerboseFromMeters(_distanceMetadata[busStop]!)
@@ -950,18 +1007,17 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     final String name = busStop.displayName;
     final String busStopCode = busStop.code;
 
-    final String nameStart = name.substring(0, metadata['DescriptionStart']);
-    final String nameBold = name.substring(
-        metadata['DescriptionStart'], metadata['DescriptionEnd']);
-    final String nameEnd =
-        name.substring(metadata['DescriptionEnd'], name.length);
+    final String nameStart = name.substring(0, metadata.descriptionStart);
+    final String nameBold =
+        name.substring(metadata.descriptionStart, metadata.descriptionEnd);
+    final String nameEnd = name.substring(metadata.descriptionEnd, name.length);
 
     final String busStopCodeStart =
-        busStopCode.substring(0, metadata['BusStopCodeStart']);
+        busStopCode.substring(0, metadata.busStopCodeStart);
     final String busStopCodeBold = busStopCode.substring(
-        metadata['BusStopCodeStart'], metadata['BusStopCodeEnd']);
+        metadata.busStopCodeStart, metadata.busStopCodeEnd);
     final String busStopCodeEnd =
-        busStopCode.substring(metadata['BusStopCodeEnd'], busStopCode.length);
+        busStopCode.substring(metadata.busStopCodeEnd, busStopCode.length);
     return BusStopSearchItem(
       key: Key(busStopCode),
       // necessary to let Flutter rebuild component when search is performed
@@ -1018,14 +1074,18 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       builder: (BuildContext context, Widget? child) {
         return _buildVerticalSwitcher(
           expandedChild: child,
-          collapsedChild: _buildBusStopSearchItem(_displayedBusStop!,
-              isFocusedBusStopItem: true),
+          collapsedChild: _buildBusStopSearchItem(
+            _displayedBusStop!,
+            isFocusedBusStopItem: true,
+          ),
           expandedPercentage: _resultsSheetExpandedPercentage,
           offset: false,
         );
       },
-      child: _buildBusStopSearchItem(_filteredBusStops[0],
-          isFocusedBusStopItem: false),
+      child: _buildBusStopSearchItem(
+        _filteredBusStops[0],
+        isFocusedBusStopItem: false,
+      ),
     );
   }
 
@@ -1101,8 +1161,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       list.where((BusService busService) =>
           busService.number.toLowerCase().startsWith(query.toLowerCase()));
 
-  static Map<String, dynamic> _calculateQueryMetadata(
-      BusStop busStop, String query) {
+  static _QueryMetadata _calculateQueryMetadata(BusStop busStop, String query) {
     final String queryLowercase = query.toLowerCase();
     final String busStopCodeLowercase = busStop.code.toLowerCase();
     final String busStopDisplayNameLowercase =
@@ -1112,27 +1171,36 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
     int index = busStopCodeLowercase.indexOf(queryLowercase);
 
-    final Map<String, dynamic> metadata = <String, dynamic>{};
+    late int busStopCodeStart;
+    late int busStopCodeEnd;
 
     if (index != -1) {
-      metadata['BusStopCodeStart'] = index;
-      metadata['BusStopCodeEnd'] = index + query.length;
+      busStopCodeStart = index;
+      busStopCodeEnd = index + query.length;
     } else {
-      metadata['BusStopCodeStart'] = 0;
-      metadata['BusStopCodeEnd'] = 0;
+      busStopCodeStart = 0;
+      busStopCodeEnd = 0;
     }
 
     index = busStopDisplayNameLowercase.indexOf(queryLowercase);
 
+    late int descriptionStart;
+    late int descriptionEnd;
+
     if (index != -1) {
-      metadata['DescriptionStart'] = index;
-      metadata['DescriptionEnd'] = index + query.length;
+      descriptionStart = index;
+      descriptionEnd = index + query.length;
     } else {
-      metadata['DescriptionStart'] = 0;
-      metadata['DescriptionEnd'] = 0;
+      descriptionStart = 0;
+      descriptionEnd = 0;
     }
 
-    return metadata;
+    return _QueryMetadata(
+      busStopCodeStart: busStopCodeStart,
+      busStopCodeEnd: busStopCodeEnd,
+      descriptionStart: descriptionStart,
+      descriptionEnd: descriptionEnd,
+    );
   }
 
   void _pushBusServiceRoute(BusService busService) {
@@ -1142,6 +1210,20 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     pushHistory(_query); // add query to history
     Navigator.push(context, route);
   }
+}
+
+class _QueryMetadata {
+  final int busStopCodeStart;
+  final int busStopCodeEnd;
+  final int descriptionStart;
+  final int descriptionEnd;
+
+  _QueryMetadata({
+    required this.busStopCodeStart,
+    required this.busStopCodeEnd,
+    required this.descriptionStart,
+    required this.descriptionEnd,
+  });
 }
 
 extension BusStopDistance on BusStop {

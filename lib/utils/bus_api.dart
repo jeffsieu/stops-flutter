@@ -107,7 +107,6 @@ class BusAPI {
         return arrivalResult.buses.firstOrNull?.arrivalTime;
       }
     }
-    return null;
   }
 
   Stream<List<BusServiceArrivalResult>> busStopArrivalStream(BusStop busStop) {

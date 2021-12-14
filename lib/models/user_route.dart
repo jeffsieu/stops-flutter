@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../utils/database_utils.dart';
-import 'bus_stop.dart';
+import 'bus_stop_with_pinned_services.dart';
 
 class UserRoute {
   // UserRoute({
@@ -20,14 +20,14 @@ class UserRoute {
     required this.id,
     required this.name,
     required this.color,
-  }) : busStops = <BusStop>[];
+  }) : busStops = <BusStopWithPinnedServices>[];
   static UserRoute home = UserRoute._(
       id: defaultRouteId, name: defaultRouteName, color: Colors.transparent);
 
   final int? id;
   String name;
   Color color;
-  List<BusStop> busStops;
+  List<BusStopWithPinnedServices> busStops;
 
   static UserRoute fromMap(Map<String, dynamic> map) {
     return UserRoute._(
@@ -47,7 +47,7 @@ class UserRoute {
   void update(UserRoute from) {
     name = from.name;
     color = from.color;
-    busStops = List<BusStop>.from(from.busStops);
+    busStops = List<BusStopWithPinnedServices>.from(from.busStops);
   }
 
   @override

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:implicitly_animated_reorderable_list/transitions.dart';
 
-import '../models/bus_stop.dart';
+import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import '../utils/bus_api.dart';
 import '../utils/database_utils.dart';
@@ -22,13 +21,15 @@ class BusStopOverviewList extends StatefulWidget {
 }
 
 class BusStopOverviewListState extends State<BusStopOverviewList> {
-  final List<BusStop> _busStops = <BusStop>[];
+  final List<BusStopWithPinnedServices> _busStops =
+      <BusStopWithPinnedServices>[];
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<BusStop>>(
+    return StreamBuilder<List<BusStopWithPinnedServices>>(
         stream: routeBusStopsStream(UserRoute.home),
-        builder: (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
+        builder: (BuildContext context,
+            AsyncSnapshot<List<BusStopWithPinnedServices>> snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.none:
               return _messageBox(BusAPI.kNoInternetError);
@@ -63,17 +64,22 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
               return MediaQuery.removePadding(
                 context: context,
                 removeTop: true,
-                child: ImplicitlyAnimatedReorderableList<BusStop>(
+                child: ImplicitlyAnimatedReorderableList<
+                    BusStopWithPinnedServices>(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   items: _busStops,
-                  areItemsTheSame: (BusStop busStop, BusStop otherBusStop) =>
+                  areItemsTheSame: (BusStopWithPinnedServices busStop,
+                          BusStopWithPinnedServices otherBusStop) =>
                       busStop == otherBusStop,
-                  onReorderStarted: (BusStop busStop, int position) {
+                  onReorderStarted:
+                      (BusStopWithPinnedServices busStop, int position) {
                     ReorderStatusNotification(true).dispatch(context);
                   },
-                  onReorderFinished: (BusStop busStop, int from, int to,
-                      List<BusStop> newBusStops) async {
+                  onReorderFinished: (BusStopWithPinnedServices busStop,
+                      int from,
+                      int to,
+                      List<BusStopWithPinnedServices> newBusStops) async {
                     ReorderStatusNotification(false).dispatch(context);
                     _busStops
                       ..clear()
@@ -84,7 +90,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                   },
                   itemBuilder: (BuildContext context,
                       Animation<double> itemAnimation,
-                      BusStop busStop,
+                      BusStopWithPinnedServices busStop,
                       int position) {
                     return Reorderable(
                       key: Key(busStop.code),
@@ -102,18 +108,9 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                                     curve: Curves.easeOutCubic))
                                 .value;
 
-                        Widget busStopItem = BusStopOverviewItem(busStop,
+                        final Widget busStopItem = BusStopOverviewItem(busStop,
                             key: Key(busStop.code +
-                                busStop.pinnedServices.hashCode.toString()));
-
-                        if (position > 0) {
-                          busStopItem = Column(
-                            children: <Widget>[
-                              Divider(height: 1 - dragAnimation.value),
-                              busStopItem,
-                            ],
-                          );
-                        }
+                                hashList(busStop.pinnedServices).toString()));
 
                         final Widget child = CustomHandle(
                           delay: const Duration(milliseconds: 500),

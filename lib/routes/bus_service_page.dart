@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:stops_sg/models/bus_service.dart';
 
 import '../models/bus_service_route.dart';
 import '../models/bus_service_with_routes.dart';
@@ -85,8 +86,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
               elevation: 4.0,
               forceElevated: true,
               expandedHeight: 128.0 + kTextTabBarHeight,
-              snap: true,
-              floating: false,
+              floating: true,
               pinned: true,
               flexibleSpace: FlexibleSpaceBar(
                 titlePadding: EdgeInsets.only(

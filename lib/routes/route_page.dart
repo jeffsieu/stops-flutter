@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:stops_sg/models/bus_stop_with_pinned_services.dart';
 
 import '../models/bus_stop.dart';
 import '../models/user_route.dart';
@@ -28,11 +29,11 @@ class RoutePageState extends State<RoutePage> {
       removeTop: true,
       child: RouteModel(
         route: widget.route,
-        child: StreamBuilder<List<BusStop>>(
+        child: StreamBuilder<List<BusStopWithPinnedServices>>(
           initialData: widget.route.busStops,
           stream: routeBusStopsStream(widget.route),
-          builder:
-              (BuildContext context, AsyncSnapshot<List<BusStop>> snapshot) {
+          builder: (BuildContext context,
+              AsyncSnapshot<List<BusStopWithPinnedServices>> snapshot) {
             switch (snapshot.connectionState) {
               case ConnectionState.none:
               case ConnectionState.waiting:
@@ -77,7 +78,7 @@ class RoutePageState extends State<RoutePage> {
                           final bool isDivider = position % 2 == 1;
                           if (isDivider) return const Divider(height: 1);
                           final int itemPosition = position ~/ 2;
-                          final BusStop busStop =
+                          final BusStopWithPinnedServices busStop =
                               widget.route.busStops[itemPosition];
                           return BusStopOverviewItem(busStop,
                               key: Key(busStop.code));

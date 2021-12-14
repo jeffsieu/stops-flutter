@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:collection/collection.dart';
 
 import '../main.dart';
 import '../models/bus_service.dart';
@@ -26,7 +27,7 @@ class BusTimingRow extends StatefulWidget {
       this.busStop, this.busService, this.arrivalResult,
       {Key? key})
       : isEditing = false,
-        showNotificationButton = false,
+        showNotificationButton = true,
         super(key: key);
 
   final BusStop busStop;
@@ -84,15 +85,16 @@ class _BusTimingState extends State<BusTimingRow>
           ? () async {
               final bool isPinned = await isBusServicePinned(widget.busStop,
                   widget.busService, RouteModel.of(context)!.route);
-              setState(() {
-                if (isPinned) {
-                  unpinBusService(widget.busStop, widget.busService,
-                      RouteModel.of(context)!.route);
-                } else {
-                  pinBusService(widget.busStop, widget.busService,
-                      RouteModel.of(context)!.route);
-                }
-              });
+
+              if (isPinned) {
+                await unpinBusService(widget.busStop, widget.busService,
+                    RouteModel.of(context)!.route);
+              } else {
+                await pinBusService(widget.busStop, widget.busService,
+                    RouteModel.of(context)!.route);
+              }
+              HomePage.of(context)?.refresh();
+              setState(() {});
             }
           : () => _pushBusServiceRoute(widget.busService.number),
       child: Stack(
@@ -118,19 +120,22 @@ class _BusTimingState extends State<BusTimingRow>
                             AsyncSnapshot<bool> snapshot) {
                           final bool isChecked = snapshot.data!;
                           final Checkbox checkbox = Checkbox(
-                            value: isChecked,
-                            onChanged: (bool? checked) => setState(() {
-                              if (checked ?? false) {
-                                pinBusService(widget.busStop, widget.busService,
-                                    RouteModel.of(context)!.route);
-                              } else {
-                                unpinBusService(
-                                    widget.busStop,
-                                    widget.busService,
-                                    RouteModel.of(context)!.route);
-                              }
-                            }),
-                          );
+                              value: isChecked,
+                              onChanged: (bool? checked) async {
+                                if (checked ?? false) {
+                                  await pinBusService(
+                                      widget.busStop,
+                                      widget.busService,
+                                      RouteModel.of(context)!.route);
+                                } else {
+                                  await unpinBusService(
+                                      widget.busStop,
+                                      widget.busService,
+                                      RouteModel.of(context)!.route);
+                                }
+                                HomePage.of(context)?.refresh();
+                                setState(() {});
+                              });
                           if (widget.isEditing) return checkbox;
                           return Container();
                         },
@@ -179,7 +184,7 @@ class _BusTimingState extends State<BusTimingRow>
             ? const Icon(Icons.notifications_active)
             : Icon(Icons.notifications_none,
                 color: Theme.of(context).hintColor),
-        onPressed: widget.arrivalResult?.buses.first != null
+        onPressed: widget.arrivalResult?.buses.firstOrNull != null
             ? () {
                 if (_isBusFollowed) {
                   unfollowBus(
@@ -258,14 +263,19 @@ class _BusTimingItemState extends State<_BusTimingItem>
   late final AnimationController _controller = AnimationController(
       duration: const Duration(milliseconds: 500), vsync: this);
 
+  bool get shouldAnimate =>
+      (widget.busArrival?.arrivalTime.getMinutesFromNow() ?? 0) <= 1;
+
   @override
   void initState() {
     super.initState();
     _controller.addStatusListener((AnimationStatus status) {
-      if (status == AnimationStatus.completed) {
-        _controller.reverse();
-      } else if (status == AnimationStatus.dismissed) {
-        _controller.forward();
+      if (shouldAnimate) {
+        if (status == AnimationStatus.completed) {
+          _controller.reverse();
+        } else if (status == AnimationStatus.dismissed) {
+          _controller.forward();
+        }
       }
       setState(() {});
     });
@@ -279,7 +289,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
 
   @override
   Widget build(BuildContext context) {
-    if ((widget.busArrival?.arrivalTime.getMinutesFromNow() ?? 0) <= 1) {
+    if (shouldAnimate) {
       if (!_controller.isAnimating) _controller.forward();
     } else {
       _controller.stop();

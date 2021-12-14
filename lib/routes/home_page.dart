@@ -517,7 +517,10 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                     },
                   ),
                 ),
-                refreshButton,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: refreshButton,
+                ),
               ],
             ),
           ),
@@ -634,9 +637,35 @@ class _HomePageState extends BottomSheetPageState<HomePage>
       _buildTrackedBuses(),
       _buildSuggestions(),
       Padding(
-        padding: const EdgeInsets.only(top: 32.0),
-        child: Center(
-          child: Text('My Stops', style: Theme.of(context).textTheme.headline4),
+        padding: const EdgeInsets.only(
+            top: 32.0, left: 32.0, right: 16.0, bottom: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('My Stops', style: Theme.of(context).textTheme.headline4),
+            // OverflowButton
+            PopupMenuButton(
+              itemBuilder: (BuildContext context) {
+                return <PopupMenuItem<String>>[
+                  PopupMenuItem<String>(
+                    value: 'add',
+                    child: Text('Add stop'),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'remove',
+                    child: Text('Remove stop'),
+                  ),
+                ];
+              },
+              onSelected: (String value) {
+                if (value == 'add') {
+                  // showAddStopSheet();
+                } else if (value == 'remove') {
+                  // showRemoveStopSheet();
+                }
+              },
+            ),
+          ],
         ),
       ),
       _busStopOverviewList,
