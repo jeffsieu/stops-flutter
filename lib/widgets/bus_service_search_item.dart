@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 
 import '../models/bus_service.dart';
@@ -19,7 +17,8 @@ class BusServiceSearchItem extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
       leading: HighlightedIcon(
         iconColor: BusService.listColor(context),
-        child: Icon(Icons.directions_bus, color: BusService.listColor(context)),
+        child: Icon(Icons.directions_bus_rounded,
+            color: BusService.listColor(context)),
       ),
       title:
           Text(busService.number, style: Theme.of(context).textTheme.headline6),

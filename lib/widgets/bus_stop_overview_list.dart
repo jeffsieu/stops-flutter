@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
-import 'package:implicitly_animated_reorderable_list/transitions.dart';
+import 'package:provider/provider.dart';
 
 import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
@@ -8,8 +8,7 @@ import '../utils/bus_api.dart';
 import '../utils/database_utils.dart';
 import '../utils/reorder_status_notification.dart';
 import '../widgets/bus_stop_overview_item.dart';
-import '../widgets/custom_handle.dart';
-import '../widgets/route_model.dart';
+import 'edit_model.dart';
 
 class BusStopOverviewList extends StatefulWidget {
   const BusStopOverviewList({Key? key}) : super(key: key);
@@ -21,13 +20,16 @@ class BusStopOverviewList extends StatefulWidget {
 }
 
 class BusStopOverviewListState extends State<BusStopOverviewList> {
-  final List<BusStopWithPinnedServices> _busStops =
-      <BusStopWithPinnedServices>[];
+  List<BusStopWithPinnedServices>? _busStops;
 
   @override
   Widget build(BuildContext context) {
+    final BuildContext rootContext = context;
+    final bool _isEditing = context.watch<EditModel>().isEditing;
+
     return StreamBuilder<List<BusStopWithPinnedServices>>(
-        stream: routeBusStopsStream(UserRoute.home),
+        initialData: _busStops,
+        stream: routeBusStopsStream(context.watch<UserRoute>()),
         builder: (BuildContext context,
             AsyncSnapshot<List<BusStopWithPinnedServices>> snapshot) {
           switch (snapshot.connectionState) {
@@ -56,9 +58,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                   );
                 } else {
                   // Only update list when database is updated, otherwise the list is updated with old positions
-                  _busStops
-                    ..clear()
-                    ..addAll(snapshot.data!);
+                  _busStops = snapshot.data!;
                 }
               }
               return MediaQuery.removePadding(
@@ -68,10 +68,10 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                     BusStopWithPinnedServices>(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  items: _busStops,
+                  items: snapshot.data!,
                   areItemsTheSame: (BusStopWithPinnedServices busStop,
                           BusStopWithPinnedServices otherBusStop) =>
-                      busStop == otherBusStop,
+                      busStop.code == otherBusStop.code,
                   onReorderStarted:
                       (BusStopWithPinnedServices busStop, int position) {
                     ReorderStatusNotification(true).dispatch(context);
@@ -81,55 +81,121 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                       int to,
                       List<BusStopWithPinnedServices> newBusStops) async {
                     ReorderStatusNotification(false).dispatch(context);
-                    _busStops
-                      ..clear()
-                      ..addAll(newBusStops);
+                    if (from == to) {
+                      return;
+                    }
+                    debugPrint('Reordered $busStop from $from to $to');
+                    // setState(() {
+                    //   _busStops
+                    //     ..clear()
+                    //     ..addAll(newBusStops);
+                    // });
                     await moveBusStopPositionInRoute(
-                        from, to, RouteModel.of(context)!.route);
-                    setState(() {});
+                        from, to, context.read<UserRoute>());
+                    // setState(() {});
                   },
                   itemBuilder: (BuildContext context,
                       Animation<double> itemAnimation,
                       BusStopWithPinnedServices busStop,
                       int position) {
+                    final Widget busStopItem = BusStopOverviewItem(
+                      busStop,
+                      key: Key(busStop.code +
+                          hashList(busStop.pinnedServices).toString()),
+                    );
+
                     return Reorderable(
-                      key: Key(busStop.code),
-                      builder: (BuildContext context,
-                          Animation<double> dragAnimation, bool inDrag) {
-                        const double initialElevation = 0.0;
-                        final Color materialColor = Color.lerp(
-                            Theme.of(context).scaffoldBackgroundColor,
-                            Colors.white,
-                            dragAnimation.value / 10)!;
-                        final double elevation =
-                            Tween<double>(begin: initialElevation, end: 10.0)
-                                .animate(CurvedAnimation(
-                                    parent: dragAnimation,
-                                    curve: Curves.easeOutCubic))
-                                .value;
-
-                        final Widget busStopItem = BusStopOverviewItem(busStop,
-                            key: Key(busStop.code +
-                                hashList(busStop.pinnedServices).toString()));
-
-                        final Widget child = CustomHandle(
-                          delay: const Duration(milliseconds: 500),
-                          child: Material(
-                            color: materialColor,
-                            elevation: elevation,
+                      key: Key(busStop.hashCode.toString()),
+                      child: Stack(
+                        alignment: Alignment.centerLeft,
+                        children: <Widget>[
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                             child: busStopItem,
                           ),
-                        );
-
-                        if (dragAnimation.value > 0.0) return child;
-
-                        return SizeFadeTransition(
-                          sizeFraction: 0.75,
-                          curve: Curves.easeInOut,
-                          animation: itemAnimation,
-                          child: child,
-                        );
-                      },
+                          AnimatedOpacity(
+                            duration: const Duration(milliseconds: 600),
+                            opacity: _isEditing ? 1.0 : 0.0,
+                            curve: const Interval(0.5, 1),
+                            child: AnimatedSlide(
+                              duration: const Duration(milliseconds: 600),
+                              offset: _isEditing
+                                  ? Offset.zero
+                                  : const Offset(0, 0.25),
+                              curve: const Interval(0.5, 1,
+                                  curve: Curves.easeOutCubic),
+                              child: _isEditing
+                                  ? Handle(
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsetsDirectional.only(
+                                                start: 32.0),
+                                        child: Icon(
+                                          Icons.drag_handle_rounded,
+                                          color: Theme.of(context).hintColor,
+                                        ),
+                                      ),
+                                    )
+                                  : Container(),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 17.0,
+                                  vertical:
+                                      9.0), // Offset by 1 to account for outline
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: <Widget>[
+                                    AnimatedOpacity(
+                                      duration:
+                                          const Duration(milliseconds: 600),
+                                      opacity: _isEditing ? 1.0 : 0.0,
+                                      curve: _isEditing
+                                          ? const Interval(0.5, 1)
+                                          : const Interval(0, 0.25),
+                                      child: AnimatedSlide(
+                                        duration:
+                                            const Duration(milliseconds: 600),
+                                        offset: _isEditing
+                                            ? Offset.zero
+                                            : const Offset(0, 0.25),
+                                        curve: _isEditing
+                                            ? const Interval(0.5, 1,
+                                                curve: Curves.easeOutCubic)
+                                            : const Interval(0, 0.5,
+                                                curve: Curves.easeOutCubic),
+                                        child: Padding(
+                                          padding:
+                                              const EdgeInsetsDirectional.only(
+                                                  end: 8.0),
+                                          child: IconButton(
+                                            onPressed: () async {
+                                              await removeBusStopFromRoute(
+                                                  busStop,
+                                                  UserRoute.home,
+                                                  rootContext);
+                                            },
+                                            icon: Icon(
+                                              Icons.clear_rounded,
+                                              color:
+                                                  Theme.of(context).hintColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),

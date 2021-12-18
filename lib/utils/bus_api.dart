@@ -56,9 +56,12 @@ class BusAPI {
 
   static const int _kRefreshInterval = 30;
 
-  static const String kNoBusesError = 'No buses in service';
-  static const String kNoPinnedBusesError = 'No pinned buses in service';
+  static const String kNoBusesInServiceError = 'No buses in service';
+  static const String kNoPinnedBusesInServiceError =
+      'No pinned buses in service';
+  static const String kNoPinnedBusesError = 'Pin a service';
   static const String kNoInternetError = 'No internet connection';
+  static const String kCannotReachServerError = 'Unable to reach data server';
   static const String kLoadingMessage = 'Loading buses...';
 
   static final BusAPI _singleton = BusAPI._internal();
@@ -110,16 +113,20 @@ class BusAPI {
   }
 
   Stream<List<BusServiceArrivalResult>> busStopArrivalStream(BusStop busStop) {
-    void updateArrivalStream() {
-      _fetchBusStopArrivalList(busStop.code).then((String result) {
-        final List<dynamic> services =
-            jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
-        final List<BusServiceArrivalResult> arrivalResults = services
-            .map(BusServiceArrivalResult.fromJson)
-            .toList(growable: true);
-        _arrivalCache[busStop] = arrivalResults;
-        _arrivalControllers[busStop]!.add(arrivalResults);
-      });
+    void updateArrivalStream() async {
+      final String result;
+      try {
+        result = await _fetchBusStopArrivalList(busStop.code);
+      } catch (e) {
+        _arrivalControllers[busStop]!.sink.addError(e);
+        return;
+      }
+      final List<dynamic> services =
+          jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
+      final List<BusServiceArrivalResult> arrivalResults =
+          services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
+      _arrivalCache[busStop] = arrivalResults;
+      _arrivalControllers[busStop]!.add(arrivalResults);
     }
 
     if (_arrivalControllers.containsKey(busStop)) {
@@ -156,10 +163,32 @@ class BusAPI {
     }
   }
 
+  Future<bool> hasInternetConnection() async {
+    try {
+      final List<InternetAddress> result =
+          await InternetAddress.lookup('example.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
+
   Future<String> _fetchAsString(String url, int skip,
       [String extraParams = '']) async {
-    final HttpClientRequest request = await HttpClient()
-        .getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
+    final HttpClientRequest request;
+    try {
+      request = await HttpClient()
+          .getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
+    } on SocketException {
+      // Try to connect to example.com
+      final bool hasInternet = await hasInternetConnection();
+      if (!hasInternet) {
+        return Future<String>.error(kNoInternetError, StackTrace.current);
+      } else {
+        return Future<String>.error(
+            kCannotReachServerError, StackTrace.current);
+      }
+    }
 
     _kApiKey ??= await _loadAPIKey();
     request.headers.set(_kApiTag, _kApiKey!);
@@ -233,4 +262,13 @@ class BusAPI {
         await _fetchBusServiceRouteList();
     cacheBusServiceRoutes(busServiceRoutesRaw);
   }
+}
+
+class BusAPIException implements Exception {
+  final String message;
+
+  BusAPIException(this.message);
+
+  @override
+  String toString() => message;
 }

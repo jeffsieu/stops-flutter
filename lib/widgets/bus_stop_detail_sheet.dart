@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,13 +10,14 @@ import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
 import '../models/user_route.dart';
 import '../routes/home_page.dart';
+import '../routes/settings_page.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../widgets/bus_stop_legend_card.dart';
 import '../widgets/bus_timing_row.dart';
-import '../widgets/route_model.dart';
+import 'info_card.dart';
 
 class BusStopDetailSheet extends StatefulWidget {
   BusStopDetailSheet(
@@ -168,8 +170,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           topRight: Radius.circular(16.0),
         ),
         elevation: 16.0,
-        child: RouteModel(
-          route: _route!,
+        child: Provider<UserRoute>(
+          create: (_) => _route!,
           child: scrollView,
         ),
       ),
@@ -307,8 +309,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   Widget _buildHeaderOverflow(BusStop busStop) {
     if (_isEditing) {
       return IconButton(
-        tooltip: 'Done',
-        icon: const Icon(Icons.done),
+        tooltip: 'Save',
+        icon: const Icon(Icons.done_rounded),
         color: Theme.of(context).colorScheme.secondary,
         onPressed: () {
           setState(() {
@@ -318,20 +320,11 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       );
     }
     return PopupMenuButton<_MenuOption>(
-      icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
+      icon: Icon(Icons.more_vert_rounded, color: Theme.of(context).hintColor),
       onSelected: (_MenuOption option) {
         switch (option) {
           case _MenuOption.edit:
-            setState(() {
-              _isEditing = !_isEditing;
-              if (widget.rubberAnimationController.value !=
-                  widget.rubberAnimationController.upperBound) {
-                widget.rubberAnimationController.launchTo(
-                    widget.rubberAnimationController.value,
-                    widget.rubberAnimationController.upperBound,
-                    velocity: BusStopDetailSheet._launchVelocity / 2);
-              }
-            });
+            edit();
             break;
           case _MenuOption.rename:
             _showEditNameDialog();
@@ -433,9 +426,25 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       stream: _busArrivalStream,
       builder: (BuildContext context,
           AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: InfoCard(
+              icon: Icon(Icons.signal_wifi_connected_no_internet_4_rounded,
+                  color: Theme.of(context).hintColor),
+              title: Text(
+                snapshot.error.toString(),
+                style: Theme.of(context)
+                    .textTheme
+                    .subtitle1!
+                    .copyWith(color: Theme.of(context).hintColor),
+              ),
+            ),
+          );
+        }
         switch (snapshot.connectionState) {
           case ConnectionState.none:
-            return _messageBox(BusAPI.kNoInternetError);
+          // Should not happen.
+
           case ConnectionState.active:
           case ConnectionState.waiting:
             if (snapshot.data == null) {
@@ -475,7 +484,19 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                     opacity: _isEditing ? 0 : 1,
                     child: _buildStaggeredFadeInTransition(
                       position: 0,
-                      child: _messageBox(BusAPI.kNoBusesError),
+                      child: Center(
+                        child: InfoCard(
+                          icon: Icon(Icons.bus_alert_rounded,
+                              color: Theme.of(context).hintColor),
+                          title: Text(
+                            BusAPI.kNoBusesInServiceError,
+                            style: Theme.of(context)
+                                .textTheme
+                                .subtitle1!
+                                .copyWith(color: Theme.of(context).hintColor),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 MediaQuery.removePadding(
@@ -603,10 +624,19 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+            children: <Widget>[
+              const SizedBox(height: 8.0),
+              const BusStopLegendCard(),
               Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                child: TextButton(
+                  onPressed: () {
+                    // Open settings page
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                            builder: (BuildContext context) =>
+                                const SettingsPage()));
+                  },
                   child: Text('Missing bus services?',
                       style: Theme.of(context)
                           .textTheme
@@ -614,8 +644,6 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                           .copyWith(color: Theme.of(context).hintColor)),
                 ),
               ),
-              const SizedBox(height: 8.0),
-              const BusStopLegendCard(),
             ],
           ),
         ),
@@ -624,6 +652,8 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
   }
 
   Future<void> _showEditNameDialog() async {
+    // Reset text controller
+    textController!.text = _busStop!.displayName;
     final String? newName = await showDialog<String>(
         context: context,
         builder: (BuildContext context) {
@@ -720,6 +750,19 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
       _busStop!.displayName = newName;
     });
     updateBusStop(_busStop!);
+  }
+
+  void edit() {
+    setState(() {
+      _isEditing = true;
+      if (widget.rubberAnimationController.value !=
+          widget.rubberAnimationController.upperBound) {
+        widget.rubberAnimationController.launchTo(
+            widget.rubberAnimationController.value,
+            widget.rubberAnimationController.upperBound,
+            velocity: BusStopDetailSheet._launchVelocity / 2);
+      }
+    });
   }
 }
 

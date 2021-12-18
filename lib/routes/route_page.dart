@@ -1,15 +1,13 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:stops_sg/models/bus_stop_with_pinned_services.dart';
+import 'package:provider/provider.dart';
 
-import '../models/bus_stop.dart';
+import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import '../routes/add_route_page.dart';
 import '../routes/fade_page_route.dart';
 import '../utils/database_utils.dart';
-import '../widgets/bus_stop_overview_item.dart';
-import '../widgets/route_model.dart';
+import '../widgets/bus_stop_overview_list.dart';
+import '../widgets/edit_model.dart';
 
 class RoutePage extends StatefulWidget {
   const RoutePage(this.route, {Key? key}) : super(key: key);
@@ -22,13 +20,16 @@ class RoutePage extends StatefulWidget {
 }
 
 class RoutePageState extends State<RoutePage> {
+  // TODO: Let this page be the page to edit a route.
+  // ignore: prefer_final_fields
+
   @override
   Widget build(BuildContext context) {
     return MediaQuery.removePadding(
       context: context,
       removeTop: true,
-      child: RouteModel(
-        route: widget.route,
+      child: Provider<UserRoute>(
+        create: (_) => widget.route,
         child: StreamBuilder<List<BusStopWithPinnedServices>>(
           initialData: widget.route.busStops,
           stream: routeBusStopsStream(widget.route),
@@ -72,19 +73,10 @@ class RoutePageState extends State<RoutePage> {
                           ),
                         ),
                       ),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int position) {
-                          final bool isDivider = position % 2 == 1;
-                          if (isDivider) return const Divider(height: 1);
-                          final int itemPosition = position ~/ 2;
-                          final BusStopWithPinnedServices busStop =
-                              widget.route.busStops[itemPosition];
-                          return BusStopOverviewItem(busStop,
-                              key: Key(busStop.code));
-                        },
-                        childCount: widget.route.busStops.length +
-                            max(0, widget.route.busStops.length - 1) as int,
+                    SliverToBoxAdapter(
+                      child: Provider<EditModel>(
+                        create: (_) => const EditModel(isEditing: false),
+                        child: const BusStopOverviewList(),
                       ),
                     ),
                   ],
@@ -103,7 +95,7 @@ class RoutePageState extends State<RoutePage> {
         children: <Widget>[
           IconButton(
             color: widget.route.color.of(context),
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back_rounded),
             onPressed: () => Navigator.maybePop(context),
             tooltip: 'Back to routes page',
           ),

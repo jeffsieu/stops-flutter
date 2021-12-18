@@ -28,21 +28,24 @@ class CardAppBar extends StatelessWidget {
       child: InkWell(
         customBorder: Theme.of(context).cardTheme.shape,
         onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                if (leading != null) leading!,
-                Expanded(
-                  child: title!,
-                ),
-                if (actions != null) ...actions!,
-              ],
-            ),
-            if (bottom != null) bottom!,
-          ],
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  if (leading != null) leading!,
+                  Expanded(
+                    child: title!,
+                  ),
+                  if (actions != null) ...actions!,
+                ],
+              ),
+              if (bottom != null) bottom!,
+            ],
+          ),
         ),
       ),
     );

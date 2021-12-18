@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 
 import '../models/bus_stop.dart';
 import '../models/user_route.dart';
-import 'custom_handle.dart';
 
 class RouteListItem extends StatelessWidget {
   const RouteListItem(this.route, {Key? key}) : super(key: key);
@@ -11,7 +11,7 @@ class RouteListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomHandle(
+    return Handle(
       delay: const Duration(milliseconds: 500),
       child: ListTile(
         contentPadding: const EdgeInsets.only(left: 24.0, right: 16.0),
@@ -36,7 +36,8 @@ class RouteListItem extends StatelessWidget {
                 .subtitle2!
                 .copyWith(color: Theme.of(context).hintColor)),
         trailing: PopupMenuButton<RouteAction>(
-          icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
+          icon:
+              Icon(Icons.more_vert_rounded, color: Theme.of(context).hintColor),
           tooltip: 'Route options',
           onSelected: (RouteAction action) {
             RouteActionNotification(route, action).dispatch(context);

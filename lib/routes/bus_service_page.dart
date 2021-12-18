@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:stops_sg/models/bus_service.dart';
 
 import '../models/bus_service_route.dart';
 import '../models/bus_service_with_routes.dart';

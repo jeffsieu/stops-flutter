@@ -26,7 +26,7 @@ class BusStopLegendCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.info_outline,
+              Icon(Icons.info_outline_rounded,
                   color: Theme.of(context).textTheme.headline4!.color),
               Container(width: 16.0),
               Text('Legend', style: Theme.of(context).textTheme.headline4),

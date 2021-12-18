@@ -10,6 +10,9 @@ abstract class BottomSheetPage extends StatefulWidget {
   final GlobalKey<BusStopDetailSheetState> bottomSheetKey = GlobalKey();
 
   BottomSheetPage({Key? key}) : super(key: key);
+
+  static BottomSheetPageState<BottomSheetPage>? of(BuildContext context) =>
+      context.findAncestorStateOfType<BottomSheetPageState<BottomSheetPage>>();
 }
 
 abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T>
@@ -50,14 +53,18 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T>
   }
 
   @mustCallSuper
-  void showBusDetailSheet(BusStop busStop, UserRoute route) {
-    widget.bottomSheetKey.currentState?.updateWith(busStop, route);
+  Future<void> showBusDetailSheet(BusStop busStop, UserRoute route) async {
+    await widget.bottomSheetKey.currentState?.updateWith(busStop, route);
   }
 
   @mustCallSuper
-  void hideBusDetailSheet() {
-    rubberAnimationController.animateTo(
+  Future<void> hideBusDetailSheet() async {
+    await rubberAnimationController.animateTo(
         to: rubberAnimationController.lowerBound!);
-    widget.bottomSheetKey.currentState?.updateWith(null, null);
+    await widget.bottomSheetKey.currentState?.updateWith(null, null);
+  }
+
+  void edit() {
+    widget.bottomSheetKey.currentState?.edit();
   }
 }

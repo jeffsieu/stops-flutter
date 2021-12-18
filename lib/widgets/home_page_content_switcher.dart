@@ -31,7 +31,8 @@ class HomePageContentSwitcher extends StatelessWidget {
             if (animation.value > 0.5) {
               try {
                 scrollController.jumpTo(0.001);
-              } catch (_) {} finally {
+              } catch (_) {
+              } finally {
                 animation.removeListener(listener);
               }
             }

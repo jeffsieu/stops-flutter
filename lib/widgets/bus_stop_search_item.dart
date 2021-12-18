@@ -165,14 +165,15 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
           ? IconButton(
               tooltip: 'Show on map',
               icon: Icon(
-                Icons.my_location_outlined,
+                Icons.my_location_rounded,
                 color: Theme.of(context).hintColor,
               ),
               onPressed: widget.onShowOnMapTap,
             )
           : PopupMenuButton<String>(
               tooltip: 'More',
-              icon: Icon(Icons.more_vert, color: Theme.of(context).hintColor),
+              icon: Icon(Icons.more_vert_rounded,
+                  color: Theme.of(context).hintColor),
               onSelected: (String item) {
                 if (item == 'Pin') {
                   setState(() {

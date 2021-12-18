@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:stops_sg/models/bus_stop_with_pinned_services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
+import '../models/bus_stop_with_pinned_services.dart';
+import '../models/user_route.dart';
+import '../routes/bottom_sheet_page.dart';
 import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../widgets/bus_timing_row.dart';
-import '../widgets/route_model.dart';
+import 'edit_model.dart';
+import 'outline_titled_container.dart';
 
 class BusStopOverviewItem extends StatefulWidget {
   const BusStopOverviewItem(this.busStop, {Key? key}) : super(key: key);
@@ -37,6 +41,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
   @override
   void initState() {
     super.initState();
+    _latestData = BusAPI().getLatestArrival(widget.busStop);
     registerBusStopListener(widget.busStop, _busStopListener);
   }
 
@@ -52,110 +57,101 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
     final String code = widget.busStop.code;
     final String road = widget.busStop.road;
 
-    _latestData = BusAPI().getLatestArrival(widget.busStop);
+    const double titleHorizontalPadding = 12.0;
+    final Widget child = InkWell(
+      borderRadius: const BorderRadius.all(
+        Radius.circular(8.0),
+      ),
+      onTap: _showDetailSheet,
+      child: Container(
+        padding: const EdgeInsets.only(top: 40.0, bottom: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _buildPinnedServices(widget.busStop.pinnedServices),
+          ],
+        ),
+      ),
+    );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Ink(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Theme.of(context).dividerColor,
-                ),
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(8.0),
-                ),
-              ),
-              child: InkWell(
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(8.0),
-                ),
-                onTap: _showDetailSheet,
-                child: Container(
-                  padding: const EdgeInsets.only(top: 48.0, bottom: 16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      _buildPinnedServices(widget.busStop.pinnedServices),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          IgnorePointer(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 4.0, left: 28.0, right: 28.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Ink(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Text(name,
-                          style: Theme.of(context).textTheme.headline6),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Text('$code · $road',
-                        style: Theme.of(context)
-                            .textTheme
-                            .subtitle2!
-                            .copyWith(color: Theme.of(context).hintColor)),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    final bool isEditing = context.watch<EditModel>().isEditing;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      padding: isEditing
+          ? const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0)
+          : const EdgeInsets.symmetric(vertical: 16.0, horizontal: 0),
+      child: OutlineTitledContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        buildBody: !isEditing,
+        collapsedTitlePadding: const EdgeInsetsDirectional.only(
+            start: 48.0, end: 16.0, top: 8.0, bottom: 8.0),
+        title: Text(name, style: Theme.of(context).textTheme.headline6),
+        childrenBelowTitle: <Widget>[
+          Text('$code · $road',
+              style: Theme.of(context)
+                  .textTheme
+                  .subtitle2!
+                  .copyWith(color: Theme.of(context).hintColor)),
         ],
+        body: child,
+        titlePadding: titleHorizontalPadding,
+        topOffset: 16.0,
       ),
     );
   }
 
   Widget _buildPinnedServices(List<BusService> pinnedServices) {
     if (pinnedServices.isEmpty) {
-      return Center(
-        child: ListTile(
-          title: Text(
-            'No pinned services',
-            style: TextStyle(
-              color: Theme.of(context).hintColor,
-            ),
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          OutlinedButton.icon(
+            icon: const Icon(Icons.add_rounded),
+            label: Text(BusAPI.kNoPinnedBusesError,
+                style: Theme.of(context)
+                    .textTheme
+                    .subtitle1!
+                    .copyWith(color: Theme.of(context).hintColor)),
+            onPressed: () async {
+              await BottomSheetPage.of(context)?.showBusDetailSheet(
+                  widget.busStop, context.read<UserRoute>());
+              BottomSheetPage.of(context)?.edit();
+            },
           ),
-          leading: Stack(
-            children: [
-              Icon(Icons.push_pin, color: Theme.of(context).hintColor),
-              // Close icon scaled down and placed at the bottom right
-              Positioned(
-                right: 0.0,
-                bottom: 0.0,
-                child: Icon(
-                  Icons.close,
-                  size: 16.0,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       );
     }
     return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: StreamBuilder<List<BusServiceArrivalResult>>(
         initialData: _latestData,
         stream: _busArrivalStream,
         builder: (BuildContext context,
             AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
+          if (snapshot.hasError) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(Icons.signal_wifi_connected_no_internet_4_rounded,
+                    color: Theme.of(context).hintColor),
+                const SizedBox(width: 16.0),
+                Text(snapshot.error.toString(),
+                    style: Theme.of(context)
+                        .textTheme
+                        .subtitle1!
+                        .copyWith(color: Theme.of(context).hintColor)),
+              ],
+            );
+          }
           switch (snapshot.connectionState) {
             case ConnectionState.none:
-              return const Center(child: Text(BusAPI.kNoInternetError));
+            // Should not happen.
             case ConnectionState.active:
             case ConnectionState.waiting:
               if (snapshot.data == null) {
@@ -187,11 +183,20 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                       ),
                     )
                   : Center(
-                      child: Text(BusAPI.kNoPinnedBusesError,
-                          style: Theme.of(context)
-                              .textTheme
-                              .subtitle1!
-                              .copyWith(color: Theme.of(context).hintColor)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Icon(Icons.bus_alert_rounded,
+                              color: Theme.of(context).hintColor),
+                          const SizedBox(width: 16.0),
+                          Text(BusAPI.kNoPinnedBusesInServiceError,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .subtitle1!
+                                  .copyWith(
+                                      color: Theme.of(context).hintColor)),
+                        ],
+                      ),
                     );
           }
         },
@@ -200,8 +205,8 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
   }
 
   void _showDetailSheet() {
-    FocusScope.of(context).requestFocus(FocusNode());
+    FocusScope.of(context).unfocus();
     HomePage.of(context)!
-        .showBusDetailSheet(widget.busStop, RouteModel.of(context)!.route);
+        .showBusDetailSheet(widget.busStop, context.read<UserRoute>());
   }
 }

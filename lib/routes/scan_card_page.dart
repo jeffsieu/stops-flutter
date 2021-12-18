@@ -108,7 +108,7 @@ class ScanCardPageState extends State<ScanCardPage>
                           top: 0,
                           right: 0,
                           child: IconButton(
-                            icon: Icon(Icons.refresh,
+                            icon: Icon(Icons.refresh_rounded,
                                 color: Theme.of(context).hintColor),
                             onPressed: () {
                               setState(() {
@@ -236,7 +236,7 @@ class ScanCardPageState extends State<ScanCardPage>
                       ),
                       trailing: busServiceNumber.isNotEmpty
                           ? PopupMenuButton<String>(
-                              icon: Icon(Icons.more_vert,
+                              icon: Icon(Icons.more_vert_rounded,
                                   color: Theme.of(context).hintColor),
                               onSelected: (String value) {
                                 if (value == 'see bus') {

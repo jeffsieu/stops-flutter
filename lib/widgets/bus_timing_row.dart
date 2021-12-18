@@ -1,13 +1,14 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
+import '../models/user_route.dart';
 import '../routes/bus_service_page.dart';
 import '../routes/home_page.dart';
 import '../utils/bus_service_arrival_result.dart';
@@ -15,7 +16,6 @@ import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/time_utils.dart';
 import '../widgets/bus_stop_detail_sheet.dart';
-import '../widgets/route_model.dart';
 
 class BusTimingRow extends StatefulWidget {
   const BusTimingRow(
@@ -80,18 +80,17 @@ class _BusTimingState extends State<BusTimingRow>
 
   @override
   Widget build(BuildContext context) {
+    final UserRoute route = context.watch<UserRoute>();
     final Widget item = InkWell(
       onTap: widget.isEditing
           ? () async {
-              final bool isPinned = await isBusServicePinned(widget.busStop,
-                  widget.busService, RouteModel.of(context)!.route);
+              final bool isPinned = await isBusServicePinned(
+                  widget.busStop, widget.busService, route);
 
               if (isPinned) {
-                await unpinBusService(widget.busStop, widget.busService,
-                    RouteModel.of(context)!.route);
+                await unpinBusService(widget.busStop, widget.busService, route);
               } else {
-                await pinBusService(widget.busStop, widget.busService,
-                    RouteModel.of(context)!.route);
+                await pinBusService(widget.busStop, widget.busService, route);
               }
               HomePage.of(context)?.refresh();
               setState(() {});
@@ -114,8 +113,8 @@ class _BusTimingState extends State<BusTimingRow>
                       curve: Curves.easeInOutCirc,
                       child: FutureBuilder<bool>(
                         initialData: false,
-                        future: isBusServicePinned(widget.busStop,
-                            widget.busService, RouteModel.of(context)!.route),
+                        future: isBusServicePinned(
+                            widget.busStop, widget.busService, route),
                         builder: (BuildContext context,
                             AsyncSnapshot<bool> snapshot) {
                           final bool isChecked = snapshot.data!;
@@ -124,14 +123,10 @@ class _BusTimingState extends State<BusTimingRow>
                               onChanged: (bool? checked) async {
                                 if (checked ?? false) {
                                   await pinBusService(
-                                      widget.busStop,
-                                      widget.busService,
-                                      RouteModel.of(context)!.route);
+                                      widget.busStop, widget.busService, route);
                                 } else {
                                   await unpinBusService(
-                                      widget.busStop,
-                                      widget.busService,
-                                      RouteModel.of(context)!.route);
+                                      widget.busStop, widget.busService, route);
                                 }
                                 HomePage.of(context)?.refresh();
                                 setState(() {});
@@ -181,8 +176,8 @@ class _BusTimingState extends State<BusTimingRow>
       child: IconButton(
         tooltip: 'Notify me when the bus arrives',
         icon: _isBusFollowed
-            ? const Icon(Icons.notifications_active)
-            : Icon(Icons.notifications_none,
+            ? const Icon(Icons.notifications_active_rounded)
+            : Icon(Icons.notifications_none_rounded,
                 color: Theme.of(context).hintColor),
         onPressed: widget.arrivalResult?.buses.firstOrNull != null
             ? () {

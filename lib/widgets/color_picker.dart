@@ -68,7 +68,7 @@ class _ColorPickerState extends State<ColorPicker> {
             if (isSelected)
               Positioned.fill(
                 child: Center(
-                  child: Icon(Icons.done,
+                  child: Icon(Icons.done_rounded,
                       color: color.computeLuminance() > 0.5
                           ? Colors.black
                           : Colors.white),

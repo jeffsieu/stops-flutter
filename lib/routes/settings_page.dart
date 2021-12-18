@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:package_info/package_info.dart';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -55,7 +54,7 @@ class SettingsPageState extends State<SettingsPage> {
     return ListTile(
       title: const Text('Theme'),
       subtitle: Text(_getThemeLabel(_themeMode)),
-      leading: const Icon(Icons.brush),
+      leading: const Icon(Icons.brush_rounded),
       onTap: () {
         showDialog<ThemeMode>(
             context: context,
@@ -95,7 +94,7 @@ class SettingsPageState extends State<SettingsPage> {
   Widget _buildAboutTile() {
     return ListTile(
       title: const Text('About'),
-      leading: const Icon(Icons.info_outline),
+      leading: const Icon(Icons.info_outline_rounded),
       onTap: () async {
         final PackageInfo packageInfo = await PackageInfo.fromPlatform();
         final String appName = packageInfo.appName;
@@ -143,7 +142,7 @@ class SettingsPageState extends State<SettingsPage> {
     return ListTile(
       title: const Text('Refresh cached data'),
       subtitle: const Text('Select if there are missing stops/services'),
-      leading: const Icon(Icons.update),
+      leading: const Icon(Icons.update_rounded),
       onTap: () {
         showDialog<void>(
           context: context,

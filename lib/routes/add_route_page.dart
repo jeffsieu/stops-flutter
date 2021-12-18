@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:implicitly_animated_reorderable_list/transitions.dart';
-import 'package:stops_sg/models/bus_stop_with_pinned_services.dart';
+import 'package:provider/provider.dart';
 
 import '../main.dart';
+import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
+import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import '../routes/fade_page_route.dart';
 import '../routes/search_page.dart';
+import '../widgets/bus_stop_overview_item.dart';
 import '../widgets/card_app_bar.dart';
 import '../widgets/color_picker.dart';
+import '../widgets/edit_model.dart';
 import '../widgets/never_focus_node.dart';
 
 class AddRoutePage extends StatefulWidget {
@@ -52,14 +56,14 @@ class AddRoutePageState extends State<AddRoutePage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.clear),
+          icon: const Icon(Icons.clear_rounded),
           tooltip: 'Cancel',
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(widget.route == null ? 'Add route' : 'Edit route'),
         actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.done),
+            icon: const Icon(Icons.done_rounded),
             tooltip: 'Done',
             onPressed: _popRoute,
           )
@@ -134,7 +138,7 @@ class AddRoutePageState extends State<AddRoutePage> {
         leading: Container(
           padding: const EdgeInsets.only(
               left: 16.0, top: 8.0, right: 8.0, bottom: 8.0),
-          child: Icon(Icons.search, color: Theme.of(context).hintColor),
+          child: Icon(Icons.search_rounded, color: Theme.of(context).hintColor),
         ),
         title: TextField(
           enabled: false,
@@ -152,83 +156,170 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   Widget _buildBusStops() {
-    return ImplicitlyAnimatedReorderableList<BusStop>(
-      shrinkWrap: true,
-      items: busStops,
-      areItemsTheSame: (BusStop oldBusStop, BusStop newBusStop) =>
-          oldBusStop == newBusStop,
-      onReorderStarted: (BusStop busStop, int position) {
-        _isReordering = true;
-      },
-      onReorderFinished:
-          (BusStop item, int from, int to, List<BusStop> newBusStops) {
-        setState(() {
-          busStops = newBusStops;
-        });
-      },
-      itemBuilder: (BuildContext context, Animation<double> itemAnimation,
-          BusStop busStop, int position) {
-        return Reorderable(
-          key: ValueKey<BusStop>(busStop),
-          builder: (BuildContext context, Animation<double> dragAnimation,
-              bool inDrag) {
-            const double initialElevation = 2.0;
-            final double elevation =
-                Tween<double>(begin: initialElevation, end: 10.0)
-                    .animate(CurvedAnimation(
-                        parent: dragAnimation, curve: Curves.easeOutCubic))
-                    .value;
-            final Color? materialColor = Color.lerp(Theme.of(context).cardColor,
-                Colors.white, dragAnimation.value / 10);
+    final bool _isEditing = true;
+    return Provider<EditModel>(
+      create: (_) => EditModel(isEditing: _isEditing),
+      child: ImplicitlyAnimatedReorderableList<BusStop>(
+        shrinkWrap: true,
+        items: busStops,
+        areItemsTheSame: (BusStop oldBusStop, BusStop newBusStop) =>
+            oldBusStop == newBusStop,
+        onReorderStarted: (BusStop busStop, int position) {
+          _isReordering = true;
+        },
+        onReorderFinished:
+            (BusStop item, int from, int to, List<BusStop> newBusStops) {
+          setState(() {
+            busStops = newBusStops;
+          });
+        },
+        itemBuilder: (BuildContext context, Animation<double> itemAnimation,
+            BusStop busStop, int position) {
+          return Reorderable(
+            key: Key(busStop.hashCode.toString()),
+            builder: (BuildContext context, Animation<double> dragAnimation,
+                bool inDrag) {
+              final Widget busStopItem = BusStopOverviewItem(
+                BusStopWithPinnedServices.fromBusStop(busStop, <BusService>[]),
+                key: Key(busStop.code),
+              );
 
-            final Widget card = Material(
-              color: materialColor,
-              elevation: elevation,
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Handle(
-                      child: ListTile(
-                        leading: SizedBox(
-                          width: 24,
-                          child: Text(
-                            '${position + 1}.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headline6!
-                                .copyWith(color: _color),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        title: Text(busStop.displayName),
+              return Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  busStopItem,
+                  Positioned.fill(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 600),
+                      opacity: _isEditing ? 1.0 : 0.0,
+                      curve: const Interval(0.5, 1),
+                      child: AnimatedSlide(
+                        duration: const Duration(milliseconds: 600),
+                        offset:
+                            _isEditing ? Offset.zero : const Offset(0, 0.25),
+                        curve:
+                            const Interval(0.5, 1, curve: Curves.easeOutCubic),
+                        child: _isEditing
+                            ? Handle(
+                                child: Row(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsetsDirectional.only(
+                                          start: 16.0),
+                                      child: Icon(
+                                        Icons.drag_handle_rounded,
+                                        color: Theme.of(context).hintColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Container(),
                       ),
                     ),
                   ),
-                  IconButton(
-                    padding: const EdgeInsets.all(16.0),
-                    color: Theme.of(context).hintColor,
-                    icon: const Icon(Icons.clear),
-                    onPressed: () => setState(() {
-                      busStops.remove(busStop);
-                    }),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 9.0,
+                          horizontal:
+                              1.0), // Offset by 1 to account for card outline
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _isEditing
+                                ? Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                        end: 0.0),
+                                    child: IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          busStops.remove(busStop);
+                                        });
+                                      },
+                                      icon: Icon(
+                                        Icons.clear_rounded,
+                                        color: Theme.of(context).hintColor,
+                                      ),
+                                    ),
+                                  )
+                                : Container(),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              ),
-            );
+              );
+            },
+          );
 
-            if (dragAnimation.value > 0.0) {
-              return card;
-            }
+          return Reorderable(
+            key: ValueKey<BusStop>(busStop),
+            builder: (BuildContext context, Animation<double> dragAnimation,
+                bool inDrag) {
+              const double initialElevation = 2.0;
+              final double elevation =
+                  Tween<double>(begin: initialElevation, end: 10.0)
+                      .animate(CurvedAnimation(
+                          parent: dragAnimation, curve: Curves.easeOutCubic))
+                      .value;
+              final Color? materialColor = Color.lerp(
+                  Theme.of(context).cardColor,
+                  Colors.white,
+                  dragAnimation.value / 10);
 
-            return SizeFadeTransition(
-              sizeFraction: 0.75,
-              curve: Curves.easeInOut,
-              animation: itemAnimation,
-              child: card,
-            );
-          },
-        );
-      },
+              final Widget card = Material(
+                color: materialColor,
+                elevation: elevation,
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Handle(
+                        child: ListTile(
+                          leading: SizedBox(
+                            width: 24,
+                            child: Text(
+                              '${position + 1}.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headline6!
+                                  .copyWith(color: _color),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                          title: Text(busStop.displayName),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      padding: const EdgeInsets.all(16.0),
+                      color: Theme.of(context).hintColor,
+                      icon: const Icon(Icons.clear_rounded),
+                      onPressed: () => setState(() {
+                        busStops.remove(busStop);
+                      }),
+                    ),
+                  ],
+                ),
+              );
+
+              if (dragAnimation.value > 0.0) {
+                return card;
+              }
+
+              return SizeFadeTransition(
+                sizeFraction: 0.75,
+                curve: Curves.easeInOut,
+                animation: itemAnimation,
+                child: card,
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -296,8 +387,8 @@ class AddRoutePageState extends State<AddRoutePage> {
             name: _nameController.text,
             color: _color,
             busStops: busStops
-                .map((BusStop busStop) =>
-                    BusStopWithPinnedServices.fromBusStop(busStop, []))
+                .map((BusStop busStop) => BusStopWithPinnedServices.fromBusStop(
+                    busStop, <BusService>[]))
                 .toList()));
   }
 }

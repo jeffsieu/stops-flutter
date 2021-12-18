@@ -106,61 +106,60 @@ class StopsAppState extends State<StopsApp> {
         ),
       ),
       darkTheme: ThemeData(
-        toggleableActiveColor: Colors.orangeAccent,
-        indicatorColor: Colors.orange,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        cardColor: const Color(0xFF272727),
-        canvasColor: const Color(0xFF323232),
-        snackBarTheme: const SnackBarThemeData(
-          backgroundColor: Color(0xFF323232),
-          contentTextStyle: TextStyle(color: Colors.white),
-          actionTextColor: Colors.orangeAccent,
-        ),
-        popupMenuTheme: PopupMenuThemeData(
-            color: const Color(0xFF323232),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        buttonTheme: ButtonThemeData(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0)))),
-        cardTheme: CardTheme(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        dialogTheme: DialogTheme(
-            backgroundColor: const Color(0xFF323232),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        textTheme: TextTheme(
-          headline1: mainTextStyle,
-          headline2: mainTextStyle,
-          headline3: mainTextStyle,
-          headline4: headerTextStyle.copyWith(
-              color: Colors.orangeAccent, fontSize: 18),
-          headline5: headerTextStyle.copyWith(fontSize: 24),
-          headline6: mainTextStyle,
-          subtitle1: mainTextStyle,
-          subtitle2: mainTextStyle,
-          bodyText1: mainTextStyle,
-          bodyText2: mainTextStyle,
-          button: mainTextStyle,
-          caption: mainTextStyle,
-          overline: mainTextStyle,
-        ),
-        textSelectionTheme: const TextSelectionThemeData(
-          cursorColor: Colors.orangeAccent,
-          selectionColor: Colors.deepOrangeAccent,
-          selectionHandleColor: Colors.orangeAccent,
-        ),
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.orange,
-          accentColor: Colors.orangeAccent,
-          brightness: Brightness.dark,
-        ),
-      ),
+          toggleableActiveColor: Colors.orangeAccent,
+          indicatorColor: Colors.orange,
+          scaffoldBackgroundColor: const Color(0xFF121212),
+          cardColor: const Color(0xFF272727),
+          canvasColor: const Color(0xFF323232),
+          snackBarTheme: const SnackBarThemeData(
+            backgroundColor: Color(0xFF323232),
+            contentTextStyle: TextStyle(color: Colors.white),
+            actionTextColor: Colors.orangeAccent,
+          ),
+          popupMenuTheme: PopupMenuThemeData(
+              color: const Color(0xFF323232),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          buttonTheme: ButtonThemeData(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0)))),
+          cardTheme: CardTheme(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          dialogTheme: DialogTheme(
+              backgroundColor: const Color(0xFF323232),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          textTheme: TextTheme(
+            headline1: mainTextStyle,
+            headline2: mainTextStyle,
+            headline3: mainTextStyle,
+            headline4: headerTextStyle.copyWith(
+                color: Colors.orangeAccent, fontSize: 18),
+            headline5: headerTextStyle.copyWith(fontSize: 24),
+            headline6: mainTextStyle,
+            subtitle1: mainTextStyle,
+            subtitle2: mainTextStyle,
+            bodyText1: mainTextStyle,
+            bodyText2: mainTextStyle,
+            button: mainTextStyle,
+            caption: mainTextStyle,
+            overline: mainTextStyle,
+          ),
+          textSelectionTheme: const TextSelectionThemeData(
+            cursorColor: Colors.orangeAccent,
+            selectionColor: Colors.deepOrangeAccent,
+            selectionHandleColor: Colors.orangeAccent,
+          ),
+          colorScheme: const ColorScheme.dark(
+            primary: Colors.orange,
+            secondary: Colors.orangeAccent,
+            secondaryVariant: Colors.deepOrangeAccent,
+          )),
     );
   }
 }

@@ -5,7 +5,6 @@ import 'package:latlong2/latlong.dart' as latlong;
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:sqflite/sqlite_api.dart';
 
 import '../models/bus.dart';
 import '../models/bus_service.dart';
@@ -133,19 +132,26 @@ Future<void> setThemeMode(ThemeMode themeMode) async {
 }
 
 Future<List<BusStopWithDistance>> getNearestBusStops(
-    double latitude, double longitude) async {
-  const int numberOfEntries = 5;
-
+    double latitude, double longitude, String busServiceFilter) async {
   const String distanceQuery =
       '(latitude - ?) * (latitude - ?) + (longitude - ?) * (longitude - ?) AS distance';
-  const String fullQuery =
-      'SELECT *, $distanceQuery FROM bus_stop ORDER BY distance LIMIT ?';
+
+  final int? busService = int.tryParse(busServiceFilter);
+  if (busService == null && busServiceFilter.isNotEmpty) {
+    return <BusStopWithDistance>[];
+  }
+
+  final String filter = busServiceFilter.isEmpty
+      ? ''
+      : 'WHERE code IN (SELECT busStopCode from bus_route WHERE serviceNumber = $busServiceFilter)';
+
+  final String fullQuery =
+      'SELECT *, $distanceQuery FROM bus_stop $filter ORDER BY distance';
   final List<String> args = <String>[
     '$latitude',
     '$latitude',
     '$longitude',
     '$longitude',
-    '$numberOfEntries'
   ];
 
   final Database database = await _accessDatabase();
@@ -199,7 +205,8 @@ Future<List<BusStopWithPinnedServices>> getBusStopsInRoute(
       <BusStopWithPinnedServices>[];
 
   for (BusStop busStop in busStops) {
-    List<BusService> pinnedServices = await getPinnedServicesIn(busStop, route);
+    final List<BusService> pinnedServices =
+        await getPinnedServicesIn(busStop, route);
     busStopsWithPinnedServices
         .add(BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices));
   }
@@ -424,6 +431,7 @@ Future<void> moveBusStopPositionInRoute(
       where: 'routeId = ? AND position = ?',
       whereArgs: <dynamic>[route.id, -2]);
   await batch.commit(noResult: true);
+  // await _updateRouteBusStopsStream(route);
 }
 
 void registerBusStopListener(BusStop busStop, BusStopChangeListener listener) {
@@ -701,8 +709,9 @@ Future<void> pushHistory(String query) async {
 }
 
 Future<void> storeHistory(List<String> history) async {
+  assert(history.length <= 3);
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < history.length; i++) {
     await prefs.setString('$_searchHistoryKey $i', history[i]);
   }
 }

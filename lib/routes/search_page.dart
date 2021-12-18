@@ -4,9 +4,7 @@ import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:edit_distance/edit_distance.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -47,7 +45,6 @@ class SearchPage extends BottomSheetPage {
   final bool showMap;
   final bool isSimpleMode;
   final GlobalKey _resultsSheetKey = GlobalKey();
-  final GlobalKey _markerIconKey = GlobalKey();
 
   @override
   State<StatefulWidget> createState() {
@@ -122,7 +119,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   late final RubberAnimationController _resultsSheetAnimationController =
       RubberAnimationController(
     vsync: this,
-//      initialValue: widget.showMap ? AnimationControllerValue(pixel: _resultsSheetCollapsedHeight).percentage : 1.0,
+    // initialValue: widget.showMap
+    //     ? AnimationControllerValue(pixel: _resultsSheetCollapsedHeight)
+    //         .percentage
+    //     : 1.0,
     lowerBoundValue: AnimationControllerValue(
         pixel: _resultsSheetCollapsedHeight, percentage: 0),
     upperBoundValue: AnimationControllerValue(percentage: 1.0),
@@ -135,24 +135,31 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       Completer<GoogleMapController>();
 
   late GoogleMap _googleMap;
-  late final String _googleMapDarkStyle;
+  String? _googleMapDarkStyle;
+
+  double get sheetLowerBound =>
+      _resultsSheetAnimationController.lowerBoundValue.pixel! /
+      MediaQuery.of(context).size.height;
 
   @override
   void initState() {
     super.initState();
 
     _resultsSheetAnimationController.value = widget.showMap
-        ? _resultsSheetAnimationController.lowerBound!
+        ? _resultsSheetAnimationController.upperBound!
         : _resultsSheetAnimationController.upperBound!;
+
+    if (widget.showMap) {
+      WidgetsBinding.instance!.addPostFrameCallback((Duration timeStamp) {
+        _resultsSheetAnimationController.value = sheetLowerBound;
+      });
+    }
 
     _tabController.index = widget.showMap ? 1 : 0;
     _resultsSheetAnimationController.addListener(() {
       final double visibilityBound = lerpDouble(
-          _resultsSheetAnimationController.upperBound!,
-          _resultsSheetAnimationController.lowerBound!,
-          0.9)!;
-      _tabController.animateTo(
-          _resultsSheetAnimationController.value < visibilityBound ? 1 : 0);
+          _resultsSheetAnimationController.upperBound!, sheetLowerBound, 0.9)!;
+
       final bool shouldMapBeVisible =
           _resultsSheetAnimationController.value < visibilityBound;
 
@@ -172,7 +179,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       }
 
       late void Function(AnimationStatus) statusListener;
-      statusListener = (status) {
+      statusListener = (AnimationStatus status) {
         if (status == AnimationStatus.completed) {
           updateMapVisibility();
           _resultsSheetAnimationController.removeStatusListener(statusListener);
@@ -180,9 +187,16 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       };
 
       _resultsSheetAnimationController.addStatusListener(statusListener);
-      if (!_resultsSheetAnimationController.isAnimating) {
+
+      // Hide bottom sheet the moment we start to transition to the other layout
+      const double threshold = 0.05;
+
+      if (_resultsSheetAnimationController.value > threshold &&
+          _resultsSheetAnimationController.value < 1.0 - threshold) {
         hideBusDetailSheet();
       }
+      // if (!_resultsSheetAnimationController.isAnimating) {
+      // }
     });
 
     /* Retrieve user location then sort bus stops accordingly */
@@ -223,7 +237,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     rootBundle
         .loadString('assets/maps/map_style_dark.json')
         .then((String style) {
-      _googleMapDarkStyle = style;
+      setState(() {
+        _googleMapDarkStyle = style;
+      });
     });
 
     WidgetsBinding.instance?.addObserver(this);
@@ -342,7 +358,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         elevation: 2.0,
         leading: IconButton(
           color: Theme.of(context).hintColor,
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -358,8 +374,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const <Widget>[
-                  Icon(Icons.list),
-                  SizedBox(width: 4.0),
+                  Icon(Icons.list_rounded),
+                  SizedBox(width: 8.0),
                   Text('List'),
                 ],
               ),
@@ -369,7 +385,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const <Widget>[
                   Icon(Icons.map_rounded),
-                  SizedBox(width: 4.0),
+                  SizedBox(width: 8.0),
                   Text('Map'),
                 ],
               ),
@@ -381,7 +397,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               scale: _clearIconAnimation,
               child: IconButton(
                 color: Theme.of(context).hintColor,
-                icon: const Icon(Icons.clear),
+                icon: const Icon(Icons.clear_rounded),
                 onPressed: () {
                   setState(() {
                     _query = '';
@@ -522,7 +538,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                   bottom: _resultsSheetCollapsedHeight + 16.0,
                   child: FloatingActionButton.extended(
                       label: const Text('Focus on my location'),
-                      icon: const Icon(Icons.my_location),
+                      icon: const Icon(Icons.my_location_rounded),
                       onPressed: () async {
                         final GoogleMapController controller =
                             await _googleMapController.future;
@@ -541,40 +557,79 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 ),
               Padding(
                 padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top +
-                        kToolbarHeight * 2 +
-                        8.0),
+                  top: MediaQuery.of(context).padding.top + kToolbarHeight * 2,
+                  left: 16.0,
+                  right: 16.0,
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Opacity(
-                      opacity: _isRefocusButtonVisible ? 1.0 : 0.0,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final GoogleMapController controller =
-                              await _googleMapController.future;
-                          final LatLngBounds visibleRegion =
-                              await controller.getVisibleRegion();
-                          final double centerLatitude =
-                              (visibleRegion.northeast.latitude +
-                                      visibleRegion.southwest.latitude) /
-                                  2;
-                          final double centerLongitude =
-                              (visibleRegion.northeast.longitude +
-                                      visibleRegion.southwest.longitude) /
-                                  2;
-                          setState(() {
-                            _focusedLocation =
-                                LatLng(centerLatitude, centerLongitude);
-                          });
-                        },
-                        child: Text(
-                            'Search this area for ${_query.isEmpty ? 'stops' : '"$_query"'}',
-                            style: TextStyle(
-                                color:
-                                    Theme.of(context).colorScheme.secondary)),
-                        style: ElevatedButton.styleFrom(
-                          primary: Theme.of(context).cardColor,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      curve: _query.isEmpty
+                          ? const Interval(0.5, 1.0)
+                          : const Interval(0.0, 0.5),
+                      opacity: _query.isEmpty ? 0.0 : 1.0,
+                      child: AnimatedSlide(
+                        offset: _query.isEmpty
+                            ? const Offset(0, -0.5)
+                            : Offset.zero,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOutCubic,
+                        child: Material(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(8.0)),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 12.0),
+                            child: Row(
+                              children: <Widget>[
+                                Icon(Icons.info_outline_rounded,
+                                    color: Theme.of(context).hintColor,
+                                    size: 20.0),
+                                const SizedBox(width: 8.0),
+                                Text(
+                                  'Showing only "$_query"',
+                                  style: TextStyle(
+                                      color: Theme.of(context).hintColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Opacity(
+                        opacity: _isRefocusButtonVisible ? 1.0 : 0.0,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final GoogleMapController controller =
+                                await _googleMapController.future;
+                            final LatLngBounds visibleRegion =
+                                await controller.getVisibleRegion();
+                            final double centerLatitude =
+                                (visibleRegion.northeast.latitude +
+                                        visibleRegion.southwest.latitude) /
+                                    2;
+                            final double centerLongitude =
+                                (visibleRegion.northeast.longitude +
+                                        visibleRegion.southwest.longitude) /
+                                    2;
+                            setState(() {
+                              _focusedLocation =
+                                  LatLng(centerLatitude, centerLongitude);
+                            });
+                          },
+                          child: Text(
+                              'Search this area for ${_query.isEmpty ? 'stops' : '"$_query"'}',
+                              style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary)),
+                          style: ElevatedButton.styleFrom(
+                            primary: Theme.of(context).cardColor,
+                          ),
                         ),
                       ),
                     ),
@@ -662,7 +717,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           controller.moveCamera(
               CameraUpdate.newCameraPosition(_getCameraPositionFromLocation()));
         }
-        if (MediaQuery.of(context).platformBrightness == Brightness.dark) {
+        if (Theme.of(context).brightness == Brightness.dark &&
+            _googleMapDarkStyle != null) {
           controller.setMapStyle(_googleMapDarkStyle);
         }
       },
@@ -674,7 +730,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             latlong.LatLng(_markerOrigin.latitude, _markerOrigin.longitude),
             latlong.LatLng(
                 position.target.latitude, position.target.longitude));
-        bool shouldShowRefocusButton =
+        final bool shouldShowRefocusButton =
             distanceMeters > SearchPage._furthestBusStopDistanceMeters;
         if (shouldShowRefocusButton != _isRefocusButtonVisible) {
           setState(() {
@@ -798,7 +854,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       final List<BusStopWithDistance> busStopsWithDistance = _busStops
           .map((BusStop busStop) =>
               BusStopWithDistance(busStop, distanceFunction(busStop)))
-          .where((busStop) =>
+          .where((BusStopWithDistance busStop) =>
               busStop.distance < SearchPage._searchDifferenceThreshold)
           .toList();
       busStopsWithDistance.sort(
@@ -810,7 +866,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     } else {
       _filteredBusStops = _busStops;
     }
-    _queryMetadata = {
+    _queryMetadata = <BusStop, _QueryMetadata>{
       for (BusStop busStop in _filteredBusStops)
         busStop: _calculateQueryMetadata(busStop, _query)
     };
@@ -847,8 +903,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                   leading: Container(
                     width: 32.0,
                     alignment: Alignment.center,
-                    child:
-                        Icon(Icons.history, color: Theme.of(context).hintColor),
+                    child: Icon(Icons.history_rounded,
+                        color: Theme.of(context).hintColor),
                   ),
                   title: Text(_searchHistory[position],
                       style: Theme.of(context).textTheme.headline6),
@@ -879,6 +935,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   Widget _buildBusStopsSliverHeader() {
+    final DateFormat dateFormat = MediaQuery.of(context).alwaysUse24HourFormat
+        ? DateFormat('hh:mm')
+        : DateFormat('HH:mm a');
     return SliverToBoxAdapter(
       child: AnimatedBuilder(
         animation: _resultsSheetAnimationController,
@@ -895,18 +954,18 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                       left: 80.0,
                       bottom: _resultsSheetExpandedPercentage * 8.0),
                   child: RichText(
-                      text: TextSpan(children: [
+                      text: TextSpan(children: <InlineSpan>[
                     TextSpan(
                         text: 'Bus stops',
                         style: Theme.of(context).textTheme.headline4),
-                    // interpunct followed by "updated <time>" in hintColor
-                    TextSpan(
-                      text:
-                          ' • updated ${DateFormat('h:mm a').format(LocationUtils.currentLocationTimestamp!)}',
-                      style: Theme.of(context).textTheme.headline4?.copyWith(
-                            color: Theme.of(context).hintColor,
-                          ),
-                    ),
+                    if (LocationUtils.currentLocationTimestamp != null)
+                      TextSpan(
+                        text:
+                            ' • as of ${dateFormat.format(LocationUtils.currentLocationTimestamp!)}',
+                        style: Theme.of(context).textTheme.headline4?.copyWith(
+                              color: Theme.of(context).hintColor,
+                            ),
+                      ),
                   ])),
                 ),
               ),
@@ -924,8 +983,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 child: Text(
                     _focusedBusStop != null
                         ? 'Selected stop'
-                        : 'Nearest stop' +
-                            (_query.isEmpty ? '' : ' matching query'),
+                        : (_query.isEmpty
+                            ? 'Nearest stop'
+                            : 'Nearest matching stop'),
                     style: Theme.of(context).textTheme.headline4),
               ),
             ),
@@ -1090,7 +1150,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   void _hideKeyboard() {
-    FocusScope.of(context).requestFocus(FocusNode());
+    FocusScope.of(context).unfocus();
   }
 
   void _onBusStopSearchItemTapped(BusStop busStop) {
@@ -1107,7 +1167,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   @override
-  void showBusDetailSheet(BusStop busStop, UserRoute route) {
+  Future<void> showBusDetailSheet(BusStop busStop, UserRoute route) async {
     super.showBusDetailSheet(busStop, route);
     pushHistory(_query.trim());
   }
