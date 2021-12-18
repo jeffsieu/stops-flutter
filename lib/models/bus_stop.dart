@@ -1,16 +1,13 @@
-import 'package:meta/meta.dart';
-
 import '../utils/bus_api.dart';
-import 'bus_service.dart';
 
 class BusStop {
   BusStop({
-    @required this.displayName,
-    @required this.defaultName,
-    @required this.code,
-    @required this.road,
-    @required this.latitude,
-    @required this.longitude,
+    required this.displayName,
+    required this.defaultName,
+    required this.code,
+    required this.road,
+    required this.latitude,
+    required this.longitude,
   });
 
   String displayName;
@@ -19,26 +16,25 @@ class BusStop {
   String road;
   double latitude;
   double longitude;
-  List<BusService> pinnedServices;
 
   static BusStop fromJson(dynamic json) {
     return BusStop(
-      displayName: json[BusAPI.kBusStopNameKey],
-      defaultName: json[BusAPI.kBusStopNameKey],
-      code: json[BusAPI.kBusStopCodeKey],
-      road: json[BusAPI.kBusStopRoadKey],
-      latitude: json[BusAPI.kBusStopLatitudeKey],
-      longitude: json[BusAPI.kBusStopLongitudeKey]);
+        displayName: json[BusAPI.kBusStopNameKey] as String,
+        defaultName: json[BusAPI.kBusStopNameKey] as String,
+        code: json[BusAPI.kBusStopCodeKey] as String,
+        road: json[BusAPI.kBusStopRoadKey] as String,
+        latitude: json[BusAPI.kBusStopLatitudeKey] as double,
+        longitude: json[BusAPI.kBusStopLongitudeKey] as double);
   }
 
   static BusStop fromMap(Map<String, dynamic> map) {
     return BusStop(
-      displayName: map['displayName'],
-      defaultName: map['defaultName'],
-      code: map['code'],
-      road: map['road'],
-      latitude: map['latitude'],
-      longitude: map['longitude'],
+      displayName: map['displayName'] as String,
+      defaultName: map['defaultName'] as String,
+      code: map['code'] as String,
+      road: map['road'] as String,
+      latitude: map['latitude'] as double,
+      longitude: map['longitude'] as double,
     );
   }
 
@@ -55,12 +51,12 @@ class BusStop {
 
   static BusStop withCode(String code) {
     return BusStop(
-      displayName: '',
-      defaultName: '',
-      code: code,
-      road: '',
-      latitude: -1,
-      longitude: -1);
+        displayName: '',
+        defaultName: '',
+        code: code,
+        road: '',
+        latitude: -1,
+        longitude: -1);
   }
 
   @override
@@ -70,10 +66,10 @@ class BusStop {
 
   @override
   bool operator ==(dynamic other) {
-    if (other.runtimeType != runtimeType)
-      return false;
-    final BusStop otherBusStop = other;
-    return code == otherBusStop.code;
+    if (other is BusStop) {
+      return other.code == code;
+    }
+    return false;
   }
 
   @override

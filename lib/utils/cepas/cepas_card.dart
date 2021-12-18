@@ -17,11 +17,15 @@ class CEPASCard {
     final Uint8List canBytes = Uint8List.sublistView(data, 8, 16);
     can = canBytes.map((int i) => i.toRadixString(16).padLeft(2, '0')).join('');
 
-    final int expiryDaysFromEpoch = ByteData.sublistView(data, 24, 26).getInt16(0);
-    expiryDate = DateTime.utc(1995, 01, 01).add(Duration(days: expiryDaysFromEpoch, hours: 8));
+    final int expiryDaysFromEpoch =
+        ByteData.sublistView(data, 24, 26).getInt16(0);
+    expiryDate = DateTime.utc(1995, 01, 01)
+        .add(Duration(days: expiryDaysFromEpoch, hours: 8));
 
-    final int creationDaysFromEpoch = ByteData.sublistView(data, 26, 28).getInt16(0);
-    creationDate = DateTime.utc(1995, 01, 01).add(Duration(days: creationDaysFromEpoch, hours: 8));
+    final int creationDaysFromEpoch =
+        ByteData.sublistView(data, 26, 28).getInt16(0);
+    creationDate = DateTime.utc(1995, 01, 01)
+        .add(Duration(days: creationDaysFromEpoch, hours: 8));
 
     transactionCount = data[40];
   }
@@ -30,25 +34,40 @@ class CEPASCard {
     const int recordSize = 16;
     transactions = <CEPASCardTransaction>[];
 
-    Uint8List historyRaw = await sendNfcCommand(<int>[0x90, 0x32, purseId, 0x00, 0x01, 0x00, min(transactionCount, 15) * 16]);
-    if (historyRaw == null)
-      return;
+    Uint8List historyRaw = await sendNfcCommand(<int>[
+      0x90,
+      0x32,
+      purseId,
+      0x00,
+      0x01,
+      0x00,
+      min(transactionCount, 15) * 16
+    ]);
     if (transactionCount > 15) {
-      final Uint8List historyRaw2 = await sendNfcCommand(<int>[0x90, 0x32, purseId, 0x00, 0x01, 0x0F, (transactionCount - 15) * 16]);
+      final Uint8List historyRaw2 = await sendNfcCommand(<int>[
+        0x90,
+        0x32,
+        purseId,
+        0x00,
+        0x01,
+        0x0F,
+        (transactionCount - 15) * 16
+      ]);
       historyRaw = Uint8List.fromList(historyRaw + historyRaw2);
     }
 
     final int recordCount = historyRaw.length ~/ recordSize;
     for (int i = 0; i < recordCount; i++) {
-      transactions.add(CEPASCardTransaction(Uint8List.sublistView(historyRaw, i * recordSize, (i + 1) * recordSize)));
+      transactions.add(CEPASCardTransaction(Uint8List.sublistView(
+          historyRaw, i * recordSize, (i + 1) * recordSize)));
     }
   }
 
-  int purseId;
-  double balance;
-  String can;
-  DateTime expiryDate;
-  DateTime creationDate;
-  int transactionCount;
-  List<CEPASCardTransaction> transactions;
+  final int purseId;
+  late final double balance;
+  late final String can;
+  late final DateTime expiryDate;
+  late final DateTime creationDate;
+  late final int transactionCount;
+  late final List<CEPASCardTransaction> transactions;
 }

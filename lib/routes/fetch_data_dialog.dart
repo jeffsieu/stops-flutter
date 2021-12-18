@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/bus_api.dart';
 
 class FetchDataDialog extends StatefulWidget {
-  const FetchDataDialog({@required this.isSetup });
+  const FetchDataDialog({Key? key, required this.isSetup}) : super(key: key);
   final bool isSetup;
 
   @override
@@ -11,7 +11,6 @@ class FetchDataDialog extends StatefulWidget {
     return _FetchDataDialogState();
   }
 }
-
 
 class _FetchDataDialogState extends State<FetchDataDialog> {
   double progress = 0.25;
@@ -25,7 +24,9 @@ class _FetchDataDialogState extends State<FetchDataDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.isSetup ? 'Performing first time setup' : 'Re-fetching cached data'),
+      title: Text(widget.isSetup
+          ? 'Performing first time setup'
+          : 'Re-fetching cached data'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[

@@ -1,6 +1,6 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:meta/meta.dart';
 
 import '../models/bus_stop.dart';
 import '../models/user_route.dart';
@@ -9,17 +9,19 @@ import '../widgets/highlighted_icon.dart';
 
 class BusStopSearchItem extends StatefulWidget {
   const BusStopSearchItem({
-    @required Key key,
-    @required this.codeStart,
-    @required this.codeBold,
-    @required this.codeEnd,
-    @required this.nameStart,
-    @required this.nameBold,
-    @required this.nameEnd,
-    @required this.distance,
-    @required this.busStop,
-    this.onTap
-  }) : super (key: key);
+    required Key key,
+    required this.codeStart,
+    required this.codeBold,
+    required this.codeEnd,
+    required this.nameStart,
+    required this.nameBold,
+    required this.nameEnd,
+    required this.distance,
+    required this.busStop,
+    required this.isMapEnabled,
+    required this.onShowOnMapTap,
+    this.onTap,
+  }) : super(key: key);
 
   final String codeStart;
   final String codeBold;
@@ -29,7 +31,9 @@ class BusStopSearchItem extends StatefulWidget {
   final String nameEnd;
   final String distance;
   final BusStop busStop;
-  final Function onTap;
+  final bool isMapEnabled;
+  final void Function()? onTap;
+  final void Function() onShowOnMapTap;
 
   @override
   State<StatefulWidget> createState() {
@@ -37,26 +41,29 @@ class BusStopSearchItem extends StatefulWidget {
   }
 }
 
-class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerProviderStateMixin {
+class BusStopSearchItemState extends State<BusStopSearchItem>
+    with SingleTickerProviderStateMixin {
   bool _isStarEnabled = false;
 
-  BusStopChangeListener _busStopListener;
+  late BusStopChangeListener _busStopListener;
 
   @override
   void initState() {
     super.initState();
     isBusStopInRoute(widget.busStop, UserRoute.home).then((bool contains) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isStarEnabled = contains;
         });
+      }
     });
     _busStopListener = (BusStop busStop) {
       isBusStopInRoute(widget.busStop, UserRoute.home).then((bool contains) {
-        if (mounted)
+        if (mounted) {
           setState(() {
             _isStarEnabled = contains;
           });
+        }
       });
     };
     registerBusStopListener(widget.busStop, _busStopListener);
@@ -71,9 +78,10 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       onTap: widget.onTap,
-      leading: Container(
+      leading: SizedBox(
         width: 48.0,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -95,74 +103,105 @@ class BusStopSearchItemState extends State<BusStopSearchItem> with SingleTickerP
                   child: Text(
                     widget.distance,
                     softWrap: false,
-                    style: Theme.of(context).textTheme.subtitle2.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
+                    style: Theme.of(context).textTheme.subtitle2!.copyWith(
+                          color: Theme.of(context).hintColor,
+                        ),
                   ),
                 ),
               ),
           ],
         ),
       ),
-      title: RichText(
-        text: TextSpan(
-          text: widget.nameStart,
-          style: Theme.of(context)
-              .textTheme
-              .headline6
-              .copyWith(fontWeight: FontWeight.normal),
-          children: <TextSpan>[
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AutoSizeText.rich(
             TextSpan(
-                text: widget.nameBold,
-                style: Theme.of(context).textTheme.headline6.copyWith(
-                  color: Theme.of(context).accentColor,
-                  fontWeight: FontWeight.bold,
-                  decorationColor: Theme.of(context).textTheme.bodyText2.color,
-                )),
+              text: widget.nameStart,
+              style: Theme.of(context)
+                  .textTheme
+                  .headline6!
+                  .copyWith(fontWeight: FontWeight.normal),
+              children: <TextSpan>[
+                TextSpan(
+                    text: widget.nameBold,
+                    style: Theme.of(context).textTheme.headline6!.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontWeight: FontWeight.bold,
+                          decorationColor:
+                              Theme.of(context).textTheme.bodyText2!.color,
+                        )),
+                TextSpan(text: widget.nameEnd),
+              ],
+            ),
+            maxLines: 1,
+          ),
+          AutoSizeText.rich(
             TextSpan(
-                text: widget.nameEnd),
-          ],
-        ),
+              text: widget.codeStart,
+              style: Theme.of(context)
+                  .textTheme
+                  .subtitle2!
+                  .copyWith(color: Theme.of(context).hintColor),
+              children: <TextSpan>[
+                TextSpan(
+                    text: widget.codeBold,
+                    style: Theme.of(context).textTheme.subtitle2!.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontWeight: FontWeight.bold,
+                          decorationColor:
+                              Theme.of(context).textTheme.bodyText2!.color,
+                        )),
+                TextSpan(text: widget.codeEnd),
+                TextSpan(text: ' ⋅ ${widget.busStop.road}'),
+              ],
+            ),
+            maxLines: 1,
+            style: Theme.of(context).textTheme.subtitle2,
+          ),
+        ],
       ),
-      subtitle: RichText(
-        text: TextSpan(
-          text: widget.codeStart,
-          style: Theme.of(context)
-              .textTheme
-              .subtitle2
-              .copyWith(color: Theme.of(context).hintColor),
-          children: <TextSpan>[
-            TextSpan(
-                text: widget.codeBold,
-                style: Theme.of(context).textTheme.subtitle2.copyWith(
-                  color: Theme.of(context).accentColor,
-                  fontWeight: FontWeight.bold,
-                  decorationColor: Theme.of(context).textTheme.bodyText2.color,
-                )),
-            TextSpan(
-                text: widget.codeEnd),
-            TextSpan(
-                text: ' ⋅ ${widget.busStop.road}'),
-          ],
-        ),
-      ),
-      trailing: IconButton(
-        icon: SvgPicture.asset(
-          _isStarEnabled ? 'assets/images/pin.svg': 'assets/images/pin-outline.svg',
-          color: _isStarEnabled ? Theme.of(context).colorScheme.secondary : Theme.of(context).hintColor,
-        ),
-        tooltip: _isStarEnabled ? 'Unpin from home' : 'Pin to home',
-        onPressed: () {
-          setState(() {
-            _isStarEnabled = !_isStarEnabled;
-          });
-          if (_isStarEnabled) {
-            addBusStopToRoute(widget.busStop, UserRoute.home, context);
-          } else {
-            removeBusStopFromRoute(widget.busStop, UserRoute.home, context);
-          }
-        },
-      ),
+      trailing: widget.isMapEnabled
+          ? IconButton(
+              tooltip: 'Show on map',
+              icon: Icon(
+                Icons.my_location_rounded,
+                color: Theme.of(context).hintColor,
+              ),
+              onPressed: widget.onShowOnMapTap,
+            )
+          : PopupMenuButton<String>(
+              tooltip: 'More',
+              icon: Icon(Icons.more_vert_rounded,
+                  color: Theme.of(context).hintColor),
+              onSelected: (String item) {
+                if (item == 'Pin') {
+                  setState(() {
+                    _isStarEnabled = !_isStarEnabled;
+                  });
+                  if (_isStarEnabled) {
+                    addBusStopToRoute(widget.busStop, UserRoute.home, context);
+                  } else {
+                    removeBusStopFromRoute(
+                        widget.busStop, UserRoute.home, context);
+                  }
+                } else if (item == 'Show on map') {
+                  widget.onShowOnMapTap();
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                PopupMenuItem<String>(
+                  child: Text(
+                    _isStarEnabled ? 'Unpin from home' : 'Pin to home',
+                  ),
+                  value: 'Pin',
+                ),
+                const PopupMenuItem<String>(
+                  child: Text('Show on map'),
+                  value: 'Show on map',
+                ),
+              ],
+            ),
     );
   }
 }

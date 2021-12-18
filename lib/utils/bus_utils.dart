@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'bus_service_arrival_result.dart';
 
 Color getBusOperatorColor(String operator) {
-  switch(operator) {
+  switch (operator) {
     case 'SBST':
       return Colors.deepPurpleAccent;
     case 'SMRT':
@@ -17,9 +17,9 @@ Color getBusOperatorColor(String operator) {
   }
 }
 
-Color getBusLoadColor(BusLoad load, Brightness brightness) {
+Color getBusLoadColor(BusLoad? load, Brightness brightness) {
   MaterialColor color;
-  switch(load) {
+  switch (load) {
     case BusLoad.low:
       color = Colors.green;
       break;
@@ -32,14 +32,15 @@ Color getBusLoadColor(BusLoad load, Brightness brightness) {
     default:
       return Colors.transparent;
   }
-  if (brightness == Brightness.light)
+  if (brightness == Brightness.light) {
     return color;
-  else
+  } else {
     return color.shade300;
+  }
 }
 
-String getBusTypeVerbose(BusType type) {
-  switch(type) {
+String getBusTypeVerbose(BusType? type) {
+  switch (type) {
     case BusType.single:
       return '';
     case BusType.double:
@@ -67,25 +68,21 @@ String getBusTimingShortened(int timeMinutes) {
 
 String getDistanceVerboseFromMeters(double distanceMeters) {
   final double distanceKilometers = distanceMeters / 1000;
-  return distanceMeters < 1000 ? '${distanceMeters.round()} m' : '${distanceKilometers.toStringAsFixed(1)} km';
+  return distanceMeters < 1000
+      ? '${distanceMeters.round()} m'
+      : '${distanceKilometers.toStringAsFixed(1)} km';
 }
 
 int compareBusNumber(String a, String b) {
-  final int aNumber = int.parse(a
-      .replaceAll(RegExp(r'\D'), ''));
-  final int bNumber = int.parse(b
-      .replaceAll(RegExp(r'\D'), ''));
+  final int aNumber = int.parse(a.replaceAll(RegExp(r'\D'), ''));
+  final int bNumber = int.parse(b.replaceAll(RegExp(r'\D'), ''));
 
   int diff = (aNumber - bNumber) * 2;
 
   if (diff == 0) {
-    final String aLetter = a
-        .replaceAll(RegExp(r'\d'), '');
-    final String bLetter = b
-        .replaceAll(RegExp(r'\d'), '');
-    diff = aLetter
-        .compareTo(bLetter)
-        .sign;
+    final String aLetter = a.replaceAll(RegExp(r'\d'), '');
+    final String bLetter = b.replaceAll(RegExp(r'\d'), '');
+    diff = aLetter.compareTo(bLetter).sign;
   }
   return diff;
 }
@@ -95,7 +92,8 @@ extension BusNumberFormat on String {
     // Service number contains letter
     final String serviceNumber = this;
     if (serviceNumber.contains(RegExp(r'\D'))) {
-      final String number = serviceNumber.substring(0, serviceNumber.length - 1);
+      final String number =
+          serviceNumber.substring(0, serviceNumber.length - 1);
       final String letter = serviceNumber[serviceNumber.length - 1];
       return number.padLeft(3) + letter;
     } else {

@@ -4,6 +4,7 @@ import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
 
 class BusStopLegendCard extends StatelessWidget {
+  const BusStopLegendCard({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +26,10 @@ class BusStopLegendCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.info_outline, color: Theme.of(context).textTheme.headline4.color),
+              Icon(Icons.info_outline_rounded,
+                  color: Theme.of(context).textTheme.headline4!.color),
               Container(width: 16.0),
-              Text(
-                  'Legend',
-                  style: Theme.of(context).textTheme.headline4
-              ),
+              Text('Legend', style: Theme.of(context).textTheme.headline4),
             ],
           ),
           Row(

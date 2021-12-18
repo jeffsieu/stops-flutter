@@ -1,12 +1,11 @@
-import 'package:meta/meta.dart';
 
 import 'bus_service.dart';
 import 'bus_stop.dart';
 
 class Bus {
   Bus({
-    @required this.busStop,
-    @required this.busService,
+    required this.busStop,
+    required this.busService,
   });
 
   final BusStop busStop;

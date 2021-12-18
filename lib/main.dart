@@ -12,40 +12,46 @@ Future<void> main() async {
 }
 
 class StopsApp extends StatefulWidget {
-  const StopsApp(this._themeMode);
+  const StopsApp(this._themeMode, {Key? key}) : super(key: key);
   final ThemeMode _themeMode;
 
   @override
   State createState() {
-    return StopsAppState(_themeMode);
+    return StopsAppState();
   }
 
   static String monospacedFont = 'Cousine';
 
   static SystemUiOverlayStyle overlayStyleOf(BuildContext context) {
-    final Brightness brightness = MediaQuery.of(context).platformBrightness;
-    final SystemUiOverlayStyle templateStyle = brightness == Brightness.light ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light;
+    final Brightness brightness = Theme.of(context).brightness;
+    final SystemUiOverlayStyle templateStyle = brightness == Brightness.light
+        ? SystemUiOverlayStyle.dark
+        : SystemUiOverlayStyle.light;
     return templateStyle.copyWith(
       systemNavigationBarDividerColor: Colors.transparent,
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
+      statusBarIconBrightness:
+          brightness == Brightness.light ? Brightness.dark : Brightness.light,
       statusBarBrightness: brightness,
       systemNavigationBarColor: Theme.of(context).canvasColor,
-      systemNavigationBarIconBrightness: brightness == Brightness.light ? Brightness.dark : Brightness.light,
+      systemNavigationBarIconBrightness:
+          brightness == Brightness.light ? Brightness.dark : Brightness.light,
     );
   }
 
-  static StopsAppState of(BuildContext context) => context.findAncestorStateOfType<StopsAppState>();
+  static StopsAppState? of(BuildContext context) =>
+      context.findAncestorStateOfType<StopsAppState>();
 }
 
 class StopsAppState extends State<StopsApp> {
-  StopsAppState(this.themeMode);
-  ThemeMode themeMode;
+  late ThemeMode themeMode = widget._themeMode;
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle headerTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
-    final TextStyle mainTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
+    final TextStyle headerTextStyle =
+        GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
+    final TextStyle mainTextStyle =
+        GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -53,21 +59,31 @@ class StopsAppState extends State<StopsApp> {
       themeMode: themeMode,
       home: HomePage(),
       theme: ThemeData(
-        primarySwatch: Colors.deepOrange,
         toggleableActiveColor: Colors.deepOrangeAccent,
-        accentColor: Colors.deepOrangeAccent,
-        cursorColor: Colors.deepOrangeAccent,
-        textSelectionColor: Colors.orangeAccent[100],
-        textSelectionHandleColor: Colors.deepOrangeAccent,
-        brightness: Brightness.light,
-        popupMenuTheme: PopupMenuThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
-        cardTheme: CardTheme(elevation: 2.0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
-        dialogTheme: DialogTheme(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
+        indicatorColor: Colors.orange,
+        popupMenuTheme: PopupMenuThemeData(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0))),
+        buttonTheme: ButtonThemeData(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0))),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0)))),
+        cardTheme: CardTheme(
+            elevation: 2.0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0))),
+        dialogTheme: DialogTheme(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0))),
         textTheme: TextTheme(
           headline1: mainTextStyle,
           headline2: mainTextStyle,
           headline3: mainTextStyle,
-          headline4: headerTextStyle.copyWith(color: Colors.deepOrangeAccent, fontSize: 18),
+          headline4: headerTextStyle.copyWith(
+              color: Colors.deepOrangeAccent, fontSize: 18),
           headline5: headerTextStyle.copyWith(fontSize: 24),
           headline6: mainTextStyle,
           subtitle1: mainTextStyle,
@@ -77,43 +93,73 @@ class StopsAppState extends State<StopsApp> {
           button: mainTextStyle,
           caption: mainTextStyle,
           overline: mainTextStyle,
+        ),
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: Colors.deepOrangeAccent,
+          selectionColor: Colors.orangeAccent[100],
+          selectionHandleColor: Colors.deepOrangeAccent,
+        ),
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: Colors.deepOrange,
+          accentColor: Colors.deepOrangeAccent,
+          brightness: Brightness.light,
         ),
       ),
       darkTheme: ThemeData(
-        primarySwatch: Colors.orange,
-        toggleableActiveColor: Colors.orangeAccent,
-        accentColor: Colors.orangeAccent,
-        cursorColor: Colors.orangeAccent,
-        textSelectionColor: Colors.deepOrangeAccent,
-        textSelectionHandleColor: Colors.orangeAccent,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        cardColor: const Color(0xFF272727),
-        canvasColor: const Color(0xFF323232),
-        snackBarTheme: const SnackBarThemeData(
-          backgroundColor: Color(0xFF323232),
-          contentTextStyle: TextStyle(color: Colors.white),
-          actionTextColor: Colors.orangeAccent,
-        ),
-        popupMenuTheme: PopupMenuThemeData(color: const Color(0xFF323232), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
-        cardTheme: CardTheme(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
-        dialogTheme: DialogTheme(backgroundColor: const Color(0xFF323232), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0))),
-        textTheme: TextTheme(
-          headline1: mainTextStyle,
-          headline2: mainTextStyle,
-          headline3: mainTextStyle,
-          headline4: headerTextStyle.copyWith(color: Colors.orangeAccent, fontSize: 18),
-          headline5: headerTextStyle.copyWith(fontSize: 24),
-          headline6: mainTextStyle,
-          subtitle1: mainTextStyle,
-          subtitle2: mainTextStyle,
-          bodyText1: mainTextStyle,
-          bodyText2: mainTextStyle,
-          button: mainTextStyle,
-          caption: mainTextStyle,
-          overline: mainTextStyle,
-        ),
-      ),
+          toggleableActiveColor: Colors.orangeAccent,
+          indicatorColor: Colors.orange,
+          scaffoldBackgroundColor: const Color(0xFF121212),
+          cardColor: const Color(0xFF272727),
+          canvasColor: const Color(0xFF323232),
+          snackBarTheme: const SnackBarThemeData(
+            backgroundColor: Color(0xFF323232),
+            contentTextStyle: TextStyle(color: Colors.white),
+            actionTextColor: Colors.orangeAccent,
+          ),
+          popupMenuTheme: PopupMenuThemeData(
+              color: const Color(0xFF323232),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          buttonTheme: ButtonThemeData(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0)))),
+          cardTheme: CardTheme(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          dialogTheme: DialogTheme(
+              backgroundColor: const Color(0xFF323232),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0))),
+          textTheme: TextTheme(
+            headline1: mainTextStyle,
+            headline2: mainTextStyle,
+            headline3: mainTextStyle,
+            headline4: headerTextStyle.copyWith(
+                color: Colors.orangeAccent, fontSize: 18),
+            headline5: headerTextStyle.copyWith(fontSize: 24),
+            headline6: mainTextStyle,
+            subtitle1: mainTextStyle,
+            subtitle2: mainTextStyle,
+            bodyText1: mainTextStyle,
+            bodyText2: mainTextStyle,
+            button: mainTextStyle,
+            caption: mainTextStyle,
+            overline: mainTextStyle,
+          ),
+          textSelectionTheme: const TextSelectionThemeData(
+            cursorColor: Colors.orangeAccent,
+            selectionColor: Colors.deepOrangeAccent,
+            selectionHandleColor: Colors.orangeAccent,
+          ),
+          colorScheme: const ColorScheme.dark(
+            primary: Colors.orange,
+            secondary: Colors.orangeAccent,
+            secondaryVariant: Colors.deepOrangeAccent,
+          )),
     );
   }
 }

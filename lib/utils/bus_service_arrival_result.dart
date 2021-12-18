@@ -1,66 +1,76 @@
-import 'package:meta/meta.dart';
-
 import '../models/bus_service.dart';
 import 'bus_api.dart';
 
 class BusServiceArrivalResult {
   BusServiceArrivalResult._({
-    @required this.busService,
-    @required this.buses,
+    required this.busService,
+    required this.buses,
   });
 
   static BusServiceArrivalResult fromJson(dynamic json) {
     final BusService busService = BusService.fromJson(json);
-    final List<BusArrival> buses = <BusArrival>[
+    final List<BusArrival?> buses = <BusArrival?>[
       BusArrival.fromJson(json['NextBus']),
       BusArrival.fromJson(json['NextBus2']),
       BusArrival.fromJson(json['NextBus3'])
     ];
-    buses.removeWhere((BusArrival b) => b == null);
+    buses.removeWhere((BusArrival? b) => b == null);
     return BusServiceArrivalResult._(
-        busService: busService,
-        buses: buses,
+      busService: busService,
+      buses: buses,
     );
   }
 
   final BusService busService;
-  final List<BusArrival> buses;
+  final List<BusArrival?> buses;
 }
 
 class BusArrival {
   BusArrival._({
-    @required this.type,
-    @required this.load,
-    @required this.latitude,
-    @required this.longitude,
-    @required this.arrivalTime,
+    required this.type,
+    required this.load,
+    required this.latitude,
+    required this.longitude,
+    required this.arrivalTime,
   });
 
-  static BusArrival fromJson(dynamic json) {
-    final String typeString = json[BusAPI.kBusServiceTypeKey];
-    BusType type;
-    if (typeString == BusAPI.kBusServiceTypeSingle)
+  static BusArrival? fromJson(dynamic json) {
+    final String? typeString = json[BusAPI.kBusServiceTypeKey] as String?;
+    BusType? type;
+    if (typeString == BusAPI.kBusServiceTypeSingle) {
       type = BusType.single;
-    else if (typeString == BusAPI.kBusServiceTypeDouble)
+    } else if (typeString == BusAPI.kBusServiceTypeDouble) {
       type = BusType.double;
-    else if (typeString == BusAPI.kBusServiceTypeBendy)
+    } else if (typeString == BusAPI.kBusServiceTypeBendy) {
       type = BusType.bendy;
+    } else if (typeString?.isEmpty ?? true) {
+      type = null;
+    } else {
+      throw Exception('Unknown bus type: $typeString');
+    }
 
-    final String loadString = json[BusAPI.kBusServiceLoadKey];
-    BusLoad load;
-    if (loadString == BusAPI.kBusServiceLoadLow)
+    final String? loadString = json[BusAPI.kBusServiceLoadKey] as String?;
+    BusLoad? load;
+    if (loadString == BusAPI.kBusServiceLoadLow) {
       load = BusLoad.low;
-    else if (loadString == BusAPI.kBusServiceLoadMedium)
+    } else if (loadString == BusAPI.kBusServiceLoadMedium) {
       load = BusLoad.medium;
-    else if (loadString == BusAPI.kBusServiceLoadHigh)
+    } else if (loadString == BusAPI.kBusServiceLoadHigh) {
       load = BusLoad.high;
+    } else if (loadString?.isEmpty ?? true) {
+      load = null;
+    } else {
+      throw Exception('Unknown bus load: $loadString');
+    }
 
-    final double latitude = double.tryParse(json[BusAPI.kBusServiceLatitudeKey]) ?? 0;
-    final double longitude = double.tryParse(json[BusAPI.kBusServiceLongitudeKey]) ?? 0;
-    final DateTime arrivalTime = DateTime.tryParse(json[BusAPI.kBusServiceArrivalTimeKey]);
+    final double latitude =
+        double.tryParse(json[BusAPI.kBusServiceLatitudeKey] as String) ?? 0;
+    final double longitude =
+        double.tryParse(json[BusAPI.kBusServiceLongitudeKey] as String) ?? 0;
+    final DateTime? arrivalTime =
+        DateTime.tryParse(json[BusAPI.kBusServiceArrivalTimeKey] as String);
 
-    if (arrivalTime == null)
-      return null;
+    if (arrivalTime == null) return null;
     return BusArrival._(
       type: type,
       load: load,
@@ -70,8 +80,8 @@ class BusArrival {
     );
   }
 
-  final BusType type;
-  final BusLoad load;
+  final BusType? type;
+  final BusLoad? load;
   final double latitude;
   final double longitude;
   final DateTime arrivalTime;

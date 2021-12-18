@@ -4,14 +4,11 @@ import '../models/bus_service.dart';
 import '../widgets/highlighted_icon.dart';
 
 class BusServiceSearchItem extends StatelessWidget {
-  const BusServiceSearchItem({
-    Key key,
-    @required this.busService,
-    this.onTap
-  }) : super (key: key);
+  const BusServiceSearchItem({Key? key, required this.busService, this.onTap})
+      : super(key: key);
 
   final BusService busService;
-  final Function onTap;
+  final void Function()? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +17,11 @@ class BusServiceSearchItem extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
       leading: HighlightedIcon(
         iconColor: BusService.listColor(context),
-        child: Icon(Icons.directions_bus, color: BusService.listColor(context)),
+        child: Icon(Icons.directions_bus_rounded,
+            color: BusService.listColor(context)),
       ),
-      title: Text(busService.number, style: Theme.of(context).textTheme.headline6),
+      title:
+          Text(busService.number, style: Theme.of(context).textTheme.headline6),
     );
   }
 }
