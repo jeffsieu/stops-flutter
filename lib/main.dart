@@ -55,7 +55,7 @@ class StopsAppState extends State<StopsApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Stops SG',
+      title: 'Stops Singapore',
       themeMode: themeMode,
       home: HomePage(),
       theme: ThemeData(
