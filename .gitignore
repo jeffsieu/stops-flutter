@@ -47,6 +47,7 @@ version
 .packages
 .pub-cache/
 .pub/
+*.g.dart
 build/
 flutter_*.png
 linked_*.ds
