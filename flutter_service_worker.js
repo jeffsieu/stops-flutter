@@ -31,8 +31,8 @@ const RESOURCES = {
 "assets/assets/fonts/NunitoSans-Bold.ttf": "08e53a516d2ba719d98da46c49b3c369",
 "assets/fonts/MaterialIcons-Regular.otf": "4e6447691c9509f7acdbf8a931a85ca1",
 "assets/packages/cupertino_icons/assets/CupertinoIcons.ttf": "6d342eb68f170c97609e9da345464e5e",
-"index.html": "70ba793c628ebb464e4583b8b7de9ca2",
-"/": "70ba793c628ebb464e4583b8b7de9ca2",
+"index.html": "5f75a50cc934313c07a7694bb5fe4c61",
+"/": "5f75a50cc934313c07a7694bb5fe4c61",
 "sql-wasm.wasm": "9c67691cdfea004dda62090e49940eac",
 "favicon.png": "f680b891df3775d7d6f3403bb2138dba"
 };
