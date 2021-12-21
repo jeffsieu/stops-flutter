@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
+    - name: Create secrets.json from repository secret 
+      run: echo $SECRETS_JSON_BASE64 | base64 -d > assets/secrets.json
+      env:
+        SECRETS_JSON_BASE64: ${{ secrets.SECRETS_JSON_BASE64 }}
     
     - name: Install flutter
       uses: subosito/flutter-action@v1.5.3
