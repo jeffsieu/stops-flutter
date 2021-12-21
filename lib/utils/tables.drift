@@ -1,0 +1,41 @@
+CREATE TABLE bus_stop(
+    code VARCHAR(5) PRIMARY KEY,
+    displayName TEXT NOT NULl,
+    defaultName TEXT NOT NULL,
+    road TEXT NOT NULL,
+    latitude DOUBLE NOT NULL,
+    longitude DOUBLE NOT NULL
+) AS BusStopTable;
+CREATE TABLE bus_service(
+    number VARCHAR(4) PRIMARY KEY,
+    operator TEXT
+) AS BusServiceTable;
+CREATE TABLE bus_route(
+    serviceNumber VARCHAR(4) NOT NULL,
+    direction INTEGER NOT NULL,
+    busStopCode VARCHAR(5) NOT NULL,
+    distance DOUBLE,
+    PRIMARY KEY (serviceNumber, direction, busStopCode)
+) AS BusRouteTable;
+CREATE TABLE user_route(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    color INTEGER,
+    position INTEGER NOT NULL
+) AS UserRouteTable;
+CREATE TABLE user_route_bus_stop(
+    routeId INTEGER DEFAULT -1,
+    busStopCode VARCHAR(5),
+    position INTEGER NOT NULL,
+    PRIMARY KEY (routeId, busStopCode),
+    FOREIGN KEY (routeId) REFERENCES user_route(id) ON DELETE CASCADE,
+    FOREIGN KEY (busStopCode) REFERENCES bus_stop(code)
+) AS UserRouteBusStopTable;
+CREATE TABLE pinned_bus_service(
+    routeId INTEGER,
+    busStopCode VARCHAR(5),
+    busServiceNumber VARCHAR(4),
+    PRIMARY KEY (routeId, busStopCode, busServiceNumber),
+    FOREIGN KEY (routeId, busStopCode) REFERENCES user_route_bus_stop(routeId, busStopCode) ON DELETE CASCADE,
+    FOREIGN KEY (busServiceNumber) REFERENCES bus_service(number)
+) AS PinnedBusServiceTable;

@@ -5,6 +5,7 @@ analyzer:
     - build/**
     - test/**.mocks.dart
     - lib/widgets/custom_rubber_bottom_sheet.dart
+    - lib/*/*.g.dart
   language:
     strict-raw-types: true
   strong-mode:
