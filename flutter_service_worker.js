@@ -11,10 +11,10 @@ const RESOURCES = {
 "sql-wasm.js": "abe5911756c78d17a8b67a113f4a62b2",
 "version.json": "683e3ac4bbaec61fc04cccf786c851c0",
 "manifest.json": "7ae9d3e95cb4e31de584658e6b367d81",
-"icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
-"icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
-"icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
-"icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
+"icons/Icon-512.png": "8db3632f4be0e6a4ceb852d4e392c3c6",
+"icons/Icon-maskable-512.png": "19cfb2ba9b28e727fa27931933d14153",
+"icons/Icon-maskable-192.png": "c1f7b71509dcec35473b03b5850c5b65",
+"icons/Icon-192.png": "8119be0c201769f51e1d576b2ded1a27",
 "assets/NOTICES": "bcecb32ff290a0b6edd848ebbd9cbaae",
 "assets/AssetManifest.json": "ee2d3362a75dbbbf029e8719eda9bc46",
 "assets/FontManifest.json": "dc3d03800ccca4601324923c0b1d6d57",
@@ -31,10 +31,10 @@ const RESOURCES = {
 "assets/assets/fonts/NunitoSans-Bold.ttf": "08e53a516d2ba719d98da46c49b3c369",
 "assets/fonts/MaterialIcons-Regular.otf": "4e6447691c9509f7acdbf8a931a85ca1",
 "assets/packages/cupertino_icons/assets/CupertinoIcons.ttf": "6d342eb68f170c97609e9da345464e5e",
-"index.html": "da64822f728a738ef4a1f8b464f8fc4b",
-"/": "da64822f728a738ef4a1f8b464f8fc4b",
+"index.html": "203f3c2354adc19ac20a28725d4d2390",
+"/": "203f3c2354adc19ac20a28725d4d2390",
 "sql-wasm.wasm": "9c67691cdfea004dda62090e49940eac",
-"favicon.png": "5dcef449791fa27946b3d35ad8803796"
+"favicon.png": "f680b891df3775d7d6f3403bb2138dba"
 };
 
 // The application shell files that are downloaded before a service worker can
