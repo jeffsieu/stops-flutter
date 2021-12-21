@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
@@ -175,10 +176,17 @@ class BusAPI {
 
   Future<String> _fetchAsString(String url, int skip,
       [String extraParams = '']) async {
-    final HttpClientRequest request;
+    _kApiKey ??= await _loadAPIKey();
     try {
-      request = await HttpClient()
-          .getUrl(Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'));
+      final http.Response response = await http.get(
+          Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'),
+          headers: <String, String>{
+            _kApiTag: _kApiKey!,
+            'Content-Type': 'application/json',
+          });
+
+      // final Future<String> content = utf8.decodeStream(response.body);
+      return response.body;
     } on SocketException {
       // Try to connect to example.com
       final bool hasInternet = await hasInternetConnection();
@@ -190,13 +198,10 @@ class BusAPI {
       }
     }
 
-    _kApiKey ??= await _loadAPIKey();
-    request.headers.set(_kApiTag, _kApiKey!);
-    request.headers.set('Content-Type', 'application/json');
+    // request.headers.set(_kApiTag, _kApiKey!);
+    // request.headers.set('Content-Type', 'application/json');
 
-    final HttpClientResponse response = await request.close();
-    final Future<String> content = utf8.decodeStream(response);
-    return content;
+    // final HttpClientResponse response = await request.close();
   }
 
   Future<List<T>> _fetchAsList<T>(

@@ -84,7 +84,6 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                     if (from == to) {
                       return;
                     }
-                    debugPrint('Reordered $busStop from $from to $to');
                     // setState(() {
                     //   _busStops
                     //     ..clear()

@@ -153,7 +153,7 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
                               Theme.of(context).textTheme.bodyText2!.color,
                         )),
                 TextSpan(text: widget.codeEnd),
-                TextSpan(text: ' ⋅ ${widget.busStop.road}'),
+                TextSpan(text: ' · ${widget.busStop.road}'),
               ],
             ),
             maxLines: 1,

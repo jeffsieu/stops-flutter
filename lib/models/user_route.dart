@@ -16,12 +16,12 @@ class UserRoute {
     required this.color,
     required this.busStops,
   });
-  UserRoute._({
+  UserRoute({
     required this.id,
     required this.name,
     required this.color,
   }) : busStops = <BusStopWithPinnedServices>[];
-  static UserRoute home = UserRoute._(
+  static UserRoute home = UserRoute(
       id: defaultRouteId, name: defaultRouteName, color: Colors.transparent);
 
   final int? id;
@@ -30,7 +30,7 @@ class UserRoute {
   List<BusStopWithPinnedServices> busStops;
 
   static UserRoute fromMap(Map<String, dynamic> map) {
-    return UserRoute._(
+    return UserRoute(
       id: map['id'] as int,
       name: map['name'] as String,
       color: Color(map['color'] as int),

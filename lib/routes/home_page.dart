@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
@@ -75,18 +76,20 @@ class _HomePageState extends BottomSheetPageState<HomePage>
     super.initState();
     WidgetsBinding.instance?.addObserver(this);
     showSetupDialog();
-    const QuickActions quickActions = QuickActions();
-    quickActions.initialize((String shortcutType) {
-      if (shortcutType == 'action_search') {
-        _pushSearchRoute();
-      }
-    });
-    quickActions.setShortcutItems(<ShortcutItem>[
-      const ShortcutItem(
-          type: 'action_search',
-          localizedTitle: 'Search',
-          icon: 'ic_shortcut_search'),
-    ]);
+    if (!kIsWeb) {
+      const QuickActions quickActions = QuickActions();
+      quickActions.initialize((String shortcutType) {
+        if (shortcutType == 'action_search') {
+          _pushSearchRoute();
+        }
+      });
+      quickActions.setShortcutItems(<ShortcutItem>[
+        const ShortcutItem(
+            type: 'action_search',
+            localizedTitle: 'Search',
+            icon: 'ic_shortcut_search'),
+      ]);
+    }
   }
 
   @override
