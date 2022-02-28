@@ -53,12 +53,12 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T>
   }
 
   @mustCallSuper
-  Future<void> showBusDetailSheet(BusStop busStop, UserRoute route) async {
+  Future<void> showBusStopDetailSheet(BusStop busStop, StoredUserRoute route) async {
     await widget.bottomSheetKey.currentState?.updateWith(busStop, route);
   }
 
   @mustCallSuper
-  Future<void> hideBusDetailSheet() async {
+  Future<void> hideBusStopDetailSheet() async {
     await rubberAnimationController.animateTo(
         to: rubberAnimationController.lowerBound!);
     await widget.bottomSheetKey.currentState?.updateWith(null, null);

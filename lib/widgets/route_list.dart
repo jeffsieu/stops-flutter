@@ -18,18 +18,18 @@ class RouteList extends StatefulWidget {
 }
 
 class RouteListState extends State<RouteList> {
-  final List<UserRoute> _routes = <UserRoute>[];
+  final List<StoredUserRoute> _routes = <StoredUserRoute>[];
 
   @override
   Widget build(BuildContext context) {
     return MediaQuery.removePadding(
       context: context,
       removeTop: true,
-      child: FutureBuilder<List<UserRoute>>(
+      child: FutureBuilder<List<StoredUserRoute>>(
         future: getUserRoutes(),
         initialData: _routes,
         builder:
-            (BuildContext context, AsyncSnapshot<List<UserRoute>> snapshot) {
+            (BuildContext context, AsyncSnapshot<List<StoredUserRoute>> snapshot) {
           if (!snapshot.hasData ||
               (snapshot.data == _routes && snapshot.data!.isEmpty)) {
             return const Center(child: CircularProgressIndicator());
@@ -68,20 +68,20 @@ class RouteListState extends State<RouteList> {
               }
               return false;
             },
-            child: ImplicitlyAnimatedReorderableList<UserRoute>(
+            child: ImplicitlyAnimatedReorderableList<StoredUserRoute>(
               padding: const EdgeInsets.only(
                   top: 8.0, bottom: kFloatingActionButtonMargin + 48),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               items: _routes,
               areItemsTheSame:
-                  (UserRoute oldUserRoute, UserRoute newUserRoute) =>
+                  (StoredUserRoute oldUserRoute, StoredUserRoute newUserRoute) =>
                       oldUserRoute == newUserRoute,
               onReorderStarted: (UserRoute item, int position) {
                 ReorderStatusNotification(true).dispatch(context);
               },
-              onReorderFinished: (UserRoute item, int from, int to,
-                  List<UserRoute> newUserRoutes) async {
+              onReorderFinished: (StoredUserRoute item, int from, int to,
+                  List<StoredUserRoute> newUserRoutes) async {
                 await moveUserRoutePosition(from, to);
                 ReorderStatusNotification(false).dispatch(context);
                 setState(() {
@@ -92,10 +92,10 @@ class RouteListState extends State<RouteList> {
               },
               itemBuilder: (BuildContext context,
                   Animation<double> itemAnimation,
-                  UserRoute userRoute,
+                  StoredUserRoute userRoute,
                   int position) {
                 return Reorderable(
-                  key: ValueKey<UserRoute>(userRoute),
+                  key: ValueKey<StoredUserRoute>(userRoute),
                   builder: (BuildContext context,
                       Animation<double> dragAnimation, bool inDrag) {
                     const double initialElevation = 0.0;

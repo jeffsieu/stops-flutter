@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import '../routes/add_route_page.dart';
 import '../routes/fade_page_route.dart';
@@ -11,7 +10,7 @@ import '../widgets/edit_model.dart';
 
 class RoutePage extends StatefulWidget {
   const RoutePage(this.route, {Key? key}) : super(key: key);
-  final UserRoute route;
+  final StoredUserRoute route;
 
   @override
   State createState() {
@@ -22,19 +21,19 @@ class RoutePage extends StatefulWidget {
 class RoutePageState extends State<RoutePage> {
   // TODO: Let this page be the page to edit a route.
   // ignore: prefer_final_fields
+  late StoredUserRoute route = widget.route;
 
   @override
   Widget build(BuildContext context) {
     return MediaQuery.removePadding(
       context: context,
       removeTop: true,
-      child: Provider<UserRoute>(
+      child: Provider<StoredUserRoute>(
         create: (_) => widget.route,
-        child: StreamBuilder<List<BusStopWithPinnedServices>>(
-          initialData: widget.route.busStops,
-          stream: routeBusStopsStream(widget.route),
-          builder: (BuildContext context,
-              AsyncSnapshot<List<BusStopWithPinnedServices>> snapshot) {
+        child: StreamBuilder<StoredUserRoute>(
+          stream: routeStream(widget.route.id),
+          builder:
+              (BuildContext context, AsyncSnapshot<StoredUserRoute> snapshot) {
             switch (snapshot.connectionState) {
               case ConnectionState.none:
               case ConnectionState.waiting:
@@ -46,10 +45,10 @@ class RoutePageState extends State<RoutePage> {
               case ConnectionState.active:
               case ConnectionState.done:
                 if (snapshot.hasData &&
-                    widget.route.busStops != snapshot.data) {
+                    widget.route.busStops != snapshot.data!.busStops) {
                   widget.route.busStops
                     ..clear()
-                    ..addAll(snapshot.data!);
+                    ..addAll(snapshot.data!.busStops);
                 }
                 return CustomScrollView(
                   shrinkWrap: true,
@@ -76,7 +75,12 @@ class RoutePageState extends State<RoutePage> {
                     SliverToBoxAdapter(
                       child: Provider<EditModel>(
                         create: (_) => const EditModel(isEditing: false),
-                        child: const BusStopOverviewList(),
+                        child: Provider<StoredUserRoute>(
+                          create: (_) => widget.route,
+                          child: BusStopOverviewList(
+                            routeId: widget.route.id,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -119,12 +123,13 @@ class RoutePageState extends State<RoutePage> {
   }
 
   Future<void> _pushEditRouteRoute() async {
-    final UserRoute? route = await Navigator.push(context,
-        FadePageRoute<UserRoute>(child: AddRoutePage.edit(widget.route)));
+    final StoredUserRoute? route = await Navigator.push(context,
+        FadePageRoute<StoredUserRoute>(child: AddRoutePage.edit(widget.route)));
     if (route != null) {
-      widget.route.update(route);
       await updateUserRoute(route);
-      setState(() {});
+      setState(() {
+        this.route = route;
+      });
     }
   }
 }

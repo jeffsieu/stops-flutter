@@ -111,6 +111,7 @@ class BusAPI {
         return arrivalResult.buses.firstOrNull?.arrivalTime;
       }
     }
+    return null;
   }
 
   Stream<List<BusServiceArrivalResult>> busStopArrivalStream(BusStop busStop) {
@@ -184,8 +185,6 @@ class BusAPI {
             _kApiTag: _kApiKey!,
             'Content-Type': 'application/json',
           });
-
-      // final Future<String> content = utf8.decodeStream(response.body);
       return response.body;
     } on SocketException {
       // Try to connect to example.com
@@ -197,11 +196,6 @@ class BusAPI {
             kCannotReachServerError, StackTrace.current);
       }
     }
-
-    // request.headers.set(_kApiTag, _kApiKey!);
-    // request.headers.set('Content-Type', 'application/json');
-
-    // final HttpClientResponse response = await request.close();
   }
 
   Future<List<T>> _fetchAsList<T>(
@@ -213,10 +207,12 @@ class BusAPI {
     while (!isAtListEnd) {
       final List<Future<String>> futures = <Future<String>>[];
       for (int i = 0; i < concurrentCount; i++) {
+        print('adding item $i');
         futures.add(_fetchAsString(url, skip));
         skip += 500;
       }
       final List<String> results = await Future.wait(futures);
+      print('erm?');
       for (String result in results) {
         try {
           final List<dynamic>? rawList =
@@ -232,6 +228,7 @@ class BusAPI {
         }
       }
     }
+    print('returning!');
     return resultList;
   }
 

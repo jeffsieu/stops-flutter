@@ -80,7 +80,7 @@ class _BusTimingState extends State<BusTimingRow>
 
   @override
   Widget build(BuildContext context) {
-    final UserRoute route = context.watch<UserRoute>();
+    final StoredUserRoute route = context.watch<StoredUserRoute>();
     final Widget item = InkWell(
       onTap: widget.isEditing
           ? () async {

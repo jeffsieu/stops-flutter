@@ -119,8 +119,8 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                     .subtitle1!
                     .copyWith(color: Theme.of(context).hintColor)),
             onPressed: () async {
-              await BottomSheetPage.of(context)?.showBusDetailSheet(
-                  widget.busStop, context.read<UserRoute>());
+              await BottomSheetPage.of(context)?.showBusStopDetailSheet(
+                  widget.busStop, context.read<StoredUserRoute>());
               BottomSheetPage.of(context)?.edit();
             },
           ),
@@ -207,6 +207,6 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
   void _showDetailSheet() {
     FocusScope.of(context).unfocus();
     HomePage.of(context)!
-        .showBusDetailSheet(widget.busStop, context.read<UserRoute>());
+        .showBusStopDetailSheet(widget.busStop, context.read<StoredUserRoute>());
   }
 }

@@ -61,7 +61,7 @@ class BusStopDetailSheet extends StatefulWidget {
 class BusStopDetailSheetState extends State<BusStopDetailSheet>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   BusStop? _busStop;
-  UserRoute? _route;
+  StoredUserRoute? _route;
   List<BusServiceArrivalResult>? _latestData;
   bool _isStarEnabled = false;
   bool _isEditing = false;
@@ -81,14 +81,14 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
    *
    * Called externally from the parent containing this widget
    */
-  Future<void> updateWith(BusStop? busStop, UserRoute? route) async {
+  Future<void> updateWith(BusStop? busStop, StoredUserRoute? route) async {
     _busStop = busStop;
     _route = route;
     if (_busStop == null || _route == null) {
       setState(() {});
       return;
     }
-    final bool starred = await isBusStopInRoute(busStop!, route!);
+    final bool starred = await isBusStopInRouteWithId(busStop!, route!.id);
     setState(() {
       if (_busStopListener != null) {
         unregisterBusStopListener(_busStop!, _busStopListener!);
@@ -121,7 +121,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
     });
 
     _busStopListener = (BusStop busStop) {
-      isBusStopInRoute(busStop, _route!).then((bool contains) {
+      isBusStopInRouteWithId(busStop, _route!.id).then((bool contains) {
         if (mounted) {
           setState(() {
             _busStop = busStop;
@@ -170,7 +170,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
           topRight: Radius.circular(16.0),
         ),
         elevation: 16.0,
-        child: Provider<UserRoute>(
+        child: Provider<StoredUserRoute>(
           create: (_) => _route!,
           child: scrollView,
         ),
@@ -180,7 +180,9 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
 
   @override
   void dispose() {
-    timingListAnimationController.dispose();
+    // if (mounted) {
+    //   timingListAnimationController.dispose();
+    // }
     if (_busStop != null && _busStopListener != null) {
       unregisterBusStopListener(_busStop!, _busStopListener!);
     }
@@ -334,12 +336,12 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
               _isStarEnabled = !_isStarEnabled;
             });
             if (_isStarEnabled) {
-              addBusStopToRoute(_busStop!, _route!, context).then((_) {
+              addBusStopToRouteWithId(_busStop!, _route!.id, context).then((_) {
                 setState(() {});
                 HomePage.of(context)?.refresh();
               });
             } else {
-              removeBusStopFromRoute(_busStop!, _route!, context).then((_) {
+              removeBusStopFromRoute(_busStop!, _route!.id, context).then((_) {
                 setState(() {});
                 HomePage.of(context)?.refresh();
               });
@@ -365,7 +367,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
         PopupMenuItem<_MenuOption>(
           value: _MenuOption.favorite,
           child: Text(_isStarEnabled
-              ? _route == UserRoute.home
+              ? _route == StoredUserRoute.home
                   ? 'Unpin from home'
                   : 'Remove from route'
               : 'Pin to home'),
@@ -396,7 +398,7 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
                         style: Theme.of(context).textTheme.headline4,
                       ),
                       Text(
-                        'Arrival times of pinned buses are displayed on the ${_route == UserRoute.home ? 'homepage' : 'route page'}',
+                        'Arrival times of pinned buses are displayed on the ${_route == StoredUserRoute.home ? 'homepage' : 'route page'}',
                         textAlign: TextAlign.center,
                         style: Theme.of(context)
                             .textTheme
@@ -408,12 +410,13 @@ class BusStopDetailSheetState extends State<BusStopDetailSheet>
               : Container(),
         ),
         FutureBuilder<List<BusService>>(
-            initialData: const <BusService>[],
-            future: getServicesIn(_busStop!),
-            builder: (BuildContext context,
-                AsyncSnapshot<List<BusService>> snapshot) {
-              return _buildTimingList(snapshot.data!);
-            }),
+          initialData: const <BusService>[],
+          future: getServicesIn(_busStop!),
+          builder:
+              (BuildContext context, AsyncSnapshot<List<BusService>> snapshot) {
+            return _buildTimingList(snapshot.data!);
+          },
+        ),
       ],
     );
   }

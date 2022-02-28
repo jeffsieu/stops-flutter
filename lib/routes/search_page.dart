@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' as latlong;
 import 'package:location/location.dart';
+import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
 
 import '../main.dart';
@@ -193,7 +194,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
       if (_resultsSheetAnimationController.value > threshold &&
           _resultsSheetAnimationController.value < 1.0 - threshold) {
-        hideBusDetailSheet();
+        hideBusStopDetailSheet();
       }
       // if (!_resultsSheetAnimationController.isAnimating) {
       // }
@@ -336,7 +337,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         _scrollController.jumpTo(0);
       },
       onTap: () {
-        hideBusDetailSheet();
+        hideBusStopDetailSheet();
         if (_isMapVisible) {
           setState(() {
             _isMapVisible = false;
@@ -347,6 +348,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         contentPadding: const EdgeInsets.only(
             left: 16.0, top: 16.0, right: 16.0, bottom: 16.0),
         border: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        enabledBorder: InputBorder.none,
         hintText: widget.isSimpleMode
             ? 'Search for stops'
             : 'Search for stops, services',
@@ -366,8 +369,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         title: searchField,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Theme.of(context).colorScheme.secondary,
-          unselectedLabelColor: Theme.of(context).hintColor,
           onTap: _onTabTap,
           tabs: <Widget>[
             Tab(
@@ -578,6 +579,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         curve: Curves.easeInOutCubic,
                         child: Material(
                           color: Theme.of(context).scaffoldBackgroundColor,
+                          elevation: 2,
                           borderRadius: const BorderRadius.vertical(
                               bottom: Radius.circular(8.0)),
                           child: Padding(
@@ -776,7 +778,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             InfoWindow(title: busStop.displayName, snippet: busStop.road),
         onTap: () {
           if (_focusedBusStop == busStop || super.isBusDetailSheetVisible()) {
-            showBusDetailSheet(busStop, UserRoute.home);
+            showBusStopDetailSheet(busStop, context.read<StoredUserRoute>());
           } else {
             focusBusStopOnMap(busStop);
           }
@@ -907,7 +909,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         color: Theme.of(context).hintColor),
                   ),
                   title: Text(_searchHistory[position],
-                      style: Theme.of(context).textTheme.headline6),
+                      style: Theme.of(context).textTheme.titleMedium),
                   onTap: () => setState(() {
                     _query = _searchHistory[position];
                     _textController.text = _query;
@@ -936,8 +938,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   Widget _buildBusStopsSliverHeader() {
     final DateFormat dateFormat = MediaQuery.of(context).alwaysUse24HourFormat
-        ? DateFormat('hh:mm')
-        : DateFormat('HH:mm a');
+        ? DateFormat('HH:mm')
+        : DateFormat('hh:mm a');
     return SliverToBoxAdapter(
       child: AnimatedBuilder(
         animation: _resultsSheetAnimationController,
@@ -957,12 +959,12 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                       text: TextSpan(children: <InlineSpan>[
                     TextSpan(
                         text: 'Bus stops',
-                        style: Theme.of(context).textTheme.headline4),
+                        style: Theme.of(context).textTheme.titleLarge),
                     if (LocationUtils.currentLocationTimestamp != null)
                       TextSpan(
                         text:
                             ' • as of ${dateFormat.format(LocationUtils.currentLocationTimestamp!)}',
-                        style: Theme.of(context).textTheme.headline4?.copyWith(
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: Theme.of(context).hintColor,
                             ),
                       ),
@@ -986,7 +988,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         : (_query.isEmpty
                             ? 'Nearest stop'
                             : 'Nearest matching stop'),
-                    style: Theme.of(context).textTheme.headline4),
+                    style: Theme.of(context).textTheme.titleLarge),
               ),
             ),
             expandedPercentage: _resultsSheetExpandedPercentage,
@@ -1161,14 +1163,14 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       // Show bus detail sheet
       FocusScope.of(context).unfocus();
       Future<void>.delayed(const Duration(milliseconds: 100), () {
-        showBusDetailSheet(busStop, UserRoute.home);
+        showBusStopDetailSheet(busStop, StoredUserRoute.home);
       });
     }
   }
 
   @override
-  Future<void> showBusDetailSheet(BusStop busStop, UserRoute route) async {
-    super.showBusDetailSheet(busStop, route);
+  Future<void> showBusStopDetailSheet(BusStop busStop, StoredUserRoute route) async {
+    super.showBusStopDetailSheet(busStop, route);
     pushHistory(_query.trim());
   }
 

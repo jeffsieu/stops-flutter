@@ -19,8 +19,7 @@ jobs:
     - name: Install flutter
       uses: subosito/flutter-action@v1.5.3
       with:
-        # The Flutter version to make available on the path
-        flutter-version: '2.8.0'
+        flutter-version: '2.10.1'
         
     - run: flutter config --enable-web
     

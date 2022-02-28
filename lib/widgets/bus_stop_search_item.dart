@@ -50,7 +50,7 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
   @override
   void initState() {
     super.initState();
-    isBusStopInRoute(widget.busStop, UserRoute.home).then((bool contains) {
+    isBusStopInRouteWithId(widget.busStop, defaultRouteId).then((bool contains) {
       if (mounted) {
         setState(() {
           _isStarEnabled = contains;
@@ -58,7 +58,7 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
       }
     });
     _busStopListener = (BusStop busStop) {
-      isBusStopInRoute(widget.busStop, UserRoute.home).then((bool contains) {
+      isBusStopInRouteWithId(widget.busStop, defaultRouteId).then((bool contains) {
         if (mounted) {
           setState(() {
             _isStarEnabled = contains;
@@ -103,7 +103,7 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
                   child: Text(
                     widget.distance,
                     softWrap: false,
-                    style: Theme.of(context).textTheme.subtitle2!.copyWith(
+                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
                           color: Theme.of(context).hintColor,
                         ),
                   ),
@@ -118,19 +118,14 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
           AutoSizeText.rich(
             TextSpan(
               text: widget.nameStart,
-              style: Theme.of(context)
-                  .textTheme
-                  .headline6!
-                  .copyWith(fontWeight: FontWeight.normal),
+              style: Theme.of(context).textTheme.titleMedium,
               children: <TextSpan>[
                 TextSpan(
-                    text: widget.nameBold,
-                    style: Theme.of(context).textTheme.headline6!.copyWith(
-                          color: Theme.of(context).colorScheme.secondary,
-                          fontWeight: FontWeight.bold,
-                          decorationColor:
-                              Theme.of(context).textTheme.bodyText2!.color,
-                        )),
+                  text: widget.nameBold,
+                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                ),
                 TextSpan(text: widget.nameEnd),
               ],
             ),
@@ -141,23 +136,21 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
               text: widget.codeStart,
               style: Theme.of(context)
                   .textTheme
-                  .subtitle2!
+                  .titleSmall!
                   .copyWith(color: Theme.of(context).hintColor),
               children: <TextSpan>[
                 TextSpan(
-                    text: widget.codeBold,
-                    style: Theme.of(context).textTheme.subtitle2!.copyWith(
-                          color: Theme.of(context).colorScheme.secondary,
-                          fontWeight: FontWeight.bold,
-                          decorationColor:
-                              Theme.of(context).textTheme.bodyText2!.color,
-                        )),
+                  text: widget.codeBold,
+                  style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                ),
                 TextSpan(text: widget.codeEnd),
                 TextSpan(text: ' · ${widget.busStop.road}'),
               ],
             ),
             maxLines: 1,
-            style: Theme.of(context).textTheme.subtitle2,
+            style: Theme.of(context).textTheme.titleSmall,
           ),
         ],
       ),
@@ -180,10 +173,10 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
                     _isStarEnabled = !_isStarEnabled;
                   });
                   if (_isStarEnabled) {
-                    addBusStopToRoute(widget.busStop, UserRoute.home, context);
+                    addBusStopToRouteWithId(widget.busStop, defaultRouteId, context);
                   } else {
                     removeBusStopFromRoute(
-                        widget.busStop, UserRoute.home, context);
+                        widget.busStop, defaultRouteId, context);
                   }
                 } else if (item == 'Show on map') {
                   widget.onShowOnMapTap();

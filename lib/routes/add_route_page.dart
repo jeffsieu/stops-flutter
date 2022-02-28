@@ -20,10 +20,15 @@ import '../widgets/never_focus_node.dart';
 class AddRoutePage extends StatefulWidget {
   const AddRoutePage({Key? key})
       : route = null,
+        routeId = null,
         super(key: key);
-  const AddRoutePage.edit(this.route, {Key? key}) : super(key: key);
+  AddRoutePage.edit(StoredUserRoute storedRoute, {Key? key})
+      : route = storedRoute,
+        routeId = storedRoute.id,
+        super(key: key);
 
   final UserRoute? route;
+  final int? routeId;
 
   @override
   State createState() {
@@ -255,69 +260,6 @@ class AddRoutePageState extends State<AddRoutePage> {
               );
             },
           );
-
-          return Reorderable(
-            key: ValueKey<BusStop>(busStop),
-            builder: (BuildContext context, Animation<double> dragAnimation,
-                bool inDrag) {
-              const double initialElevation = 2.0;
-              final double elevation =
-                  Tween<double>(begin: initialElevation, end: 10.0)
-                      .animate(CurvedAnimation(
-                          parent: dragAnimation, curve: Curves.easeOutCubic))
-                      .value;
-              final Color? materialColor = Color.lerp(
-                  Theme.of(context).cardColor,
-                  Colors.white,
-                  dragAnimation.value / 10);
-
-              final Widget card = Material(
-                color: materialColor,
-                elevation: elevation,
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Handle(
-                        child: ListTile(
-                          leading: SizedBox(
-                            width: 24,
-                            child: Text(
-                              '${position + 1}.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headline6!
-                                  .copyWith(color: _color),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                          title: Text(busStop.displayName),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      padding: const EdgeInsets.all(16.0),
-                      color: Theme.of(context).hintColor,
-                      icon: const Icon(Icons.clear_rounded),
-                      onPressed: () => setState(() {
-                        busStops.remove(busStop);
-                      }),
-                    ),
-                  ],
-                ),
-              );
-
-              if (dragAnimation.value > 0.0) {
-                return card;
-              }
-
-              return SizeFadeTransition(
-                sizeFraction: 0.75,
-                curve: Curves.easeInOut,
-                animation: itemAnimation,
-                child: card,
-              );
-            },
-          );
         },
       ),
     );
@@ -381,14 +323,27 @@ class AddRoutePageState extends State<AddRoutePage> {
 
   void _popRoute() {
     Navigator.pop(
-        context,
-        UserRoute.withId(
-            id: widget.route?.id,
-            name: _nameController.text,
-            color: _color,
-            busStops: busStops
-                .map((BusStop busStop) => BusStopWithPinnedServices.fromBusStop(
-                    busStop, <BusService>[]))
-                .toList()));
+      context,
+      widget.routeId != null
+          ? StoredUserRoute(
+              id: widget.routeId!,
+              name: _nameController.text,
+              color: _color,
+              busStops: busStops
+                  .map((BusStop busStop) =>
+                      BusStopWithPinnedServices.fromBusStop(
+                          busStop, <BusService>[]))
+                  .toList(),
+            )
+          : UserRoute(
+              name: _nameController.text,
+              color: _color,
+              busStops: busStops
+                  .map((BusStop busStop) =>
+                      BusStopWithPinnedServices.fromBusStop(
+                          busStop, <BusService>[]))
+                  .toList(),
+            ),
+    );
   }
 }

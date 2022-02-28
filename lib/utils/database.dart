@@ -8,6 +8,7 @@ import '../models/bus_service.dart';
 import '../models/bus_service_route.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_stop_with_distance.dart';
+import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import 'database/shared.dart';
 import 'database_utils.dart';
@@ -101,16 +102,19 @@ class PinnedBusServices extends Table {
   @override
   String get tableName => 'pinned_bus_service';
 
-  IntColumn get routeId =>
-      integer().named('routeId').references(UserRouteBusStops, #routeId)();
-  TextColumn get busStopCode => text()
-      .named('busStopCode')
-      .withLength(min: 5, max: 5)
-      .references(UserRouteBusStops, #busStopCode)();
+  IntColumn get routeId => integer().named('routeId')();
+  TextColumn get busStopCode =>
+      text().named('busStopCode').withLength(min: 5, max: 5)();
   TextColumn get busServiceNumber => text()
       .named('busServiceNumber')
       .withLength(max: 4)
       .references(BusServices, #number)();
+
+  @override
+  List<String> get customConstraints => [
+        // Custom constraint to reference composite primary key
+        'FOREIGN KEY (routeId, busStopCode) REFERENCES user_route_bus_stop (routeId, busStopCode)',
+      ];
 }
 
 @DriftDatabase(
@@ -200,39 +204,47 @@ class StopsDatabase extends _$StopsDatabase {
     await update(busStops).replace(entry);
   }
 
-  Future<List<BusStop>> getBusStopsInRoute(UserRoute route) async {
+  Future<UserRouteEntry> getRouteEntryWithId(int routeId) async {
+    final query = select(userRoutes)
+      ..where((ur) => ur.id.equals(routeId))
+      ..orderBy([(ur) => OrderingTerm(expression: ur.position)]);
+    final results = await query.get();
+    return results.first;
+  }
+
+  Future<List<BusStop>> getBusStopsInRouteWithId(int routeId) async {
     final query = select(busStops).join([
       innerJoin(userRouteBusStops,
           busStops.code.equalsExp(userRouteBusStops.busStopCode))
     ])
-      ..where(userRouteBusStops.routeId.equals(route.id))
+      ..where(userRouteBusStops.routeId.equals(routeId))
       ..orderBy([OrderingTerm(expression: userRouteBusStops.position)]);
     final results = await query.get();
     return results.map((e) => e.readTable(busStops).toModel()).toList();
   }
 
-  Future<void> addBusStopToRoute(BusStop busStop, UserRoute route) async {
+  Future<void> addBusStopToRouteWithId(BusStop busStop, int routeId) async {
     final newBusStopPositionColumn = userRouteBusStops.position.count();
     final newBusStopPositionQuery = selectOnly(userRouteBusStops)
-      ..addColumns([])
-      ..where(userRouteBusStops.routeId.equals(route.id));
+      ..addColumns([newBusStopPositionColumn])
+      ..where(userRouteBusStops.routeId.equals(routeId));
     final int newBusStopPosition = (await newBusStopPositionQuery.getSingle())
         .read(newBusStopPositionColumn);
     await into(userRouteBusStops).insert(UserRouteBusStopEntry(
-      routeId: route.id!,
+      routeId: routeId,
       busStopCode: busStop.code,
       position: newBusStopPosition,
     ));
   }
 
-  Future<void> removeBusStopFromRoute(BusStop busStop, UserRoute route) async {
+  Future<void> removeBusStopFromRoute(BusStop busStop, int routeId) async {
     final int removedPosition = (await (select(userRouteBusStops)
-              ..where((u) => u.routeId.equals(route.id))
+              ..where((u) => u.routeId.equals(routeId))
               ..where((u) => u.busStopCode.equals(busStop.code)))
             .getSingle())
         .position;
     await (delete(userRouteBusStops)
-          ..where((u) => u.routeId.equals(route.id))
+          ..where((u) => u.routeId.equals(routeId))
           ..where((u) => u.busStopCode.equals(busStop.code)))
         .go();
     final incrementPosition = UserRouteBusStopsCompanion.custom(
@@ -241,14 +253,14 @@ class StopsDatabase extends _$StopsDatabase {
       const Constant(0)
     ]));
     await (update(userRouteBusStops)
-          ..where((u) => u.routeId.equals(route.id))
+          ..where((u) => u.routeId.equals(routeId))
           ..where((u) => u.position.isBiggerThanValue(removedPosition)))
         .write(incrementPosition);
   }
 
-  Future<bool> isBusStopInRoute(BusStop busStop, UserRoute route) async {
+  Future<bool> isBusStopInRouteWithId(BusStop busStop, int routeId) async {
     final query = select(userRouteBusStops)
-      ..where((u) => u.routeId.equals(route.id))
+      ..where((u) => u.routeId.equals(routeId))
       ..where((u) => u.busStopCode.equals(busStop.code));
     return await query.getSingleOrNull() != null;
   }
@@ -261,38 +273,36 @@ class StopsDatabase extends _$StopsDatabase {
         (await newRoutePositionQuery.getSingle()).read(userRoutes.id.count()) -
             1;
 
-    await transaction(() async {
-      // Insert new route
-      final int newRouteId =
-          await into(userRoutes).insert(route.toEntry(newRoutePosition));
+    // Insert new route
+    final int newRouteId = await into(userRoutes)
+        .insert(route.toInsertCompanion(newRoutePosition));
 
-      // Insert new bus stops
-      for (int position = 0; position < route.busStops.length; position++) {
-        final BusStop busStop = route.busStops[position];
-        await into(userRouteBusStops).insert(UserRouteBusStopEntry(
-          routeId: newRouteId,
-          busStopCode: busStop.code,
-          position: position,
-        ));
-      }
-    });
+    // Insert new bus stops
+    for (int position = 0; position < route.busStops.length; position++) {
+      final BusStop busStop = route.busStops[position];
+      await into(userRouteBusStops).insert(UserRouteBusStopEntry(
+        routeId: newRouteId,
+        busStopCode: busStop.code,
+        position: position,
+      ));
+    }
+    // });
   }
 
-  Future<void> updateUserRoute(UserRoute route) async {
-    assert(route.id != null);
+  Future<void> updateUserRoute(StoredUserRoute route) async {
     await transaction(() async {
       await update(userRoutes).replace(route.toCompanion());
 
       // Remove all bus stops from route
       await (delete(userRouteBusStops)
-            ..where((u) => u.routeId.equals(route.id!)))
+            ..where((u) => u.routeId.equals(route.id)))
           .go();
 
       // Insert new bus stops
       for (int position = 0; position < route.busStops.length; position++) {
         final BusStop busStop = route.busStops[position];
         await into(userRouteBusStops).insert(UserRouteBusStopEntry(
-          routeId: route.id!,
+          routeId: route.id,
           busStopCode: busStop.code,
           position: position,
         ));
@@ -300,9 +310,9 @@ class StopsDatabase extends _$StopsDatabase {
     });
   }
 
-  Future<void> deleteUserRoute(UserRoute route) async {
+  Future<void> deleteUserRoute(StoredUserRoute route) async {
     final int position = (await (select(userRoutes)
-              ..where((u) => u.id.equals(route.id!)))
+              ..where((u) => u.id.equals(route.id)))
             .getSingle())
         .position;
 
@@ -322,13 +332,13 @@ class StopsDatabase extends _$StopsDatabase {
     });
   }
 
-  Future<List<UserRoute>> getUserRoutes() async {
+  Future<List<UserRouteEntry>> getStoredUserRoutes() async {
     final query = select(userRoutes)
       ..where((ur) => ur.id.equals(defaultRouteId).not())
       ..orderBy([(ur) => OrderingTerm(expression: ur.position)]);
     final results = await query.get();
-    final List<UserRoute> routes = results.map((e) => e.toModel()).toList();
-    return routes;
+    // final List<UserRoute> routes = results.map((e) => e.toModel()).toList();
+    return results;
   }
 
   Future<void> moveUserRoutePosition(int from, int to) async {
@@ -355,7 +365,7 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> moveBusStopPositionInRoute(
-      int from, int to, UserRoute route) async {
+      int from, int to, StoredUserRoute route) async {
     final int direction = (to - from).sign;
     await transaction(() async {
       // Change from's position to -2
@@ -473,17 +483,17 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> pinBusService(
-      BusStop busStop, BusService busService, UserRoute route) async {
+      BusStop busStop, BusService busService, StoredUserRoute route) async {
     await into(pinnedBusServices).insert(
       PinnedBusServiceEntry(
-          routeId: route.id!,
+          routeId: route.id,
           busStopCode: busStop.code,
           busServiceNumber: busService.number),
     );
   }
 
   Future<void> unpinBusService(
-      BusStop busStop, BusService busService, UserRoute route) async {
+      BusStop busStop, BusService busService, StoredUserRoute route) async {
     await (delete(pinnedBusServices)
           ..where((p) => p.routeId.equals(route.id))
           ..where((p) => p.busStopCode.equals(busStop.code))
@@ -492,26 +502,22 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<bool> isBusServicePinned(
-      BusStop busStop, BusService busService, UserRoute route) async {
+      BusStop busStop, BusService busService, StoredUserRoute route) async {
     final result = await (select(pinnedBusServices)
-          ..where((p) => p.routeId.equals(route.id ?? defaultRouteId))
+          ..where((p) => p.routeId.equals(route.id))
           ..where((p) => p.busStopCode.equals(busStop.code))
           ..where((p) => p.busServiceNumber.equals(busService.number)))
         .getSingleOrNull();
     return result != null;
   }
 
-  Future<List<BusService>> getPinnedServicesIn(
-      BusStop busStop, UserRoute route) async {
-    //  'SELECT * FROM pinned_bus_service INNER JOIN bus_service '
-    // 'ON pinned_bus_service.busServiceNumber = bus_service.number '
-    // 'WHERE routeId = ? and pinned_bus_service.busStopCode = ?',
-
+  Future<List<BusService>> getPinnedServicesInRouteWithId(
+      BusStop busStop, int routeId) async {
     final result = await (select(pinnedBusServices).join([
       innerJoin(busServices,
           pinnedBusServices.busServiceNumber.equalsExp(busServices.number)),
     ])
-          ..where(pinnedBusServices.routeId.equals(route.id))
+          ..where(pinnedBusServices.routeId.equals(routeId))
           ..where(pinnedBusServices.busStopCode.equals(busStop.code))
           ..orderBy([
             OrderingTerm(expression: pinnedBusServices.busServiceNumber),
@@ -564,9 +570,8 @@ extension on BusService {
 }
 
 extension on UserRoute {
-  UserRouteEntry toEntry(int position) {
-    return UserRouteEntry(
-      id: id!,
+  UserRoutesCompanion toInsertCompanion(int position) {
+    return UserRoutesCompanion.insert(
       name: name,
       color: color.value,
       position: position,
@@ -604,11 +609,12 @@ extension on BusServiceEntry {
 }
 
 extension on UserRouteEntry {
-  UserRoute toModel() {
-    return UserRoute(
+  StoredUserRoute toModel(List<BusStopWithPinnedServices> busStops) {
+    return StoredUserRoute(
       id: id,
       name: name,
       color: Color(color),
+      busStops: busStops,
     );
   }
 }

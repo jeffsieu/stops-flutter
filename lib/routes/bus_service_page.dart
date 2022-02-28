@@ -176,26 +176,26 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                                     left: 88.0, top: 24.0, bottom: 8.0),
                                 child: Text(busStop.road,
                                     style:
-                                        Theme.of(context).textTheme.headline4),
+                                        Theme.of(context).textTheme.titleLarge),
                               ),
                             Material(
                               color: busStop == widget.focusedBusStop
                                   ? focusedColor
                                   : Colors.transparent,
                               child: InkWell(
-                                onTap: () =>
-                                    showBusDetailSheet(busStop, UserRoute.home),
+                                onTap: () => showBusStopDetailSheet(
+                                    busStop, StoredUserRoute.home),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 8.0),
                                   title: Text(busStop.defaultName,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .headline6),
+                                          .titleMedium),
                                   subtitle: Text(busStop.code,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .subtitle2!
+                                          .titleSmall!
                                           .copyWith(
                                               color:
                                                   Theme.of(context).hintColor)),
@@ -235,7 +235,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                                               '$distance km',
                                               style: Theme.of(context)
                                                   .textTheme
-                                                  .subtitle2!
+                                                  .titleSmall!
                                                   .copyWith(
                                                       color: Theme.of(context)
                                                           .hintColor),
