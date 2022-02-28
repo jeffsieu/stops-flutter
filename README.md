@@ -24,11 +24,11 @@ Or check out the [releases page](https://github.com/jeffsieu/stops-flutter/relea
 ## Screenshots
 
 <p align="middle">
- <img src="https://user-images.githubusercontent.com/8487294/88450897-0b132e00-ce85-11ea-8a07-5c200e6eabbb.png" width=300>
- <img src="https://user-images.githubusercontent.com/8487294/88450899-0c445b00-ce85-11ea-8540-65293e3453a5.png" width=300>
- <img src="https://user-images.githubusercontent.com/8487294/88450914-2aaa5680-ce85-11ea-9406-d40dda15dde0.png" width=300>
- <img src="https://user-images.githubusercontent.com/8487294/88450917-2c741a00-ce85-11ea-8599-0d4b079386cd.png" width=300>
- <img src="https://user-images.githubusercontent.com/8487294/88450982-da7fc400-ce85-11ea-84b7-151add2f3443.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/155939870-15718cc7-929a-4ec1-a8f2-d2dbaa2a3d9c.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/155939871-1d852da4-e53a-4cfe-912f-d850c713f890.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/155939862-9ff5f850-d6dd-4498-92a5-861da788a540.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/155939867-bb53a1e5-6d97-47d1-bca9-88620aa51407.png" width=300>
+ <img src="https://user-images.githubusercontent.com/8487294/155939868-82444371-ef33-42b4-b194-86b4871ca918.png" width=300>
  <img src="https://user-images.githubusercontent.com/8487294/88450919-2ed67400-ce85-11ea-9954-e3f09718995a.png" width=300>
  <img src="https://user-images.githubusercontent.com/8487294/88451013-03a05480-ce86-11ea-8983-ebff80ba871a.png" width=300>
  <img src="https://user-images.githubusercontent.com/8487294/88451016-04d18180-ce86-11ea-9786-558d2ad26149.png" width=300>
