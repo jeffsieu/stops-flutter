@@ -334,8 +334,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
               snapshot.connectionState != ConnectionState.waiting) {
             _followedBuses = snapshot.data!;
           }
-          final hasTrackedBuses =
-              snapshot.hasData && snapshot.data!.isNotEmpty;
+          final hasTrackedBuses = snapshot.hasData && snapshot.data!.isNotEmpty;
           return AnimatedOpacity(
             opacity: hasTrackedBuses ? 1 : 0,
             duration: hasTrackedBuses
@@ -432,8 +431,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                     action: SnackBarAction(
                                       label: 'Undo',
                                       onPressed: () async {
-                                        for (var trackedBus
-                                            in trackedBuses) {
+                                        for (var trackedBus in trackedBuses) {
                                           await followBus(
                                               stop:
                                                   trackedBus['stop'] as String,
@@ -499,6 +497,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16.0),
                       Container(
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.all(16.0),
@@ -551,10 +550,9 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                 itemBuilder:
                                     (BuildContext context, int position) {
                                   final busStopWithDistance = isLoaded &&
-                                              position <
-                                                  _nearestBusStops!.length
-                                          ? _nearestBusStops![position]
-                                          : null;
+                                          position < _nearestBusStops!.length
+                                      ? _nearestBusStops![position]
+                                      : null;
                                   return _buildSuggestionItem(
                                       busStopWithDistance);
                                 },
