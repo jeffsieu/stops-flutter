@@ -1,3 +1,4 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,97 +50,126 @@ class StopsAppState extends State<StopsApp> {
 
   @override
   Widget build(BuildContext context) {
-    final headerTextStyle =
-        GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
-    final mainTextStyle =
-        GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
+    final headerTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
+    final mainTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
 
-    final textTheme = TextTheme(
-      headline1: mainTextStyle,
-      headline2: mainTextStyle,
-      headline3: mainTextStyle,
-      headline4: headerTextStyle.copyWith(
-          color: Colors.deepOrangeAccent, fontSize: 18),
-      headline5: headerTextStyle.copyWith(fontSize: 24),
-      headline6: mainTextStyle,
-      subtitle1: mainTextStyle,
-      subtitle2: mainTextStyle,
-      bodyText1: mainTextStyle,
-      bodyText2: mainTextStyle,
-      button: mainTextStyle,
-      caption: mainTextStyle,
-      overline: mainTextStyle,
-    );
+    return DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) {
+        final lightColorScheme = lightDynamic != null
+            ? FlexColorScheme(colorScheme: lightDynamic).toScheme
+            : const FlexColorScheme(primary: Colors.deepOrange).toScheme;
 
-    final lightTheme = FlexThemeData.light(
-      useMaterial3: true,
-      colors: FlexSchemeColor.from(primary: Colors.deepOrange),
-      fontFamily: GoogleFonts.nunitoSans().fontFamily,
-      blendLevel: 16,
-      subThemesData: const FlexSubThemesData(
-        inputDecoratorBorderType: FlexInputBorderType.underline,
-        inputDecoratorRadius: 8,
-        inputDecoratorIsFilled: false,
-      ),
-      appBarStyle: FlexAppBarStyle.surface,
-      tabBarStyle: FlexTabBarStyle.forBackground,
-      surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
-    );
+        final darkColorScheme = darkDynamic != null
+            ? FlexColorScheme(colorScheme: darkDynamic).toScheme
+            : const FlexColorScheme(primary: Colors.orange).toScheme;
 
-    final lightThemeWithBoldText = lightTheme.copyWith(
-      textTheme: lightTheme.textTheme.merge(textTheme),
-      splashColor: Colors.black.withOpacity(0.05),
-      splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
-      popupMenuTheme: PopupMenuThemeData(
-        elevation: 10,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        color: FlexSchemeSurfaceColors.blend(
-                blendLevel: 32,
-                schemeColors: FlexSchemeColor.from(primary: Colors.deepOrange))
-            .dialogBackground,
-      ),
-    );
+        final lightTextTheme = TextTheme(
+          headline1: mainTextStyle,
+          headline2: mainTextStyle,
+          headline3: mainTextStyle,
+          headline4: headerTextStyle.copyWith(
+              color: lightColorScheme.tertiary, fontSize: 18),
+          headline5: headerTextStyle.copyWith(fontSize: 24),
+          headline6: mainTextStyle,
+          subtitle1: mainTextStyle,
+          subtitle2: mainTextStyle,
+          bodyText1: mainTextStyle,
+          bodyText2: mainTextStyle,
+          button: mainTextStyle,
+          caption: mainTextStyle,
+          overline: mainTextStyle,
+        );
 
-    final darkTheme = FlexThemeData.dark(
-      useMaterial3: true,
-      colors: FlexSchemeColor.from(primary: Colors.orange),
-      fontFamily: GoogleFonts.nunitoSans().fontFamily,
-      blendLevel: 16,
-      subThemesData: const FlexSubThemesData(
-        inputDecoratorBorderType: FlexInputBorderType.underline,
-        inputDecoratorRadius: 8,
-        inputDecoratorIsFilled: false,
-      ),
-      appBarStyle: FlexAppBarStyle.surface,
-      tabBarStyle: FlexTabBarStyle.forBackground,
-      surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
-    );
+        final darkTextTheme = TextTheme(
+          headline1: mainTextStyle,
+          headline2: mainTextStyle,
+          headline3: mainTextStyle,
+          headline4: headerTextStyle.copyWith(
+              color: darkColorScheme.tertiary, fontSize: 18),
+          headline5: headerTextStyle.copyWith(fontSize: 24),
+          headline6: mainTextStyle,
+          subtitle1: mainTextStyle,
+          subtitle2: mainTextStyle,
+          bodyText1: mainTextStyle,
+          bodyText2: mainTextStyle,
+          button: mainTextStyle,
+          caption: mainTextStyle,
+          overline: mainTextStyle,
+        );
 
-    final darkThemeWithBoldText = darkTheme.copyWith(
-      textTheme: darkTheme.textTheme.merge(textTheme),
-      splashColor: Colors.white.withOpacity(0.05),
-      splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
-      popupMenuTheme: PopupMenuThemeData(
-        elevation: 10,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        color: FlexSchemeSurfaceColors.blend(
-                brightness: Brightness.dark,
-                blendLevel: 32,
-                schemeColors: FlexSchemeColor.from(primary: Colors.orange))
-            .dialogBackground,
-      ),
-    );
+        final lightTheme = FlexThemeData.light(
+          useMaterial3: true,
+          colorScheme: lightColorScheme,
+          fontFamily: GoogleFonts.nunitoSans().fontFamily,
+          blendLevel: 16,
+          subThemesData: const FlexSubThemesData(
+            inputDecoratorBorderType: FlexInputBorderType.underline,
+            inputDecoratorRadius: 8,
+            inputDecoratorIsFilled: false,
+          ),
+          appBarStyle: FlexAppBarStyle.surface,
+          tabBarStyle: FlexTabBarStyle.forBackground,
+          surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+        );
 
-    return MaterialApp(
-      title: 'Stops',
-      themeMode: themeMode,
-      home: const HomePage(),
-      theme: lightThemeWithBoldText,
-      darkTheme: darkThemeWithBoldText,
+        final lightThemeWithBoldText = lightTheme.copyWith(
+          textTheme: lightTheme.textTheme.merge(lightTextTheme),
+          splashColor: Colors.black.withOpacity(0.05),
+          splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
+          popupMenuTheme: PopupMenuThemeData(
+            elevation: 10,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            color: FlexSchemeSurfaceColors.blend(
+                    blendLevel: 32,
+                    schemeColors:
+                        FlexSchemeColor.from(primary: lightColorScheme.primary))
+                .dialogBackground,
+          ),
+        );
+
+        final darkTheme = FlexThemeData.dark(
+          useMaterial3: true,
+          colorScheme: darkColorScheme,
+          fontFamily: GoogleFonts.nunitoSans().fontFamily,
+          blendLevel: 16,
+          subThemesData: const FlexSubThemesData(
+            inputDecoratorBorderType: FlexInputBorderType.underline,
+            inputDecoratorRadius: 8,
+            inputDecoratorIsFilled: false,
+          ),
+          appBarStyle: FlexAppBarStyle.surface,
+          tabBarStyle: FlexTabBarStyle.forBackground,
+          surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+        );
+
+        final darkThemeWithBoldText = darkTheme.copyWith(
+          textTheme: darkTheme.textTheme.merge(darkTextTheme),
+          splashColor: Colors.white.withOpacity(0.05),
+          splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
+          popupMenuTheme: PopupMenuThemeData(
+            elevation: 10,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            color: FlexSchemeSurfaceColors.blend(
+                    brightness: Brightness.dark,
+                    blendLevel: 32,
+                    schemeColors:
+                        FlexSchemeColor.from(primary: darkColorScheme.primary))
+                .dialogBackground,
+          ),
+        );
+
+        return MaterialApp(
+          title: 'Stops',
+          themeMode: themeMode,
+          home: const HomePage(),
+          theme: lightThemeWithBoldText,
+          darkTheme: darkThemeWithBoldText,
+        );
+      },
     );
   }
 }

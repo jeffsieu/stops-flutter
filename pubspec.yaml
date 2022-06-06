@@ -39,6 +39,7 @@ dependencies:
   shimmer: ^2.0.0
   sqlite3_flutter_libs: ^0.5.0
   url_launcher: ^6.0.17
+  dynamic_color: ^1.4.0
 
 dev_dependencies:
   flutter_test:

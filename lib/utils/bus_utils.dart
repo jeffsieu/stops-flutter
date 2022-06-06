@@ -1,3 +1,4 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 
 import 'bus_service_arrival_result.dart';
@@ -17,7 +18,7 @@ Color getBusOperatorColor(String operator) {
   }
 }
 
-Color getBusLoadColor(BusLoad? load, Brightness brightness) {
+Color getBusLoadColor(BusLoad? load, ThemeData themeData) {
   MaterialColor color;
   switch (load) {
     case BusLoad.low:
@@ -32,10 +33,10 @@ Color getBusLoadColor(BusLoad? load, Brightness brightness) {
     default:
       return Colors.transparent;
   }
-  if (brightness == Brightness.light) {
-    return color;
+  if (themeData.brightness == Brightness.light) {
+    return color.harmonizeWith(themeData.colorScheme.primary);
   } else {
-    return color.shade300;
+    return color.shade300.harmonizeWith(themeData.colorScheme.primary);
   }
 }
 
@@ -92,8 +93,7 @@ extension BusNumberFormat on String {
     // Service number contains letter
     final serviceNumber = this;
     if (serviceNumber.contains(RegExp(r'\D'))) {
-      final number =
-          serviceNumber.substring(0, serviceNumber.length - 1);
+      final number = serviceNumber.substring(0, serviceNumber.length - 1);
       final letter = serviceNumber[serviceNumber.length - 1];
       return number.padLeft(3) + letter;
     } else {

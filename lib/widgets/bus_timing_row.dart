@@ -291,7 +291,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
       _controller.reset();
     }
     final busLoadColor = getBusLoadColor(
-        widget.busArrival?.load, MediaQuery.of(context).platformBrightness);
+        widget.busArrival?.load, Theme.of(context));
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [

@@ -8,7 +8,7 @@ class BusStopLegendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = MediaQuery.of(context).platformBrightness;
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
@@ -40,7 +40,7 @@ class BusStopLegendCard extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 16.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.0),
-                  color: getBusLoadColor(BusLoad.low, brightness),
+                  color: getBusLoadColor(BusLoad.low, theme),
                 ),
               ),
               const Text('Many seats'),
@@ -54,7 +54,7 @@ class BusStopLegendCard extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 16.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.0),
-                  color: getBusLoadColor(BusLoad.medium, brightness),
+                  color: getBusLoadColor(BusLoad.medium, theme),
                 ),
               ),
               const Text('Some seats'),
@@ -68,7 +68,7 @@ class BusStopLegendCard extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 16.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.0),
-                  color: getBusLoadColor(BusLoad.high, brightness),
+                  color: getBusLoadColor(BusLoad.high, theme),
                 ),
               ),
               const Text('Few seats'),
