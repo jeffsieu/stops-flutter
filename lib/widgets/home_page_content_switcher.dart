@@ -24,7 +24,7 @@ class HomePageContentSwitcher extends StatelessWidget {
         );
       },
       transitionBuilder: (Widget child, Animation<double> animation) {
-        final bool entering = child.key == this.child.key;
+        final entering = child.key == this.child.key;
         if (entering) {
           late void Function() listener;
           listener = () {

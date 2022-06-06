@@ -64,22 +64,22 @@ Future<void> updateNotifications() async {
     notifications.initialize(initializationSettings);
     _isInitialized = true;
   }
-  final List<DateTime> arrivalTimes = <DateTime>[];
-  final List<Bus> followedBuses = List<Bus>.from(await getFollowedBuses());
-  final List<String> shortMessageParts = <String>[];
-  final List<String> longMessageParts = <String>[];
+  final arrivalTimes = <DateTime>[];
+  final followedBuses = List<Bus>.from(await getFollowedBuses());
+  final shortMessageParts = <String>[];
+  final longMessageParts = <String>[];
 
   DateTime? earliestNotificationTime;
 
-  int busCount = 0;
+  var busCount = 0;
   int? leastMinutesLeft;
-  for (Bus followedBus in followedBuses) {
-    final String busNumber = followedBus.busService.number;
-    final String stopCode = followedBus.busStop.code;
-    final DateTime? arrivalTime =
+  for (var followedBus in followedBuses) {
+    final busNumber = followedBus.busService.number;
+    final stopCode = followedBus.busStop.code;
+    final arrivalTime =
         await BusAPI().getArrivalTime(followedBus.busStop, busNumber);
 
-    int minutesLeft = 0;
+    var minutesLeft = 0;
     if (arrivalTime != null) {
       arrivalTimes.add(arrivalTime);
       minutesLeft = arrivalTime.getMinutesFromNow();
@@ -88,7 +88,7 @@ Future<void> updateNotifications() async {
     }
 
     if (minutesLeft >= 2) {
-      final DateTime nextNotificationTime =
+      final nextNotificationTime =
           arrivalTime!.subtract(Duration(minutes: minutesLeft - 1));
 
       if (earliestNotificationTime == null ||
@@ -120,9 +120,9 @@ Future<void> updateNotifications() async {
 
   longMessageParts.sort((String a, String b) =>
       compareBusNumber(a.split(' ')[0], b.split(' ')[0]));
-  final String message = longMessageParts.join('\n');
+  final message = longMessageParts.join('\n');
 
-  final AndroidNotificationDetails silentAndroidDetails =
+  final silentAndroidDetails =
       AndroidNotificationDetails(
     _busArrivalSilentChannelId,
     _busArrivalSilentChannelName,
@@ -139,7 +139,7 @@ Future<void> updateNotifications() async {
     styleInformation: BigTextStyleInformation(message),
   );
 
-  final NotificationDetails silentNotificationDetails =
+  final silentNotificationDetails =
       NotificationDetails(android: silentAndroidDetails, iOS: iosDetails);
 
   notifications.show(

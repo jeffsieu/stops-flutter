@@ -1,27 +1,19 @@
 import 'dart:async';
 
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../models/bus_service.dart';
 import '../../models/bus_stop.dart';
 import '../../models/user_route.dart';
-import '../../routes/home_page.dart';
 import '../../routes/settings_page.dart';
 import '../../utils/bus_api.dart';
 import '../../utils/bus_service_arrival_result.dart';
-import '../../utils/bus_utils.dart';
 import '../../utils/database_utils.dart';
 import '../../widgets/bus_stop_legend_card.dart';
-import '../../widgets/bus_timing_row.dart';
-import '../../widgets/info_card.dart';
 import '../bloc/bus_stop_sheet_bloc.dart';
 import 'bus_stop_sheet_header.dart';
-import 'bus_stop_sheet_header_dropdown.dart';
 import 'bus_stop_sheet_service_list.dart';
 
 const Duration kSheetUpdateDuration = Duration(milliseconds: 1000);

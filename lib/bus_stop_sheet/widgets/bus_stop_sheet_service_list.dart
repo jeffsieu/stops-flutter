@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
-import 'package:stops_sg/models/bus_service.dart';
-import 'package:stops_sg/models/bus_stop.dart';
-import 'package:stops_sg/models/user_route.dart';
-import 'package:stops_sg/utils/bus_api.dart';
-import 'package:stops_sg/utils/bus_service_arrival_result.dart';
-import 'package:stops_sg/utils/bus_utils.dart';
-import 'package:stops_sg/utils/database_utils.dart';
-import 'package:stops_sg/widgets/bus_timing_row.dart';
-import 'package:stops_sg/widgets/info_card.dart';
+
+import '../../models/bus_service.dart';
+import '../../models/bus_stop.dart';
+import '../../utils/bus_api.dart';
+import '../../utils/bus_service_arrival_result.dart';
+import '../../utils/bus_utils.dart';
+import '../../utils/database_utils.dart';
+import '../../widgets/bus_timing_row.dart';
+import '../../widgets/info_card.dart';
+import '../bloc/bus_stop_sheet_bloc.dart';
+import 'bus_stop_sheet.dart';
 
 class BusStopSheetServiceList extends StatelessWidget {
   const BusStopSheetServiceList({Key? key, required this.timingListAnimation})

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../bus_stop_sheet/widgets/bus_stop_sheet.dart';
 import '../main.dart';
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
@@ -15,7 +16,6 @@ import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/time_utils.dart';
-import '../bus_stop_sheet/widgets/bus_stop_sheet.dart';
 
 class BusTimingRow extends StatefulWidget {
   const BusTimingRow(
@@ -80,11 +80,11 @@ class _BusTimingState extends State<BusTimingRow>
 
   @override
   Widget build(BuildContext context) {
-    final StoredUserRoute route = context.watch<StoredUserRoute>();
+    final route = context.watch<StoredUserRoute>();
     final Widget item = InkWell(
       onTap: widget.isEditing
           ? () async {
-              final bool isPinned = await isBusServicePinned(
+              final isPinned = await isBusServicePinned(
                   widget.busStop, widget.busService, route);
 
               if (isPinned) {
@@ -117,8 +117,8 @@ class _BusTimingState extends State<BusTimingRow>
                             widget.busStop, widget.busService, route),
                         builder: (BuildContext context,
                             AsyncSnapshot<bool> snapshot) {
-                          final bool isChecked = snapshot.data!;
-                          final Checkbox checkbox = Checkbox(
+                          final isChecked = snapshot.data!;
+                          final checkbox = Checkbox(
                               value: isChecked,
                               onChanged: (bool? checked) async {
                                 if (checked ?? false) {
@@ -185,13 +185,13 @@ class _BusTimingState extends State<BusTimingRow>
                   unfollowBus(
                       stop: widget.busStop.code, bus: widget.busService.number);
                 } else {
-                  final SnackBar snackBar = SnackBar(
+                  final snackBar = SnackBar(
                       content: Text(
                           'Tracking the ${widget.busService.number} bus arriving in ${widget.arrivalResult!.buses.first!.arrivalTime.getMinutesFromNow()} min'));
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                  final DateTime estimatedArrivalTime =
+                  final estimatedArrivalTime =
                       widget.arrivalResult!.buses.first!.arrivalTime;
                   followBus(
                       stop: widget.busStop.code,
@@ -290,7 +290,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
       _controller.stop();
       _controller.reset();
     }
-    final Color busLoadColor = getBusLoadColor(
+    final busLoadColor = getBusLoadColor(
         widget.busArrival?.load, MediaQuery.of(context).platformBrightness);
     return Stack(
       alignment: Alignment.bottomCenter,

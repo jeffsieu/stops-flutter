@@ -144,7 +144,7 @@ class StopsDatabase extends _$StopsDatabase {
             position: -1,
             color: 0,
           ));
-          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          final prefs = await SharedPreferences.getInstance();
           await prefs.setBool(kAreBusStopsCachedKey, false);
           // }
         },
@@ -166,7 +166,7 @@ class StopsDatabase extends _$StopsDatabase {
       double latitude, double longitude, String busServiceFilter) async {
     if (busServiceFilter.isNotEmpty) {
       // Make sure that bus service is an integer
-      final int? busService = int.tryParse(busServiceFilter);
+      final busService = int.tryParse(busServiceFilter);
       if (busService == null && busServiceFilter.isNotEmpty) {
         return <BusStopWithDistance>[];
       }
@@ -188,8 +188,8 @@ class StopsDatabase extends _$StopsDatabase {
     final result = await query.get();
 
     return result.map((TypedResult row) {
-      final BusStopEntry busStopEntry = row.readTable(busStops);
-      final double distanceMeters = metersBetween(
+      final busStopEntry = row.readTable(busStops);
+      final distanceMeters = metersBetween(
           latitude, longitude, busStopEntry.latitude, busStopEntry.longitude);
       return BusStopWithDistance(busStopEntry.toModel(), distanceMeters);
     }).toList();
@@ -224,7 +224,7 @@ class StopsDatabase extends _$StopsDatabase {
     final newBusStopPositionQuery = selectOnly(userRouteBusStops)
       ..addColumns([newBusStopPositionColumn])
       ..where(userRouteBusStops.routeId.equals(routeId));
-    final int newBusStopPosition = (await newBusStopPositionQuery.getSingle())
+    final newBusStopPosition = (await newBusStopPositionQuery.getSingle())
         .read(newBusStopPositionColumn);
     await into(userRouteBusStops).insert(UserRouteBusStopEntry(
       routeId: routeId,
@@ -234,7 +234,7 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> removeBusStopFromRoute(BusStop busStop, int routeId) async {
-    final int removedPosition = (await (select(userRouteBusStops)
+    final removedPosition = (await (select(userRouteBusStops)
               ..where((u) => u.routeId.equals(routeId))
               ..where((u) => u.busStopCode.equals(busStop.code)))
             .getSingle())
@@ -265,16 +265,16 @@ class StopsDatabase extends _$StopsDatabase {
     // Select number of rows from user route
     final newRoutePositionQuery = selectOnly(userRoutes)
       ..addColumns([userRoutes.id.count()]);
-    final int newRoutePosition =
+    final newRoutePosition =
         (await newRoutePositionQuery.getSingle()).read(userRoutes.id.count()) -
             1;
 
     // Insert new route
-    final int newRouteId = await into(userRoutes)
+    final newRouteId = await into(userRoutes)
         .insert(route.toInsertCompanion(newRoutePosition));
 
     // Insert new bus stops
-    for (int position = 0; position < route.busStops.length; position++) {
+    for (var position = 0; position < route.busStops.length; position++) {
       final BusStop busStop = route.busStops[position];
       await into(userRouteBusStops).insert(UserRouteBusStopEntry(
         routeId: newRouteId,
@@ -298,7 +298,7 @@ class StopsDatabase extends _$StopsDatabase {
           .go();
 
       // Insert new bus stops
-      for (int position = 0; position < route.busStops.length; position++) {
+      for (var position = 0; position < route.busStops.length; position++) {
         final BusStop busStop = route.busStops[position];
         await into(userRouteBusStops).insert(UserRouteBusStopEntry(
           routeId: route.id,
@@ -310,7 +310,7 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> deleteUserRoute(StoredUserRoute route) async {
-    final int position = (await (select(userRoutes)
+    final position = (await (select(userRoutes)
               ..where((u) => u.id.equals(route.id)))
             .getSingle())
         .position;
@@ -325,9 +325,8 @@ class StopsDatabase extends _$StopsDatabase {
       await (delete(userRoutes)..where((u) => u.id.equals(route.id))).go();
 
       // Shift all positions down by 1
-      final Insertable<UserRouteEntry> decrementPosition =
-          UserRoutesCompanion.custom(
-              position: coalesce([
+      final decrementPosition = UserRoutesCompanion.custom(
+          position: coalesce([
         userRoutes.position - const Constant<int>(1),
         const Constant<int>(0)
       ]));
@@ -347,7 +346,7 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> moveUserRoutePosition(int from, int to) async {
-    final int direction = (to - from).sign;
+    final direction = (to - from).sign;
     await transaction(() async {
       // Change from's position to -2
       await (update(userRoutes)..where((u) => u.position.equals(from)))
@@ -358,7 +357,7 @@ class StopsDatabase extends _$StopsDatabase {
           position: coalesce(
               [userRoutes.position + Variable(direction), const Constant(0)]));
 
-      for (int i = from; i != to; i += direction) {
+      for (var i = from; i != to; i += direction) {
         await (update(userRoutes)..where((u) => u.position.equals(i)))
             .write(shiftPosition);
       }
@@ -371,7 +370,7 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<void> moveBusStopPositionInRoute(
       int from, int to, StoredUserRoute route) async {
-    final int direction = (to - from).sign;
+    final direction = (to - from).sign;
     await transaction(() async {
       // Change from's position to -2
       await (update(userRouteBusStops)
@@ -387,7 +386,7 @@ class StopsDatabase extends _$StopsDatabase {
         const Constant(0)
       ]));
 
-      for (int i = from; i != to; i += direction) {
+      for (var i = from; i != to; i += direction) {
         await (update(userRouteBusStops)
               ..where((u) => u.routeId.equals(route.id))
               ..where((u) => u.position.equals(i)))
@@ -404,7 +403,7 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<void> cacheBusStops(List<BusStop> busStopList) async {
     await transaction(() async {
-      for (BusStop busStop in busStopList) {
+      for (var busStop in busStopList) {
         await into(busStops)
             .insert(busStop.toEntry(), mode: InsertMode.replace);
       }
@@ -425,7 +424,7 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<void> cacheBusServices(List<BusService> busServiceList) async {
     await transaction(() async {
-      for (BusService busService in busServiceList) {
+      for (var busService in busServiceList) {
         await into(busServices)
             .insert(busService.toEntry(), mode: InsertMode.replace);
       }
@@ -448,7 +447,7 @@ class StopsDatabase extends _$StopsDatabase {
   Future<void> cacheBusServiceRoutes(
       List<Map<String, dynamic>> busServiceRoutesRaw) async {
     await transaction(() async {
-      for (Map<String, dynamic> busServiceRouteRaw in busServiceRoutesRaw) {
+      for (var busServiceRouteRaw in busServiceRoutesRaw) {
         await into(busRoutes).insert(
             BusServiceRouteEntry.fromJson(busServiceRouteRaw),
             mode: InsertMode.replace);
@@ -465,14 +464,12 @@ class StopsDatabase extends _$StopsDatabase {
             (busRoute) => OrderingTerm(expression: busRoute.distance),
           ]))
         .get();
-    final Map<int, List<BusStopWithDistance>> routeBusStops =
-        <int, List<BusStopWithDistance>>{};
+    final routeBusStops = <int, List<BusStopWithDistance>>{};
 
-    for (BusServiceRouteEntry entry in result) {
-      final int direction = entry.direction;
-      final BusStop busStop = await getCachedBusStopWithCode(entry.busStopCode);
-      final BusStopWithDistance busStopWithDistance =
-          BusStopWithDistance(busStop, entry.distance);
+    for (var entry in result) {
+      final direction = entry.direction;
+      final busStop = await getCachedBusStopWithCode(entry.busStopCode);
+      final busStopWithDistance = BusStopWithDistance(busStop, entry.distance);
 
       routeBusStops.putIfAbsent(direction, () => <BusStopWithDistance>[]);
       routeBusStops[direction]!.add(busStopWithDistance);

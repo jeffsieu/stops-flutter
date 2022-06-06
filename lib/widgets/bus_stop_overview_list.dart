@@ -10,29 +10,20 @@ import '../utils/reorder_status_notification.dart';
 import '../widgets/bus_stop_overview_item.dart';
 import 'edit_model.dart';
 
-class BusStopOverviewList extends StatefulWidget {
+class BusStopOverviewList extends StatelessWidget {
   const BusStopOverviewList({Key? key, required this.routeId})
       : super(key: key);
 
   final int routeId;
 
   @override
-  State createState() {
-    return BusStopOverviewListState();
-  }
-}
-
-class BusStopOverviewListState extends State<BusStopOverviewList> {
-  List<BusStopWithPinnedServices>? _busStops;
-
-  @override
   Widget build(BuildContext context) {
-    final BuildContext rootContext = context;
-    final bool _isEditing = context.watch<EditModel>().isEditing;
+    final rootContext = context;
+    final _isEditing = context.watch<EditModel>().isEditing;
 
     return StreamBuilder<StoredUserRoute>(
         initialData: null,
-        stream: routeStream(widget.routeId),
+        stream: routeStream(routeId),
         builder:
             (BuildContext context, AsyncSnapshot<StoredUserRoute> snapshot) {
           switch (snapshot.connectionState) {

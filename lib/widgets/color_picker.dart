@@ -52,7 +52,7 @@ class _ColorPickerState extends State<ColorPicker> {
   }
 
   Widget buildColorWidget(Color color) {
-    final bool isSelected = color == selectedColor;
+    final isSelected = color == selectedColor;
     return Material(
       color: color,
       shape: widget.shape,

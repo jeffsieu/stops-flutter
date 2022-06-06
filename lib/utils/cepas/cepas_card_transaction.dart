@@ -15,7 +15,7 @@ class CEPASCardTransaction {
         ByteData.sublistView(Uint8List.fromList(amountRaw), 0, 4).getInt32(0);
 
     /* Date is expressed in seconds, but the epoch is January 1 1995, SGT */
-    final int seconds = ByteData.sublistView(data, 4, 8).getInt32(0);
+    final seconds = ByteData.sublistView(data, 4, 8).getInt32(0);
     time = DateTime.utc(1995, 01, 01).add(Duration(seconds: seconds, hours: 8));
     additionalData = String.fromCharCodes(Uint8List.sublistView(data, 8, 16));
   }

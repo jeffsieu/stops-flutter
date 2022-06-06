@@ -123,7 +123,7 @@ class RoutePageState extends State<RoutePage> {
   }
 
   Future<void> _pushEditRouteRoute() async {
-    final StoredUserRoute? route = await Navigator.push(context,
+    final route = await Navigator.push(context,
         FadePageRoute<StoredUserRoute>(child: AddRoutePage.edit(widget.route)));
     if (route != null) {
       await updateUserRoute(route);

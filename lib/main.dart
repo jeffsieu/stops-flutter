@@ -8,7 +8,7 @@ import 'utils/database_utils.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final ThemeMode themeMode = await getThemeMode();
+  final themeMode = await getThemeMode();
   runApp(StopsApp(themeMode));
 }
 
@@ -24,8 +24,8 @@ class StopsApp extends StatefulWidget {
   static String monospacedFont = 'Cousine';
 
   static SystemUiOverlayStyle overlayStyleOf(BuildContext context) {
-    final Brightness brightness = Theme.of(context).brightness;
-    final SystemUiOverlayStyle templateStyle = brightness == Brightness.light
+    final brightness = Theme.of(context).brightness;
+    final templateStyle = brightness == Brightness.light
         ? SystemUiOverlayStyle.dark
         : SystemUiOverlayStyle.light;
     return templateStyle.copyWith(
@@ -49,12 +49,12 @@ class StopsAppState extends State<StopsApp> {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle headerTextStyle =
+    final headerTextStyle =
         GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
-    final TextStyle mainTextStyle =
+    final mainTextStyle =
         GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
 
-    final TextTheme textTheme = TextTheme(
+    final textTheme = TextTheme(
       headline1: mainTextStyle,
       headline2: mainTextStyle,
       headline3: mainTextStyle,
@@ -71,7 +71,7 @@ class StopsAppState extends State<StopsApp> {
       overline: mainTextStyle,
     );
 
-    final ThemeData lightTheme = FlexThemeData.light(
+    final lightTheme = FlexThemeData.light(
       useMaterial3: true,
       colors: FlexSchemeColor.from(primary: Colors.deepOrange),
       fontFamily: GoogleFonts.nunitoSans().fontFamily,
@@ -86,7 +86,7 @@ class StopsAppState extends State<StopsApp> {
       surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
     );
 
-    final ThemeData lightThemeWithBoldText = lightTheme.copyWith(
+    final lightThemeWithBoldText = lightTheme.copyWith(
       textTheme: lightTheme.textTheme.merge(textTheme),
       splashColor: Colors.black.withOpacity(0.05),
       splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
@@ -102,7 +102,7 @@ class StopsAppState extends State<StopsApp> {
       ),
     );
 
-    final ThemeData darkTheme = FlexThemeData.dark(
+    final darkTheme = FlexThemeData.dark(
       useMaterial3: true,
       colors: FlexSchemeColor.from(primary: Colors.orange),
       fontFamily: GoogleFonts.nunitoSans().fontFamily,
@@ -117,7 +117,7 @@ class StopsAppState extends State<StopsApp> {
       surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
     );
 
-    final ThemeData darkThemeWithBoldText = darkTheme.copyWith(
+    final darkThemeWithBoldText = darkTheme.copyWith(
       textTheme: darkTheme.textTheme.merge(textTheme),
       splashColor: Colors.white.withOpacity(0.05),
       splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
@@ -137,7 +137,7 @@ class StopsAppState extends State<StopsApp> {
     return MaterialApp(
       title: 'Stops',
       themeMode: themeMode,
-      home: HomePage(),
+      home: const HomePage(),
       theme: lightThemeWithBoldText,
       darkTheme: darkThemeWithBoldText,
     );

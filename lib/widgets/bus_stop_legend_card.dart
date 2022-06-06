@@ -8,7 +8,7 @@ class BusStopLegendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Brightness brightness = MediaQuery.of(context).platformBrightness;
+    final brightness = MediaQuery.of(context).platformBrightness;
     return Container(
       decoration: BoxDecoration(
         border: Border.all(

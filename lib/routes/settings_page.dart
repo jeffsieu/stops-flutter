@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info/package_info.dart';
 
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../main.dart';
@@ -97,9 +96,9 @@ class SettingsPageState extends State<SettingsPage> {
       title: const Text('About'),
       leading: const Icon(Icons.info_outline_rounded),
       onTap: () async {
-        final PackageInfo packageInfo = await PackageInfo.fromPlatform();
-        final String appName = packageInfo.appName;
-        final String appVersion = packageInfo.version;
+        final packageInfo = await PackageInfo.fromPlatform();
+        final appName = packageInfo.appName;
+        final appVersion = packageInfo.version;
         showAboutDialog(
           context: context,
           applicationIcon: Image.asset(
@@ -121,7 +120,7 @@ class SettingsPageState extends State<SettingsPage> {
                         color: Theme.of(context).colorScheme.secondary),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
-                        const String url = 'https://github.com/jeffsieu';
+                        const url = 'https://github.com/jeffsieu';
                         if (await canLaunchUrlString(url)) {
                           await launchUrlString(
                             url,
@@ -158,8 +157,8 @@ class SettingsPageState extends State<SettingsPage> {
   String _getThemeLabel(ThemeMode? themeMode) {
     switch (themeMode) {
       case ThemeMode.system:
-        final Brightness brightness = MediaQuery.of(context).platformBrightness;
-        final String brightnessLabel = brightness == Brightness.light
+        final brightness = MediaQuery.of(context).platformBrightness;
+        final brightnessLabel = brightness == Brightness.light
             ? SettingsPage._kThemeLabelLight
             : SettingsPage._kThemeLabelDark;
         return '${SettingsPage._kThemeLabelSystem} ($brightnessLabel)';
@@ -175,7 +174,7 @@ class SettingsPageState extends State<SettingsPage> {
   Future<void> _onThemeModeChanged(ThemeMode? themeMode) async {
     await setThemeMode(themeMode!);
     Navigator.pop(context);
-    final StopsAppState appState = StopsApp.of(context)!;
+    final appState = StopsApp.of(context)!;
     appState.setState(() {
       appState.themeMode = themeMode;
     });

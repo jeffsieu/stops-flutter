@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:stops_sg/models/user_route.dart';
-import 'package:stops_sg/utils/database_utils.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../utils/database_utils.dart';
 import '../bloc/bus_stop_sheet_bloc.dart';
 
 class BusStopSheetHeaderDropdown extends StatelessWidget {
@@ -48,7 +47,7 @@ class BusStopSheetHeaderDropdown extends StatelessWidget {
             }
             break;
           case _MenuOption.googleMaps:
-            launch(
+            launchUrlString(
                 'geo:${busStop.latitude},${busStop.longitude}?q=${busStop.defaultName} ${busStop.code}');
             break;
         }

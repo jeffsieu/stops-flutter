@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
-import 'package:implicitly_animated_reorderable_list/transitions.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
@@ -161,9 +160,9 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   Widget _buildBusStops() {
-    final _isEditing = true;
+    const _isEditing = true;
     return Provider<EditModel>(
-      create: (_) => EditModel(isEditing: _isEditing),
+      create: (_) => const EditModel(isEditing: _isEditing),
       child: ImplicitlyAnimatedReorderableList<BusStop>(
         shrinkWrap: true,
         items: busStops,

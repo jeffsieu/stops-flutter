@@ -42,7 +42,7 @@ class BusService {
   @override
   bool operator ==(dynamic other) {
     if (other.runtimeType != runtimeType) return false;
-    final BusService otherBusService = other as BusService;
+    final otherBusService = other as BusService;
     return number == otherBusService.number &&
         operator == otherBusService.operator;
   }

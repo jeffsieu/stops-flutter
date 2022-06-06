@@ -7,16 +7,15 @@ import '../models/bus_service_route.dart';
 import '../models/bus_service_with_routes.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_stop_with_distance.dart';
-import '../models/user_route.dart';
 import '../utils/database_utils.dart';
 import '../widgets/highlighted_icon.dart';
 import 'bottom_sheet_page.dart';
 
 class BusServicePage extends BottomSheetPage {
-  BusServicePage(this.serviceNumber, {Key? key})
+  const BusServicePage(this.serviceNumber, {Key? key})
       : focusedBusStop = null,
         super(key: key);
-  BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
+  const BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
       {Key? key})
       : super(key: key);
 
@@ -43,10 +42,10 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   }
 
   Future<void> initService() async {
-    final BusServiceWithRoutes service =
+    final service =
         await getCachedBusServiceWithRoutes(widget.serviceNumber);
     if (widget.focusedBusStop != null) {
-      final BusServiceRoute focusedRoute = service.routes[0].busStops
+      final focusedRoute = service.routes[0].busStops
               .map((BusStopWithDistance b) => b.busStop)
               .contains(widget.focusedBusStop)
           ? service.routes[0]
@@ -66,8 +65,8 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
 
   @override
   Widget build(BuildContext context) {
-    final TabController tabController = TabController(length: 2, vsync: this);
-    final Widget bottomSheetContainer =
+    final tabController = TabController(length: 2, vsync: this);
+    final bottomSheetContainer =
         bottomSheet(child: _buildBody(tabController));
 
     tabController.index = focusedDirection;
@@ -131,7 +130,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   }
 
   Widget _buildRouteBusStops(BusServiceRoute route) {
-    final Color focusedColor = Theme.of(context).highlightColor;
+    final focusedColor = Theme.of(context).highlightColor;
 
     return MediaQuery.removePadding(
       context: context,
@@ -147,14 +146,14 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int position) {
-                    final BusStopWithDistance busStopWithDistance =
+                    final busStopWithDistance =
                         route.busStops[position];
-                    final BusStop busStop = busStopWithDistance.busStop;
-                    final double distance = busStopWithDistance.distance;
-                    final String previousRoad = position > 0
+                    final busStop = busStopWithDistance.busStop;
+                    final distance = busStopWithDistance.distance;
+                    final previousRoad = position > 0
                         ? route.busStops[position - 1].busStop.road
                         : '';
-                    final bool newRoad = busStop.road != previousRoad;
+                    final newRoad = busStop.road != previousRoad;
                     return Stack(
                       children: [
                         Positioned.fill(

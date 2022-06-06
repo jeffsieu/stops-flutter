@@ -8,8 +8,8 @@ class BusServiceArrivalResult {
   });
 
   static BusServiceArrivalResult fromJson(dynamic json) {
-    final BusService busService = BusService.fromJson(json);
-    final List<BusArrival?> buses = <BusArrival?>[
+    final busService = BusService.fromJson(json);
+    final buses = <BusArrival?>[
       BusArrival.fromJson(json['NextBus']),
       BusArrival.fromJson(json['NextBus2']),
       BusArrival.fromJson(json['NextBus3'])
@@ -35,7 +35,7 @@ class BusArrival {
   });
 
   static BusArrival? fromJson(dynamic json) {
-    final String? typeString = json[BusAPI.kBusServiceTypeKey] as String?;
+    final typeString = json[BusAPI.kBusServiceTypeKey] as String?;
     BusType? type;
     if (typeString == BusAPI.kBusServiceTypeSingle) {
       type = BusType.single;
@@ -49,7 +49,7 @@ class BusArrival {
       throw Exception('Unknown bus type: $typeString');
     }
 
-    final String? loadString = json[BusAPI.kBusServiceLoadKey] as String?;
+    final loadString = json[BusAPI.kBusServiceLoadKey] as String?;
     BusLoad? load;
     if (loadString == BusAPI.kBusServiceLoadLow) {
       load = BusLoad.low;
@@ -63,11 +63,11 @@ class BusArrival {
       throw Exception('Unknown bus load: $loadString');
     }
 
-    final double latitude =
+    final latitude =
         double.tryParse(json[BusAPI.kBusServiceLatitudeKey] as String) ?? 0;
-    final double longitude =
+    final longitude =
         double.tryParse(json[BusAPI.kBusServiceLongitudeKey] as String) ?? 0;
-    final DateTime? arrivalTime =
+    final arrivalTime =
         DateTime.tryParse(json[BusAPI.kBusServiceArrivalTimeKey] as String);
 
     if (arrivalTime == null) return null;

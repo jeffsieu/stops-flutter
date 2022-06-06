@@ -116,14 +116,14 @@ final StopsDatabase _database = StopsDatabase.create();
 // }
 
 Future<ThemeMode> getThemeMode() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  final int themeModeIndex =
+  final prefs = await SharedPreferences.getInstance();
+  final themeModeIndex =
       prefs.getInt(_themeModeKey) ?? ThemeMode.system.index;
   return ThemeMode.values[themeModeIndex];
 }
 
 Future<void> setThemeMode(ThemeMode themeMode) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   prefs.setInt(_themeModeKey, themeMode.index);
 }
 
@@ -188,14 +188,14 @@ Stream<StoredUserRoute> routeStream(int routeId) {
 }
 
 Future<StoredUserRoute> getRouteWithId(int routeId) async {
-  final UserRouteEntry routeEntry =
+  final routeEntry =
       await _database.getRouteEntryWithId(routeId);
   final List<BusStop> busStops = await getBusStopsInRouteWithId(routeId);
-  final List<BusStopWithPinnedServices> routeBusStops = [];
-  for (BusStop busStop in busStops) {
-    final List<BusService> pinnedServices =
+  final routeBusStops = <BusStopWithPinnedServices>[];
+  for (var busStop in busStops) {
+    final pinnedServices =
         await getPinnedServicesInRouteWithId(busStop, routeId);
-    final BusStopWithPinnedServices busStopWithPinnedServices =
+    final busStopWithPinnedServices =
         BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices);
     routeBusStops.add(busStopWithPinnedServices);
   }
@@ -220,13 +220,13 @@ Future<List<BusStopWithPinnedServices>> getBusStopsInRouteWithId(
   // final List<BusStop> busStops = List<BusStop>.generate(
   //     result.length, (int i) => BusStop.fromMap(result[i]));
 
-  final List<BusStop> busStops =
+  final busStops =
       await _database.getBusStopsInRouteWithId(routeId);
-  final List<BusStopWithPinnedServices> busStopsWithPinnedServices =
+  final busStopsWithPinnedServices =
       <BusStopWithPinnedServices>[];
 
-  for (BusStop busStop in busStops) {
-    final List<BusService> pinnedServices =
+  for (var busStop in busStops) {
+    final pinnedServices =
         await getPinnedServicesInRouteWithId(busStop, routeId);
     busStopsWithPinnedServices
         .add(BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices));
@@ -293,17 +293,17 @@ Future<List<StoredUserRoute>> getUserRoutes() async {
   //     where: 'id != $defaultRouteId', orderBy: 'position');
   // final List<UserRoute> routes =
   //     result.map<UserRoute>(UserRoute.fromMap).toList();
-  final List<UserRouteEntry> routeEntries =
+  final routeEntries =
       await _database.getStoredUserRoutes();
-  final List<StoredUserRoute> routes = [];
-  for (UserRouteEntry routeEntry in routeEntries) {
+  final routes = <StoredUserRoute>[];
+  for (var routeEntry in routeEntries) {
     final List<BusStop> busStops =
         await getBusStopsInRouteWithId(routeEntry.id);
-    final List<BusStopWithPinnedServices> routeBusStops = [];
-    for (BusStop busStop in busStops) {
-      final List<BusService> pinnedServices =
+    final routeBusStops = <BusStopWithPinnedServices>[];
+    for (var busStop in busStops) {
+      final pinnedServices =
           await getPinnedServicesInRouteWithId(busStop, routeEntry.id);
-      final BusStopWithPinnedServices busStopWithPinnedServices =
+      final busStopWithPinnedServices =
           BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices);
       routeBusStops.add(busStopWithPinnedServices);
     }
@@ -387,7 +387,7 @@ Future<void> followBus(
     {required String stop,
     required String bus,
     required DateTime arrivalTime}) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey)) {
     prefs.setStringList(_isBusFollowedKey, <String>[]);
   }
@@ -395,12 +395,12 @@ Future<void> followBus(
     prefs.setStringList(_busTimingsKey, <String>[]);
   }
 
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
+  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   assert(followedBuses.length == followedBusTimings.length);
 
-  final String key = _followerKey(stop, bus);
+  final key = _followerKey(stop, bus);
   followedBuses.add(key);
   followedBusTimings.add(arrivalTime.toIso8601String());
 
@@ -415,10 +415,10 @@ Future<void> followBus(
   // (as it is common behaviour for a listener to
   // detach itself after a certain call)
   if (_busFollowStatusListeners[key] == null) return;
-  final List<BusFollowStatusListener> listeners =
+  final listeners =
       List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]!);
 
-  for (BusFollowStatusListener listener in listeners) {
+  for (var listener in listeners) {
     listener(stop, bus, true);
   }
 }
@@ -428,31 +428,31 @@ Future<void> updateFollowedBusesStream() async {
 }
 
 Future<List<Bus>> getFollowedBuses() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey) ||
       !prefs.containsKey(_busTimingsKey)) {
     return <Bus>[];
   }
-  final List<Bus> followedBuses = <Bus>[];
-  final List<String> followedBusesRaw = prefs.getStringList(_isBusFollowedKey)!;
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
+  final followedBuses = <Bus>[];
+  final followedBusesRaw = prefs.getStringList(_isBusFollowedKey)!;
+  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   assert(followedBusesRaw.length == followedBusTimings.length);
 
-  final DateTime now = DateTime.now();
+  final now = DateTime.now();
 
-  for (int i = followedBusesRaw.length - 1; i >= 0; i--) {
-    final DateTime arrivalTime = DateTime.parse(followedBusTimings[i]);
+  for (var i = followedBusesRaw.length - 1; i >= 0; i--) {
+    final arrivalTime = DateTime.parse(followedBusTimings[i]);
     if (arrivalTime.isBefore(now)) {
       followedBusesRaw.removeAt(i);
       followedBusTimings.removeAt(i);
     }
   }
 
-  for (int i = 0; i < followedBusesRaw.length; i++) {
-    final List<String> tokens = followedBusesRaw[i].split(' ');
-    final BusStop busStop = await getCachedBusStopWithCode(tokens[0]);
-    final BusService busService = await getCachedBusService(tokens[1]);
+  for (var i = 0; i < followedBusesRaw.length; i++) {
+    final tokens = followedBusesRaw[i].split(' ');
+    final busStop = await getCachedBusStopWithCode(tokens[0]);
+    final busService = await getCachedBusService(tokens[1]);
     followedBuses.add(Bus(busStop: busStop, busService: busService));
   }
 
@@ -463,7 +463,7 @@ Future<List<Bus>> getFollowedBuses() async {
 }
 
 Future<void> unfollowBus({required String stop, required String bus}) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey)) {
     prefs.setStringList(_isBusFollowedKey, <String>[]);
   }
@@ -471,13 +471,13 @@ Future<void> unfollowBus({required String stop, required String bus}) async {
     prefs.setStringList(_busTimingsKey, <String>[]);
   }
 
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
+  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   assert(followedBuses.length == followedBusTimings.length);
 
-  final String key = _followerKey(stop, bus);
-  final int index = followedBuses.indexOf(key);
+  final key = _followerKey(stop, bus);
+  final index = followedBuses.indexOf(key);
 
   if (index != -1) {
     // If bus is not already un-followed (by cancelling)
@@ -496,25 +496,25 @@ Future<void> unfollowBus({required String stop, required String bus}) async {
   // (as it is common behaviour for a listener to
   // detach itself after a certain call)
   if (_busFollowStatusListeners[key] == null) return;
-  final List<BusFollowStatusListener> listeners =
+  final listeners =
       List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]!);
 
-  for (BusFollowStatusListener listener in listeners) {
+  for (var listener in listeners) {
     listener(stop, bus, false);
   }
 }
 
 Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
 
-  final List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
+  final result = <Map<String, dynamic>>[];
+  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
-  for (int i = 0; i < followedBuses.length; i++) {
-    final List<String> tokens = followedBuses[i].split(' ');
-    final String stop = tokens[0];
-    final String bus = tokens[1];
+  for (var i = 0; i < followedBuses.length; i++) {
+    final tokens = followedBuses[i].split(' ');
+    final stop = tokens[0];
+    final bus = tokens[1];
     result.add(<String, dynamic>{
       'stop': stop,
       'bus': bus,
@@ -529,13 +529,13 @@ Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
   updateFollowedBusesStream();
   updateNotifications();
 
-  for (MapEntry<String, List<BusFollowStatusListener>> entry
+  for (var entry
       in _busFollowStatusListeners.entries) {
-    final List<String> tokens = entry.key.split(' ');
-    final String stop = tokens[0];
-    final String bus = tokens[1];
+    final tokens = entry.key.split(' ');
+    final stop = tokens[0];
+    final bus = tokens[1];
 
-    for (BusFollowStatusListener listener in entry.value) {
+    for (var listener in entry.value) {
       listener(stop, bus, false);
     }
   }
@@ -544,15 +544,15 @@ Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
 }
 
 Future<bool> isBusFollowed({required String stop, required String bus}) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   if (!prefs.containsKey(_isBusFollowedKey)) {
     return false;
   }
   if (!prefs.containsKey(_busTimingsKey)) {
     return false;
   }
-  final List<String> followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final List<String> followedBusTimings = prefs.getStringList(_busTimingsKey)!;
+  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
+  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
 
   if (followedBuses.length != followedBusTimings.length) {
     followedBuses.clear();
@@ -564,10 +564,10 @@ Future<bool> isBusFollowed({required String stop, required String bus}) async {
 
   assert(followedBuses.length == followedBusTimings.length);
 
-  final String key = _followerKey(stop, bus);
+  final key = _followerKey(stop, bus);
   if (followedBuses.contains(key)) {
-    final int index = followedBuses.indexOf(key);
-    final DateTime arrivalTime = DateTime.parse(followedBusTimings[index]);
+    final index = followedBuses.indexOf(key);
+    final arrivalTime = DateTime.parse(followedBusTimings[index]);
     if (arrivalTime.isAfter(DateTime.now())) {
       return true;
     } else {
@@ -589,14 +589,14 @@ String _followerKey(String stop, String bus) => '$stop $bus';
 
 void addBusFollowStatusListener(
     String stop, String bus, BusFollowStatusListener listener) {
-  final String key = _followerKey(stop, bus);
+  final key = _followerKey(stop, bus);
   _busFollowStatusListeners.putIfAbsent(key, () => <BusFollowStatusListener>[]);
   _busFollowStatusListeners[key]!.add(listener);
 }
 
 void removeBusFollowStatusListener(
     String stop, String bus, BusFollowStatusListener listener) {
-  final String key = _followerKey(stop, bus);
+  final key = _followerKey(stop, bus);
   if (_busFollowStatusListeners.containsKey(key)) {
     _busFollowStatusListeners[key]!.remove(listener);
   }
@@ -604,31 +604,31 @@ void removeBusFollowStatusListener(
 
 // Retrieves the skip number required by the API to access that bus services data
 Future<int> getBusServiceSkip(String serviceNumber) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  final String key = serviceNumber;
+  final prefs = await SharedPreferences.getInstance();
+  final key = serviceNumber;
   return prefs.getInt(key + _busServiceSkipNumberKey) ?? -1;
 }
 
 Future<void> storeBusServiceSkip(String serviceNumber, int skip) async {
   assert(serviceNumber.isNotEmpty);
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  final String key = serviceNumber;
+  final prefs = await SharedPreferences.getInstance();
+  final key = serviceNumber;
   prefs.setInt(key + _busServiceSkipNumberKey, skip);
 }
 
 Future<bool> busServiceSkipsStored() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   return prefs.containsKey(_busServiceSkipNumberKey);
 }
 
 Future<void> setBusServiceSkipsStored() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   prefs.setBool(_busServiceSkipNumberKey, true);
 }
 
 Future<void> pushHistory(String query) async {
   if (query.isEmpty) return;
-  final List<String> history = await getHistory();
+  final history = await getHistory();
   history.remove(query);
   history.add(query);
   if (history.length > 3) history.removeAt(0);
@@ -637,16 +637,16 @@ Future<void> pushHistory(String query) async {
 
 Future<void> storeHistory(List<String> history) async {
   assert(history.length <= 3);
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  for (int i = 0; i < history.length; i++) {
+  final prefs = await SharedPreferences.getInstance();
+  for (var i = 0; i < history.length; i++) {
     await prefs.setString('$_searchHistoryKey $i', history[i]);
   }
 }
 
 Future<List<String>> getHistory() async {
-  final List<String> history = <String>[];
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  for (int i = 0; i < 3; i++) {
+  final history = <String>[];
+  final prefs = await SharedPreferences.getInstance();
+  for (var i = 0; i < 3; i++) {
     if (prefs.containsKey('$_searchHistoryKey $i')) {
       history.add(prefs.getString('$_searchHistoryKey $i')!);
     } else {
@@ -670,12 +670,12 @@ Future<void> cacheBusStops(List<BusStop> busStops) async {
   // await batch.commit(noResult: true);
   await _database.cacheBusStops(busStops);
 
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   await prefs.setBool(kAreBusStopsCachedKey, true);
 }
 
 Future<bool> areBusStopsCached() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   return prefs.containsKey(kAreBusStopsCachedKey);
 }
 
@@ -712,12 +712,12 @@ Future<void> cacheBusServices(List<BusService> busServices) async {
   // }
   // await batch.commit(noResult: true);
 
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   await prefs.setBool(kAreBusServicesCachedKey, true);
 }
 
 Future<bool> areBusServicesCached() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   return prefs.containsKey(kAreBusServicesCachedKey);
 }
 
@@ -740,20 +740,20 @@ Future<BusService> getCachedBusService(String serviceNumber) async {
 
 Future<BusServiceWithRoutes> getCachedBusServiceWithRoutes(
     String serviceNumber) async {
-  final BusService service = await getCachedBusService(serviceNumber);
-  final List<BusServiceRoute> routes = await getCachedBusRoutes(service);
+  final service = await getCachedBusService(serviceNumber);
+  final routes = await getCachedBusRoutes(service);
 
   return BusServiceWithRoutes.fromBusService(service, routes);
 }
 
 Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {
-  final String serviceNumber = busStop[BusAPI.kBusServiceNumberKey] as String;
-  final int direction = busStop[BusAPI.kBusServiceDirectionKey] as int;
-  final String busStopCode = busStop[BusAPI.kBusStopCodeKey] as String;
-  final double distance =
+  final serviceNumber = busStop[BusAPI.kBusServiceNumberKey] as String;
+  final direction = busStop[BusAPI.kBusServiceDirectionKey] as int;
+  final busStopCode = busStop[BusAPI.kBusStopCodeKey] as String;
+  final distance =
       double.parse(busStop[BusAPI.kBusStopDistanceKey].toString());
 
-  final Map<String, dynamic> json = <String, dynamic>{
+  final json = <String, dynamic>{
     'serviceNumber': serviceNumber,
     'direction': direction,
     'busStopCode': busStopCode,
@@ -776,12 +776,12 @@ Future<void> cacheBusServiceRoutes(
   // await batch.commit(noResult: true);
   await _database.cacheBusServiceRoutes(busServiceRoutesRaw);
 
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   await prefs.setBool(_areBusServiceRoutesCachedKey, true);
 }
 
 Future<bool> areBusServiceRoutesCached() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
   return prefs.containsKey(_areBusServiceRoutesCachedKey);
 }
 

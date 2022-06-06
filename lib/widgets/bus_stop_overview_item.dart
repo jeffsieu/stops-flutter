@@ -3,15 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import '../models/bus_service.dart';
-import '../models/bus_stop.dart';
 import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
-import '../routes/bottom_sheet_page.dart';
-import '../routes/home_page.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
-import '../utils/database_utils.dart';
 import '../widgets/bus_timing_row.dart';
 import 'edit_model.dart';
 import 'outline_titled_container.dart';
@@ -47,11 +43,11 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
 
   @override
   Widget build(BuildContext context) {
-    final String name = widget.busStop.displayName;
-    final String code = widget.busStop.code;
-    final String road = widget.busStop.road;
+    final name = widget.busStop.displayName;
+    final code = widget.busStop.code;
+    final road = widget.busStop.road;
 
-    const double titleHorizontalPadding = 12.0;
+    const titleHorizontalPadding = 12.0;
     final Widget child = InkWell(
       borderRadius: const BorderRadius.all(
         Radius.circular(8.0),
@@ -70,7 +66,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
       ),
     );
 
-    final bool isEditing = context.watch<EditModel>().isEditing;
+    final isEditing = context.watch<EditModel>().isEditing;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -153,7 +149,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
               continue done;
             done:
             case ConnectionState.done:
-              final List<BusServiceArrivalResult> busArrivals = snapshot.data!
+              final busArrivals = snapshot.data!
                   .where((BusServiceArrivalResult result) =>
                       pinnedServices.contains(result.busService))
                   .toList(growable: false);

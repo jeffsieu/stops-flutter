@@ -98,12 +98,12 @@ class RouteListState extends State<RouteList> {
                   key: ValueKey<StoredUserRoute>(userRoute),
                   builder: (BuildContext context,
                       Animation<double> dragAnimation, bool inDrag) {
-                    const double initialElevation = 0.0;
-                    final Color? materialColor = Color.lerp(
+                    const initialElevation = 0.0;
+                    final materialColor = Color.lerp(
                         Theme.of(context).scaffoldBackgroundColor,
                         Colors.white,
                         dragAnimation.value / 10);
-                    final double elevation =
+                    final elevation =
                         Tween<double>(begin: initialElevation, end: 10.0)
                             .animate(CurvedAnimation(
                                 parent: dragAnimation,

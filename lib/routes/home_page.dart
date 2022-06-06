@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
-import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:shimmer/shimmer.dart';
@@ -15,7 +14,6 @@ import 'package:shimmer/shimmer.dart';
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import '../main.dart';
 import '../models/bus.dart';
-import '../models/bus_stop.dart';
 import '../models/bus_stop_with_distance.dart';
 import '../models/user_route.dart';
 import '../routes/add_route_page.dart';
@@ -43,7 +41,7 @@ import 'fade_page_route.dart';
 import 'search_page.dart';
 
 class HomePage extends BottomSheetPage {
-  HomePage({Key? key}) : super(key: key);
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -79,7 +77,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
     WidgetsBinding.instance.addObserver(this);
     showSetupDialog();
     if (!kIsWeb) {
-      const QuickActions quickActions = QuickActions();
+      const quickActions = QuickActions();
       quickActions.initialize((String shortcutType) {
         if (shortcutType == 'action_search') {
           _pushSearchRoute();
@@ -109,10 +107,10 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   }
 
   Future<void> showSetupDialog() async {
-    final bool cachedBusStops = await areBusStopsCached();
-    final bool cachedBusServices = await areBusServicesCached();
-    final bool cachedBusServiceRoutes = await areBusServiceRoutesCached();
-    final bool isFullyCached =
+    final cachedBusStops = await areBusStopsCached();
+    final cachedBusServices = await areBusServicesCached();
+    final cachedBusServiceRoutes = await areBusServiceRoutesCached();
+    final isFullyCached =
         cachedBusStops && cachedBusServices && cachedBusServiceRoutes;
     if (!isFullyCached) {
       showDialog<void>(
@@ -129,7 +127,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
 
-    final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
+    final bottomSheetContainer = bottomSheet(child: _buildBody());
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -336,7 +334,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
               snapshot.connectionState != ConnectionState.waiting) {
             _followedBuses = snapshot.data!;
           }
-          final bool hasTrackedBuses =
+          final hasTrackedBuses =
               snapshot.hasData && snapshot.data!.isNotEmpty;
           return AnimatedOpacity(
             opacity: hasTrackedBuses ? 1 : 0,
@@ -368,7 +366,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                               physics: const NeverScrollableScrollPhysics(),
                               itemBuilder:
                                   (BuildContext context, int position) {
-                                final Bus bus = snapshot.data![position];
+                                final bus = snapshot.data![position];
                                 return ListTile(
                                   onTap: () {
                                     context.read<BusStopSheetBloc>().add(
@@ -385,7 +383,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                             snapshot) {
                                       DateTime? arrivalTime;
                                       if (snapshot.hasData) {
-                                        for (BusServiceArrivalResult arrivalResult
+                                        for (var arrivalResult
                                             in snapshot.data!) {
                                           if (arrivalResult.busService ==
                                               bus.busService) {
@@ -424,8 +422,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                   ),
                                 ),
                                 onPressed: () async {
-                                  final List<Map<String, dynamic>>
-                                      trackedBuses = await unfollowAllBuses();
+                                  final trackedBuses = await unfollowAllBuses();
                                   ScaffoldMessenger.of(context)
                                       .hideCurrentSnackBar();
                                   ScaffoldMessenger.of(context)
@@ -435,7 +432,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                     action: SnackBarAction(
                                       label: 'Undo',
                                       onPressed: () async {
-                                        for (Map<String, dynamic> trackedBus
+                                        for (var trackedBus
                                             in trackedBuses) {
                                           await followBus(
                                               stop:
@@ -472,7 +469,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
     return FutureBuilder<StoredUserRoute>(
         future: getRouteWithId(kDefaultRouteId),
         builder: (context, snapshot) {
-          if (snapshot == null || !snapshot.hasData) {
+          if (!snapshot.hasData) {
             return Container();
           }
 
@@ -495,7 +492,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                   _nearestBusStops = snapshot.data!;
                   _isNearestBusStopsCurrent = true;
                 }
-                final bool isLoaded = _nearestBusStops?.isNotEmpty ?? false;
+                final isLoaded = _nearestBusStops?.isNotEmpty ?? false;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -553,8 +550,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                         const SizedBox(height: 8.0),
                                 itemBuilder:
                                     (BuildContext context, int position) {
-                                  final BusStopWithDistance?
-                                      busStopWithDistance = isLoaded &&
+                                  final busStopWithDistance = isLoaded &&
                                               position <
                                                   _nearestBusStops!.length
                                           ? _nearestBusStops![position]
@@ -635,15 +631,15 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   }
 
   Widget _buildSuggestionItem(BusStopWithDistance? busStopWithDistance) {
-    final String distanceText =
+    final distanceText =
         '${busStopWithDistance?.distance.floor() ?? Random().nextInt(500) + 100} m away';
-    final BusStop? busStop = busStopWithDistance?.busStop;
-    final String busStopNameText = busStop?.displayName ?? 'Bus stop';
-    final String busStopCodeText = busStop != null
+    final busStop = busStopWithDistance?.busStop;
+    final busStopNameText = busStop?.displayName ?? 'Bus stop';
+    final busStopCodeText = busStop != null
         ? '${busStop.code} · ${busStop.road}'
         : '${Random().nextInt(90000) + 10000} · ${Random().nextInt(99) + 1} Street';
 
-    final bool showShimmer = !_isNearestBusStopsCurrent;
+    final showShimmer = !_isNearestBusStopsCurrent;
 
     Widget buildChild(bool showShimmer) => Builder(builder: (context) {
           return Padding(
@@ -825,7 +821,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
   Future<List<BusStopWithDistance>?> _getNearestBusStops(
       String busServiceFilter) async {
-    final LocationData? locationData = await LocationUtils.getLocation();
+    final locationData = await LocationUtils.getLocation();
     if (locationData == null) {
       return null;
     } else {
@@ -848,7 +844,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   Future<void> _pushAddRouteRoute() async {
     final Route<UserRoute> route =
         FadePageRoute<UserRoute>(child: const AddRoutePage());
-    final UserRoute? userRoute = await Navigator.push(context, route);
+    final userRoute = await Navigator.push(context, route);
 
     if (userRoute != null) storeUserRoute(userRoute);
   }
@@ -861,7 +857,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   }
 
   Future<void> _pushEditRouteRoute(StoredUserRoute route) async {
-    final StoredUserRoute? editedRoute = await Navigator.push(context,
+    final editedRoute = await Navigator.push(context,
         FadePageRoute<StoredUserRoute>(child: AddRoutePage.edit(route)));
     if (editedRoute != null) {
       updateUserRoute(editedRoute);

@@ -20,7 +20,7 @@ class BusServiceRoute {
   @override
   bool operator ==(dynamic other) {
     if (other.runtimeType != runtimeType) return false;
-    final BusServiceRoute otherBusServiceRoute = other as BusServiceRoute;
+    final otherBusServiceRoute = other as BusServiceRoute;
     return otherBusServiceRoute.number == number &&
         otherBusServiceRoute.direction == direction;
   }
