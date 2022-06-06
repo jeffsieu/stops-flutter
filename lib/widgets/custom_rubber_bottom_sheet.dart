@@ -128,7 +128,7 @@ class CustomRubberBottomSheetState extends State<CustomRubberBottomSheet>
     var layout;
     if (widget.menuLayer != null) {
       layout = Stack(
-        children: <Widget>[
+        children: [
           _buildAnimatedBottomsheetWidget(context, child),
           Align(alignment: Alignment.bottomLeft, child: widget.menuLayer),
         ],
@@ -166,7 +166,7 @@ class CustomRubberBottomSheetState extends State<CustomRubberBottomSheet>
       height: widget.headerHeight,
       child: widget.header,
     );
-    final bottomSheet = Stack(children: <Widget>[
+    final bottomSheet = Stack(children: [
       peak,
       Container(
           margin: EdgeInsets.only(
@@ -185,7 +185,7 @@ class CustomRubberBottomSheetState extends State<CustomRubberBottomSheet>
     }
     return Stack(
       key: _keyWidget,
-      children: <Widget>[
+      children: [
         widget.lowerLayer,
         Align(child: elem, alignment: Alignment.bottomRight),
       ],

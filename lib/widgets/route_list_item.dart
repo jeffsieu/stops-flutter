@@ -7,7 +7,7 @@ import '../models/user_route.dart';
 class RouteListItem extends StatelessWidget {
   const RouteListItem(this.route, {Key? key}) : super(key: key);
 
-  final UserRoute route;
+  final StoredUserRoute route;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +58,7 @@ class RouteListItem extends StatelessWidget {
 
 class RouteActionNotification extends Notification {
   const RouteActionNotification(this.route, this.action);
-  final UserRoute route;
+  final StoredUserRoute route;
   final RouteAction action;
 }
 

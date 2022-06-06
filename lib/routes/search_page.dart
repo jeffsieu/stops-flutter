@@ -10,13 +10,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' as latlong;
 import 'package:location/location.dart';
+import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
+import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 
 import '../main.dart';
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_stop_with_distance.dart';
-import '../models/user_route.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
@@ -57,9 +58,11 @@ class SearchPage extends BottomSheetPage {
 
 class _SearchPageState extends BottomSheetPageState<SearchPage>
     with WidgetsBindingObserver {
+  _SearchPageState() : super(hasAppBar: false);
+
   // The number of pixels to offset the FAB by animates out
   // via a fade down
-  final double _resultsSheetCollapsedHeight = 132;
+  final double _resultsSheetCollapsedHeight = 124;
   final LatLng _defaultCameraPosition = const LatLng(1.3521, 103.8198);
 
   List<BusService> _busServices = <BusService>[];
@@ -150,17 +153,17 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         : _resultsSheetAnimationController.upperBound!;
 
     if (widget.showMap) {
-      WidgetsBinding.instance!.addPostFrameCallback((Duration timeStamp) {
+      WidgetsBinding.instance.addPostFrameCallback((Duration timeStamp) {
         _resultsSheetAnimationController.value = sheetLowerBound;
       });
     }
 
     _tabController.index = widget.showMap ? 1 : 0;
     _resultsSheetAnimationController.addListener(() {
-      final double visibilityBound = lerpDouble(
+      final visibilityBound = lerpDouble(
           _resultsSheetAnimationController.upperBound!, sheetLowerBound, 0.9)!;
 
-      final bool shouldMapBeVisible =
+      final shouldMapBeVisible =
           _resultsSheetAnimationController.value < visibilityBound;
 
       void updateMapVisibility() {
@@ -189,11 +192,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       _resultsSheetAnimationController.addStatusListener(statusListener);
 
       // Hide bottom sheet the moment we start to transition to the other layout
-      const double threshold = 0.05;
+      const threshold = 0.05;
 
       if (_resultsSheetAnimationController.value > threshold &&
           _resultsSheetAnimationController.value < 1.0 - threshold) {
-        hideBusDetailSheet();
+        hideBusStopDetailSheet();
       }
       // if (!_resultsSheetAnimationController.isAnimating) {
       // }
@@ -242,7 +245,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       });
     });
 
-    WidgetsBinding.instance?.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -250,7 +253,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     _textController.dispose();
     _clearIconAnimationController.dispose();
     _mapClipperAnimationController.dispose();
-    WidgetsBinding.instance?.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -302,7 +305,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
-    buildSheet(hasAppBar: false);
     if (_query.isEmpty) {
       _clearIconAnimationController.reverse();
     } else {
@@ -314,7 +316,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     } else {
       _mapClipperAnimationController.reverse();
     }
-    final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
+    final bottomSheetContainer = bottomSheet(child: _buildBody());
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -326,7 +328,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   Widget _buildSearchCard() {
-    final TextField searchField = TextField(
+    final searchField = TextField(
       autofocus: false,
       controller: _textController,
       onChanged: (String newText) {
@@ -336,7 +338,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         _scrollController.jumpTo(0);
       },
       onTap: () {
-        hideBusDetailSheet();
+        hideBusStopDetailSheet();
         if (_isMapVisible) {
           setState(() {
             _isMapVisible = false;
@@ -347,6 +349,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         contentPadding: const EdgeInsets.only(
             left: 16.0, top: 16.0, right: 16.0, bottom: 16.0),
         border: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        enabledBorder: InputBorder.none,
         hintText: widget.isSimpleMode
             ? 'Search for stops'
             : 'Search for stops, services',
@@ -366,14 +370,12 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         title: searchField,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Theme.of(context).colorScheme.secondary,
-          unselectedLabelColor: Theme.of(context).hintColor,
           onTap: _onTabTap,
-          tabs: <Widget>[
+          tabs: [
             Tab(
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const <Widget>[
+                children: const [
                   Icon(Icons.list_rounded),
                   SizedBox(width: 8.0),
                   Text('List'),
@@ -383,7 +385,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             Tab(
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const <Widget>[
+                children: const [
                   Icon(Icons.map_rounded),
                   SizedBox(width: 8.0),
                   Text('Map'),
@@ -392,7 +394,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             ),
           ],
         ),
-        actions: <Widget>[
+        actions: [
           ScaleTransition(
               scale: _clearIconAnimation,
               child: IconButton(
@@ -411,7 +413,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   // Returns a TickerFuture that resolves when the animation is complete
   TickerFuture _onTabTap(int index) {
-    final bool shouldMapBeVisible = _tabController.index == 1;
+    final shouldMapBeVisible = _tabController.index == 1;
 
     if (_isMapVisible == shouldMapBeVisible) {
       return TickerFuture.complete();
@@ -444,10 +446,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   double get _resultsSheetExpandedPercentage {
     try {
-      final double expanded = _resultsSheetAnimationController.upperBound!;
-      final double dismissed = _resultsSheetAnimationController.lowerBound!;
-      final double animationRange = expanded - dismissed;
-      final double collapsedPercentage =
+      final expanded = _resultsSheetAnimationController.upperBound!;
+      final dismissed = _resultsSheetAnimationController.lowerBound!;
+      final animationRange = expanded - dismissed;
+      final collapsedPercentage =
           ((_resultsSheetAnimationController.value - dismissed) /
                   animationRange)
               .clamp(0.0, 1.0)
@@ -460,7 +462,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   Widget _buildBody() {
     _generateQueryResults();
-    final List<Widget> slivers = <Widget>[
+    final slivers = <Widget>[
       SliverToBoxAdapter(
         child: AnimatedBuilder(
             animation: _resultsSheetAnimationController,
@@ -480,14 +482,13 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 ),
               );
             },
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  if (_query.isEmpty) _buildHistory(),
-                  if (!_showServicesOnly && _filteredBusServices.isNotEmpty)
-                    _buildBusServicesSliverHeader(),
-                  _buildBusServiceList(),
-                ])),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (_query.isEmpty) _buildHistory(),
+              if (!_showServicesOnly && _filteredBusServices.isNotEmpty)
+                _buildBusServicesSliverHeader(),
+              _buildBusServiceList(),
+            ])),
       ),
       if (!_showServicesOnly) ...<Widget>{
         _buildBusStopsSliverHeader(),
@@ -504,7 +505,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               width: 48.0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
+                children: [
                   HighlightedIcon(
                     child: const Icon(Icons.search_off_rounded),
                     iconColor: Theme.of(context).hintColor,
@@ -516,7 +517,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               'Nothing found for "$_query"',
               style: Theme.of(context)
                   .textTheme
-                  .headline6
+                  .titleMedium
                   ?.copyWith(fontWeight: FontWeight.normal),
             ),
           ),
@@ -524,15 +525,17 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     ];
 
     final Widget body = Stack(
-      children: <Widget>[
+      children: [
         CustomRubberBottomSheet(
           key: widget._resultsSheetKey,
           animationController: _resultsSheetAnimationController,
           scrollController: _scrollController,
           lowerLayer: Stack(
             alignment: Alignment.topCenter,
-            children: <Widget>[
-              _buildMapWidget(),
+            children: [
+              Builder(builder: (context) {
+                return _buildMapWidget(context);
+              }),
               if (LocationUtils.isLocationAllowed())
                 Positioned(
                   bottom: _resultsSheetCollapsedHeight + 16.0,
@@ -540,10 +543,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                       label: const Text('Focus on my location'),
                       icon: const Icon(Icons.my_location_rounded),
                       onPressed: () async {
-                        final GoogleMapController controller =
-                            await _googleMapController.future;
-                        final double currentZoom =
-                            await controller.getZoomLevel();
+                        final controller = await _googleMapController.future;
+                        final currentZoom = await controller.getZoomLevel();
                         controller.animateCamera(
                           CameraUpdate.newCameraPosition(
                             CameraPosition(
@@ -563,7 +564,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
+                  children: [
                     AnimatedOpacity(
                       duration: const Duration(milliseconds: 300),
                       curve: _query.isEmpty
@@ -578,13 +579,14 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         curve: Curves.easeInOutCubic,
                         child: Material(
                           color: Theme.of(context).scaffoldBackgroundColor,
+                          elevation: 2,
                           borderRadius: const BorderRadius.vertical(
                               bottom: Radius.circular(8.0)),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 vertical: 8.0, horizontal: 12.0),
                             child: Row(
-                              children: <Widget>[
+                              children: [
                                 Icon(Icons.info_outline_rounded,
                                     color: Theme.of(context).hintColor,
                                     size: 20.0),
@@ -605,15 +607,15 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         opacity: _isRefocusButtonVisible ? 1.0 : 0.0,
                         child: ElevatedButton(
                           onPressed: () async {
-                            final GoogleMapController controller =
+                            final controller =
                                 await _googleMapController.future;
-                            final LatLngBounds visibleRegion =
+                            final visibleRegion =
                                 await controller.getVisibleRegion();
-                            final double centerLatitude =
+                            final centerLatitude =
                                 (visibleRegion.northeast.latitude +
                                         visibleRegion.southwest.latitude) /
                                     2;
-                            final double centerLongitude =
+                            final centerLongitude =
                                 (visibleRegion.northeast.longitude +
                                         visibleRegion.southwest.longitude) /
                                     2;
@@ -668,8 +670,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           left: 0,
           right: 0,
           child: Column(
-            children: <Widget>[
+            children: [
               AppBar(
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
                 systemOverlayStyle: SystemUiOverlayStyle(
                   statusBarBrightness: Theme.of(context).brightness,
                 ),
@@ -690,10 +694,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     return body;
   }
 
-  Widget _buildMapWidget() {
+  Widget _buildMapWidget(BuildContext context) {
     /* Initialize google map */
-    final CameraPosition initialCameraPosition =
-        _getCameraPositionFromLocation();
+    final initialCameraPosition = _getCameraPositionFromLocation();
 
     _googleMap = GoogleMap(
       padding: EdgeInsets.only(
@@ -725,12 +728,12 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       onCameraMove: (CameraPosition position) {
         // If the distance to _focusedLocation is greater than the threshold,
         // make the re-focus button visible.
-        final double distanceMeters = const latlong.Distance().as(
+        final distanceMeters = const latlong.Distance().as(
             latlong.LengthUnit.Meter,
             latlong.LatLng(_markerOrigin.latitude, _markerOrigin.longitude),
             latlong.LatLng(
                 position.target.latitude, position.target.longitude));
-        final bool shouldShowRefocusButton =
+        final shouldShowRefocusButton =
             distanceMeters > SearchPage._furthestBusStopDistanceMeters;
         if (shouldShowRefocusButton != _isRefocusButtonVisible) {
           setState(() {
@@ -743,7 +746,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           _focusedBusStop = null;
         });
       },
-      markers: _buildMapMarkersAround(_markerOrigin),
+      markers: _buildMapMarkersAround(_markerOrigin, context),
     );
 
     return _googleMap;
@@ -758,14 +761,14 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     );
   }
 
-  Set<Marker> _buildMapMarkersAround(LatLng? position) {
-    final Set<Marker> markers = <Marker>{};
+  Set<Marker> _buildMapMarkersAround(LatLng? position, BuildContext context) {
+    final markers = <Marker>{};
 
     if (position == null) {
       return markers;
     }
 
-    for (BusStop busStop in _filteredBusStops) {
+    for (var busStop in _filteredBusStops) {
       if (busStop.getMetersFromLocation(position) >
           SearchPage._furthestBusStopDistanceMeters) continue;
       markers.add(Marker(
@@ -776,7 +779,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             InfoWindow(title: busStop.displayName, snippet: busStop.road),
         onTap: () {
           if (_focusedBusStop == busStop || super.isBusDetailSheetVisible()) {
-            showBusDetailSheet(busStop, UserRoute.home);
+            showBusStopDetailSheet(busStop, context);
           } else {
             focusBusStopOnMap(busStop);
           }
@@ -804,22 +807,21 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           (BusService a, BusService b) => compareBusNumber(a.number, b.number));
     }
 
-    final double maxDistance = _distanceMetadata.isNotEmpty
+    final maxDistance = _distanceMetadata.isNotEmpty
         ? _distanceMetadata.values.toList().reduce(max)
         : 0;
 
     if (_query.isNotEmpty) {
-      final bool isQueryAllNumbers = num.tryParse(_queryString) != null;
+      final isQueryAllNumbers = num.tryParse(_queryString) != null;
       double distanceFunction(BusStop busStop) {
-        final String busStopName = busStop.displayName.toLowerCase();
-        final String queryLengthBusStopName = busStopName.length > _query.length
+        final busStopName = busStop.displayName.toLowerCase();
+        final queryLengthBusStopName = busStopName.length > _query.length
             ? busStopName.substring(0, _query.length)
             : busStopName;
-        final List<String> busStopNameParts =
-            busStopName.split(RegExp(r'( |/)'));
-        double minTokenDifference = double.maxFinite;
+        final busStopNameParts = busStopName.split(RegExp(r'( |/)'));
+        var minTokenDifference = double.maxFinite;
 
-        for (String part in busStopNameParts) {
+        for (var part in busStopNameParts) {
           if (part.isEmpty) continue;
           if (_query.length < part.length) {
             part = part.substring(0, _query.length);
@@ -828,7 +830,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               jw.normalizedDistance(part, _query.toLowerCase()));
         }
 
-        double distance = jw.normalizedDistance(
+        var distance = jw.normalizedDistance(
                 queryLengthBusStopName, _query.toLowerCase()) -
             0.01;
 
@@ -838,8 +840,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         }
 
         if (isQueryAllNumbers) {
-          final double codeDistance =
-              busStop.code.startsWith(_queryString) ? -1 : 1;
+          final codeDistance =
+              busStop.code.startsWith(_queryString) ? -1.0 : 1.0;
           distance = min(distance, codeDistance);
         }
 
@@ -851,7 +853,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         return distance;
       }
 
-      final List<BusStopWithDistance> busStopsWithDistance = _busStops
+      final busStopsWithDistance = _busStops
           .map((BusStop busStop) =>
               BusStopWithDistance(busStop, distanceFunction(busStop)))
           .where((BusStopWithDistance busStop) =>
@@ -907,7 +909,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         color: Theme.of(context).hintColor),
                   ),
                   title: Text(_searchHistory[position],
-                      style: Theme.of(context).textTheme.headline6),
+                      style: Theme.of(context).textTheme.titleMedium),
                   onTap: () => setState(() {
                     _query = _searchHistory[position];
                     _textController.text = _query;
@@ -927,7 +929,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       padding: const EdgeInsets.only(top: 24.0, left: 80.0, bottom: 8.0),
       child: Text(
         'Services',
-        style: Theme.of(context).textTheme.headline4?.copyWith(
+        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               color: BusService.listColor(context),
             ),
       ),
@@ -935,9 +937,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   Widget _buildBusStopsSliverHeader() {
-    final DateFormat dateFormat = MediaQuery.of(context).alwaysUse24HourFormat
-        ? DateFormat('hh:mm')
-        : DateFormat('HH:mm a');
+    final dateFormat = MediaQuery.of(context).alwaysUse24HourFormat
+        ? DateFormat('HH:mm')
+        : DateFormat('hh:mm a');
     return SliverToBoxAdapter(
       child: AnimatedBuilder(
         animation: _resultsSheetAnimationController,
@@ -957,12 +959,15 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                       text: TextSpan(children: <InlineSpan>[
                     TextSpan(
                         text: 'Bus stops',
-                        style: Theme.of(context).textTheme.headline4),
+                        style: Theme.of(context).textTheme.headlineMedium),
                     if (LocationUtils.currentLocationTimestamp != null)
                       TextSpan(
                         text:
                             ' • as of ${dateFormat.format(LocationUtils.currentLocationTimestamp!)}',
-                        style: Theme.of(context).textTheme.headline4?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
                               color: Theme.of(context).hintColor,
                             ),
                       ),
@@ -986,7 +991,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         : (_query.isEmpty
                             ? 'Nearest stop'
                             : 'Nearest matching stop'),
-                    style: Theme.of(context).textTheme.headline4),
+                    style: Theme.of(context).textTheme.headlineMedium),
               ),
             ),
             expandedPercentage: _resultsSheetExpandedPercentage,
@@ -1002,7 +1007,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       required double expandedPercentage,
       bool offset = true}) {
     return Stack(
-      children: <Widget>[
+      children: [
         Transform.translate(
           offset: Offset(
               0,
@@ -1043,7 +1048,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemBuilder: (BuildContext context, int position) {
-          final BusService busService = _filteredBusServices[position];
+          final busService = _filteredBusServices[position];
           return BusServiceSearchItem(
             onTap: () => _pushBusServiceRoute(busService),
             busService: busService,
@@ -1056,27 +1061,27 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     );
   }
 
-  Widget _buildBusStopSearchItem(BusStop busStop,
+  Widget _buildBusStopSearchItem(BusStop busStop, BuildContext context,
       {bool isFocusedBusStopItem = false}) {
-    final _QueryMetadata metadata = _queryMetadata[busStop]!;
+    final metadata = _queryMetadata[busStop]!;
 
-    final String distance = _distanceMetadata.containsKey(busStop)
+    final distance = _distanceMetadata.containsKey(busStop)
         ? getDistanceVerboseFromMeters(_distanceMetadata[busStop]!)
         : '';
 
-    final String name = busStop.displayName;
-    final String busStopCode = busStop.code;
+    final name = busStop.displayName;
+    final busStopCode = busStop.code;
 
-    final String nameStart = name.substring(0, metadata.descriptionStart);
-    final String nameBold =
+    final nameStart = name.substring(0, metadata.descriptionStart);
+    final nameBold =
         name.substring(metadata.descriptionStart, metadata.descriptionEnd);
-    final String nameEnd = name.substring(metadata.descriptionEnd, name.length);
+    final nameEnd = name.substring(metadata.descriptionEnd, name.length);
 
-    final String busStopCodeStart =
+    final busStopCodeStart =
         busStopCode.substring(0, metadata.busStopCodeStart);
-    final String busStopCodeBold = busStopCode.substring(
+    final busStopCodeBold = busStopCode.substring(
         metadata.busStopCodeStart, metadata.busStopCodeEnd);
-    final String busStopCodeEnd =
+    final busStopCodeEnd =
         busStopCode.substring(metadata.busStopCodeEnd, busStopCode.length);
     return BusStopSearchItem(
       key: Key(busStopCode),
@@ -1092,8 +1097,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       isMapEnabled: isFocusedBusStopItem,
       onShowOnMapTap: () {
         void focusOnBusStop() async {
-          final GoogleMapController controller =
-              await _googleMapController.future;
+          final controller = await _googleMapController.future;
           controller
               .animateCamera(CameraUpdate.newLatLng(
                   LatLng(busStop.latitude, busStop.longitude)))
@@ -1107,11 +1111,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
         // Animate to map view first, then animate to bus stop
         _tabController.animateTo(1);
-        final TickerFuture animation = _onTabTap(1);
+        final animation = _onTabTap(1);
         animation.whenCompleteOrCancel(focusOnBusStop);
       },
       busStop: busStop,
-      onTap: () => _onBusStopSearchItemTapped(busStop),
+      onTap: () => _onBusStopSearchItemTapped(busStop, context),
     );
   }
 
@@ -1119,16 +1123,16 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     return SliverList(
         delegate: SliverChildBuilderDelegate(
       (BuildContext context, int position) {
-        final BusStop busStop = _filteredBusStops[position];
+        final busStop = _filteredBusStops[position];
 
-        final Widget item = _buildBusStopSearchItem(busStop);
-        return position == 0 ? _buildClosestBusStopItem() : item;
+        final item = _buildBusStopSearchItem(busStop, context);
+        return position == 0 ? _buildClosestBusStopItem(context) : item;
       },
       childCount: _showServicesOnly ? 0 : _filteredBusStops.length,
     ));
   }
 
-  Widget _buildClosestBusStopItem() {
+  Widget _buildClosestBusStopItem(BuildContext context) {
     return AnimatedBuilder(
       animation: _resultsSheetAnimationController,
       builder: (BuildContext context, Widget? child) {
@@ -1136,6 +1140,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           expandedChild: child,
           collapsedChild: _buildBusStopSearchItem(
             _displayedBusStop!,
+            context,
             isFocusedBusStopItem: true,
           ),
           expandedPercentage: _resultsSheetExpandedPercentage,
@@ -1144,6 +1149,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       },
       child: _buildBusStopSearchItem(
         _filteredBusStops[0],
+        context,
         isFocusedBusStopItem: false,
       ),
     );
@@ -1153,7 +1159,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     FocusScope.of(context).unfocus();
   }
 
-  void _onBusStopSearchItemTapped(BusStop busStop) {
+  void _onBusStopSearchItemTapped(BusStop busStop, BuildContext context) {
     if (widget.isSimpleMode) {
       // Return result
       Navigator.pop(context, busStop);
@@ -1161,20 +1167,23 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       // Show bus detail sheet
       FocusScope.of(context).unfocus();
       Future<void>.delayed(const Duration(milliseconds: 100), () {
-        showBusDetailSheet(busStop, UserRoute.home);
+        showBusStopDetailSheet(busStop, context);
       });
     }
   }
 
-  @override
-  Future<void> showBusDetailSheet(BusStop busStop, UserRoute route) async {
-    super.showBusDetailSheet(busStop, route);
+  // @override
+  Future<void> showBusStopDetailSheet(
+      BusStop busStop, BuildContext context) async {
+    context
+        .read<BusStopSheetBloc>()
+        .add(SheetRequested(busStop, kDefaultRouteId));
     pushHistory(_query.trim());
   }
 
   Future<void> _updateBusStopDistances(LocationData location) async {
-    for (BusStop busStop in _busStops) {
-      final double distanceMeters = const latlong.Distance().as(
+    for (var busStop in _busStops) {
+      final distanceMeters = const latlong.Distance().as(
           latlong.LengthUnit.Meter,
           latlong.LatLng(location.latitude!, location.longitude!),
           latlong.LatLng(busStop.latitude, busStop.longitude));
@@ -1183,8 +1192,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
     /* Sort stops by distance */
     _busStops.sort((BusStop a, BusStop b) {
-      final double? distanceA = _distanceMetadata[a];
-      final double? distanceB = _distanceMetadata[b];
+      final distanceA = _distanceMetadata[a];
+      final distanceB = _distanceMetadata[b];
       if (distanceA == null || distanceB == null) {
         return 0;
       }
@@ -1195,7 +1204,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   Future<void> _fetchBusStops() async {
-    final List<BusStop> busStops = await BusAPI().fetchBusStops();
+    final busStops = await BusAPI().fetchBusStops();
 
     if (mounted) {
       setState(() {
@@ -1208,7 +1217,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   Future<void> _fetchBusServices() async {
-    final List<BusService> busServices = await BusAPI().fetchBusServices();
+    final busServices = await BusAPI().fetchBusServices();
     if (mounted) {
       setState(() {
         _busServices = busServices;
@@ -1222,14 +1231,13 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           busService.number.toLowerCase().startsWith(query.toLowerCase()));
 
   static _QueryMetadata _calculateQueryMetadata(BusStop busStop, String query) {
-    final String queryLowercase = query.toLowerCase();
-    final String busStopCodeLowercase = busStop.code.toLowerCase();
-    final String busStopDisplayNameLowercase =
-        busStop.displayName.toLowerCase();
+    final queryLowercase = query.toLowerCase();
+    final busStopCodeLowercase = busStop.code.toLowerCase();
+    final busStopDisplayNameLowercase = busStop.displayName.toLowerCase();
 //    final String busStopDefaultNameLowercase = busStop.defaultName.toLowerCase();
     // TODO(jeffsieu): Enable search by default name as well.
 
-    int index = busStopCodeLowercase.indexOf(queryLowercase);
+    var index = busStopCodeLowercase.indexOf(queryLowercase);
 
     late int busStopCodeStart;
     late int busStopCodeEnd;

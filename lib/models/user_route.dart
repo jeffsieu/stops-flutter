@@ -4,56 +4,28 @@ import 'package:flutter/material.dart';
 import '../utils/database_utils.dart';
 import 'bus_stop_with_pinned_services.dart';
 
-class UserRoute {
-  // UserRoute({
-  //   required this.name,
-  //   required this.color,
-  //   required this.busStops,
-  // }) : id = null;
-  UserRoute.withId({
+class StoredUserRoute extends UserRoute {
+  const StoredUserRoute({
     required this.id,
-    required this.name,
-    required this.color,
-    required this.busStops,
-  });
-  UserRoute({
-    required this.id,
-    required this.name,
-    required this.color,
-  }) : busStops = <BusStopWithPinnedServices>[];
-  static UserRoute home = UserRoute(
-      id: defaultRouteId, name: defaultRouteName, color: Colors.transparent);
+    required String name,
+    required Color color,
+    required List<BusStopWithPinnedServices> busStops,
+  }) : super(name: name, color: color, busStops: busStops);
 
-  final int? id;
-  String name;
-  Color color;
-  List<BusStopWithPinnedServices> busStops;
+  // static const StoredUserRoute home = StoredUserRoute(
+  //     id: defaultRouteId,
+  //     name: defaultRouteName,
+  //     color: Colors.transparent,
+  //     busStops: []);
 
-  static UserRoute fromMap(Map<String, dynamic> map) {
-    return UserRoute(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      color: Color(map['color'] as int),
-    );
-  }
+  final int id;
 
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'name': name,
-      'color': color.value,
-    };
-  }
-
-  void update(UserRoute from) {
-    name = from.name;
-    color = from.color;
-    busStops = List<BusStopWithPinnedServices>.from(from.busStops);
-  }
+  bool get isHome => id == kDefaultRouteId;
 
   @override
   bool operator ==(dynamic other) {
     if (other.runtimeType != runtimeType) return false;
-    final UserRoute otherRoute = other as UserRoute;
+    final otherRoute = other as StoredUserRoute;
     return id == otherRoute.id &&
         color == otherRoute.color &&
         listEquals(busStops, otherRoute.busStops);
@@ -63,10 +35,31 @@ class UserRoute {
   int get hashCode {
     return id.hashCode;
   }
+}
+
+class UserRoute {
+  const UserRoute({
+    required this.name,
+    required this.color,
+    required this.busStops,
+  });
+
+  final String name;
+  final Color color;
+  final List<BusStopWithPinnedServices> busStops;
+
+  StoredUserRoute storeWithId(int id) {
+    return StoredUserRoute(
+      id: id,
+      name: name,
+      color: color,
+      busStops: busStops,
+    );
+  }
 
   @override
   String toString() {
-    return '$name (id: $id, color: $color) (bus stops: $busStops)';
+    return '$name (color: $color) (bus stops: $busStops)';
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 
 import 'bus_service_arrival_result.dart';
@@ -17,7 +18,7 @@ Color getBusOperatorColor(String operator) {
   }
 }
 
-Color getBusLoadColor(BusLoad? load, Brightness brightness) {
+Color getBusLoadColor(BusLoad? load, ThemeData themeData) {
   MaterialColor color;
   switch (load) {
     case BusLoad.low:
@@ -32,10 +33,10 @@ Color getBusLoadColor(BusLoad? load, Brightness brightness) {
     default:
       return Colors.transparent;
   }
-  if (brightness == Brightness.light) {
-    return color;
+  if (themeData.brightness == Brightness.light) {
+    return color.harmonizeWith(themeData.colorScheme.primary);
   } else {
-    return color.shade300;
+    return color.shade300.harmonizeWith(themeData.colorScheme.primary);
   }
 }
 
@@ -67,21 +68,21 @@ String getBusTimingShortened(int timeMinutes) {
 }
 
 String getDistanceVerboseFromMeters(double distanceMeters) {
-  final double distanceKilometers = distanceMeters / 1000;
+  final distanceKilometers = distanceMeters / 1000;
   return distanceMeters < 1000
       ? '${distanceMeters.round()} m'
       : '${distanceKilometers.toStringAsFixed(1)} km';
 }
 
 int compareBusNumber(String a, String b) {
-  final int aNumber = int.parse(a.replaceAll(RegExp(r'\D'), ''));
-  final int bNumber = int.parse(b.replaceAll(RegExp(r'\D'), ''));
+  final aNumber = int.parse(a.replaceAll(RegExp(r'\D'), ''));
+  final bNumber = int.parse(b.replaceAll(RegExp(r'\D'), ''));
 
-  int diff = (aNumber - bNumber) * 2;
+  var diff = (aNumber - bNumber) * 2;
 
   if (diff == 0) {
-    final String aLetter = a.replaceAll(RegExp(r'\d'), '');
-    final String bLetter = b.replaceAll(RegExp(r'\d'), '');
+    final aLetter = a.replaceAll(RegExp(r'\d'), '');
+    final bLetter = b.replaceAll(RegExp(r'\d'), '');
     diff = aLetter.compareTo(bLetter).sign;
   }
   return diff;
@@ -90,11 +91,10 @@ int compareBusNumber(String a, String b) {
 extension BusNumberFormat on String {
   String padAsServiceNumber() {
     // Service number contains letter
-    final String serviceNumber = this;
+    final serviceNumber = this;
     if (serviceNumber.contains(RegExp(r'\D'))) {
-      final String number =
-          serviceNumber.substring(0, serviceNumber.length - 1);
-      final String letter = serviceNumber[serviceNumber.length - 1];
+      final number = serviceNumber.substring(0, serviceNumber.length - 1);
+      final letter = serviceNumber[serviceNumber.length - 1];
       return number.padLeft(3) + letter;
     } else {
       return serviceNumber.padLeft(3).padRight(1);

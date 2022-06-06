@@ -79,7 +79,7 @@ class BusAPI {
    * Load LTA API key from secrets.json file in root directory
    */
   static Future<String> _loadAPIKey() async {
-    final String jsonString =
+    final jsonString =
         await rootBundle.loadString('assets/secrets.json');
     return json.decode(jsonString)['lta_api_key'] as String;
   }
@@ -104,13 +104,14 @@ class BusAPI {
 
   Future<DateTime?> getArrivalTime(
       BusStop busStop, String busServiceNumber) async {
-    final List<BusServiceArrivalResult> arrivalResults =
+    final arrivalResults =
         getLatestArrival(busStop) ?? await busStopArrivalStream(busStop).first;
-    for (BusServiceArrivalResult arrivalResult in arrivalResults) {
+    for (var arrivalResult in arrivalResults) {
       if (arrivalResult.busService.number == busServiceNumber) {
         return arrivalResult.buses.firstOrNull?.arrivalTime;
       }
     }
+    return null;
   }
 
   Stream<List<BusServiceArrivalResult>> busStopArrivalStream(BusStop busStop) {
@@ -122,9 +123,9 @@ class BusAPI {
         _arrivalControllers[busStop]!.sink.addError(e);
         return;
       }
-      final List<dynamic> services =
+      final services =
           jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
-      final List<BusServiceArrivalResult> arrivalResults =
+      final arrivalResults =
           services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
       _arrivalCache[busStop] = arrivalResults;
       _arrivalControllers[busStop]!.add(arrivalResults);
@@ -166,7 +167,7 @@ class BusAPI {
 
   Future<bool> hasInternetConnection() async {
     try {
-      final List<InternetAddress> result =
+      final result =
           await InternetAddress.lookup('example.com');
       return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } on SocketException catch (_) {
@@ -178,18 +179,16 @@ class BusAPI {
       [String extraParams = '']) async {
     _kApiKey ??= await _loadAPIKey();
     try {
-      final http.Response response = await http.get(
+      final response = await http.get(
           Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'),
           headers: <String, String>{
             _kApiTag: _kApiKey!,
             'Content-Type': 'application/json',
           });
-
-      // final Future<String> content = utf8.decodeStream(response.body);
       return response.body;
     } on SocketException {
       // Try to connect to example.com
-      final bool hasInternet = await hasInternetConnection();
+      final hasInternet = await hasInternetConnection();
       if (!hasInternet) {
         return Future<String>.error(kNoInternetError, StackTrace.current);
       } else {
@@ -197,29 +196,24 @@ class BusAPI {
             kCannotReachServerError, StackTrace.current);
       }
     }
-
-    // request.headers.set(_kApiTag, _kApiKey!);
-    // request.headers.set('Content-Type', 'application/json');
-
-    // final HttpClientResponse response = await request.close();
   }
 
   Future<List<T>> _fetchAsList<T>(
       String url, T Function(dynamic json) function) async {
-    int skip = 0;
-    const int concurrentCount = 6;
-    final List<T> resultList = <T>[];
-    bool isAtListEnd = false;
+    var skip = 0;
+    const concurrentCount = 6;
+    final resultList = <T>[];
+    var isAtListEnd = false;
     while (!isAtListEnd) {
-      final List<Future<String>> futures = <Future<String>>[];
-      for (int i = 0; i < concurrentCount; i++) {
+      final futures = <Future<String>>[];
+      for (var i = 0; i < concurrentCount; i++) {
         futures.add(_fetchAsString(url, skip));
         skip += 500;
       }
-      final List<String> results = await Future.wait(futures);
-      for (String result in results) {
+      final results = await Future.wait(futures);
+      for (var result in results) {
         try {
-          final List<dynamic>? rawList =
+          final rawList =
               jsonDecode(result)['value'] as List<dynamic>?;
           if (rawList == null || rawList.isEmpty) break;
           resultList.addAll(rawList.map<T>(function));
@@ -253,17 +247,17 @@ class BusAPI {
   }
 
   Future<void> fetchAndStoreBusStops() async {
-    final List<BusStop> busStops = await _fetchBusStopList();
+    final busStops = await _fetchBusStopList();
     cacheBusStops(busStops);
   }
 
   Future<void> fetchAndStoreBusServices() async {
-    final List<BusService> busServices = await _fetchBusServiceList();
+    final busServices = await _fetchBusServiceList();
     cacheBusServices(busServices);
   }
 
   Future<void> fetchAndStoreBusServiceRoutes() async {
-    final List<Map<String, dynamic>> busServiceRoutesRaw =
+    final busServiceRoutesRaw =
         await _fetchBusServiceRouteList();
     cacheBusServiceRoutes(busServiceRoutesRaw);
   }

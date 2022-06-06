@@ -1,15 +1,12 @@
-import 'package:flutter/material.dart';
-
+  import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rubber/rubber.dart';
 
-import '../models/bus_stop.dart';
-import '../models/user_route.dart';
-import '../widgets/bus_stop_detail_sheet.dart';
+import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import '../bus_stop_sheet/widgets/bus_stop_sheet.dart';
 
 abstract class BottomSheetPage extends StatefulWidget {
-  final GlobalKey<BusStopDetailSheetState> bottomSheetKey = GlobalKey();
-
-  BottomSheetPage({Key? key}) : super(key: key);
+  const BottomSheetPage({Key? key}) : super(key: key);
 
   static BottomSheetPageState<BottomSheetPage>? of(BuildContext context) =>
       context.findAncestorStateOfType<BottomSheetPageState<BottomSheetPage>>();
@@ -17,12 +14,16 @@ abstract class BottomSheetPage extends StatefulWidget {
 
 abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T>
     with TickerProviderStateMixin<T> {
-  bool initialized = false;
+  BottomSheetPageState({required this.hasAppBar});
+
   RubberAnimationController get rubberAnimationController =>
-      busStopDetailSheet.rubberAnimationController;
-  ScrollController get sheetScrollController =>
-      busStopDetailSheet.scrollController;
-  late BusStopDetailSheet busStopDetailSheet;
+      busStopSheet.rubberAnimationController;
+  ScrollController get sheetScrollController => busStopSheet.scrollController;
+
+  late final BusStopSheet busStopSheet =
+      BusStopSheet(vsync: this, hasAppBar: hasAppBar);
+
+  final bool hasAppBar;
 
   @override
   void dispose() {
@@ -30,21 +31,15 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T>
     super.dispose();
   }
 
-  void buildSheet({required bool hasAppBar}) {
-    /* Initialize rubber sheet */
-    if (widget.bottomSheetKey.currentState == null) {
-      busStopDetailSheet = BusStopDetailSheet(
-          key: widget.bottomSheetKey, vsync: this, hasAppBar: hasAppBar);
-      initialized = true;
-    }
-  }
-
   Widget bottomSheet({required Widget child}) {
-    return RubberBottomSheet(
-      scrollController: sheetScrollController,
-      animationController: rubberAnimationController,
-      lowerLayer: child,
-      upperLayer: busStopDetailSheet,
+    return BlocProvider(
+      create: (context) => BusStopSheetBloc(),
+      child: RubberBottomSheet(
+        scrollController: sheetScrollController,
+        animationController: rubberAnimationController,
+        upperLayer: busStopSheet,
+        lowerLayer: child,
+      ),
     );
   }
 
@@ -53,18 +48,11 @@ abstract class BottomSheetPageState<T extends BottomSheetPage> extends State<T>
   }
 
   @mustCallSuper
-  Future<void> showBusDetailSheet(BusStop busStop, UserRoute route) async {
-    await widget.bottomSheetKey.currentState?.updateWith(busStop, route);
-  }
-
-  @mustCallSuper
-  Future<void> hideBusDetailSheet() async {
+  Future<void> hideBusStopDetailSheet() async {
     await rubberAnimationController.animateTo(
         to: rubberAnimationController.lowerBound!);
-    await widget.bottomSheetKey.currentState?.updateWith(null, null);
-  }
 
-  void edit() {
-    widget.bottomSheetKey.currentState?.edit();
+    /// TODO
+    // await updateWith(null, null);
   }
 }

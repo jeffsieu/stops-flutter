@@ -8,7 +8,7 @@ class CrossedIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      children: <Widget>[
+      children: [
         icon,
         Positioned(
           right: 0.0,

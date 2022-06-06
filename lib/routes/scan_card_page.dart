@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +8,6 @@ import 'package:intl/intl.dart';
 import '../main.dart';
 import '../routes/bus_service_page.dart';
 import '../utils/cepas/cepas_card.dart';
-import '../utils/cepas/cepas_card_transaction.dart';
 import '../utils/cepas/nfc_commands.dart';
 
 class ScanCardPage extends StatefulWidget {
@@ -71,7 +69,7 @@ class ScanCardPageState extends State<ScanCardPage>
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
             AnimatedBuilder(
               animation: _highlightController,
               builder: (BuildContext context, Widget? child) {
@@ -102,7 +100,7 @@ class ScanCardPageState extends State<ScanCardPage>
                   elevation: card != null ? 2.0 : 0,
                   child: Stack(
                     alignment: Alignment.bottomCenter,
-                    children: <Widget>[
+                    children: [
                       if (card != null) ...<Widget>{
                         Positioned(
                           top: 0,
@@ -146,7 +144,7 @@ class ScanCardPageState extends State<ScanCardPage>
                       } else ...<Widget>{
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
+                          children: [
                             Text(_prompt,
                                 style: Theme.of(context).textTheme.headline5),
                             Text(_subPrompt,
@@ -168,7 +166,7 @@ class ScanCardPageState extends State<ScanCardPage>
                 padding: const EdgeInsets.only(left: 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
+                  children: [
                     Text(
                         'Created: ${ScanCardPage.dateFormat.format(card!.creationDate)}',
                         style: Theme.of(context)
@@ -189,9 +187,9 @@ class ScanCardPageState extends State<ScanCardPage>
               physics: const NeverScrollableScrollPhysics(),
               itemCount: card?.transactions.length ?? 0,
               itemBuilder: (BuildContext context, int position) {
-                final CEPASCardTransaction transaction =
+                final transaction =
                     card!.transactions[position];
-                String busServiceNumber = '';
+                var busServiceNumber = '';
                 if (transaction.additionalData
                     .toLowerCase()
                     .startsWith('bus')) {
@@ -200,20 +198,20 @@ class ScanCardPageState extends State<ScanCardPage>
                           ?.group(0) ??
                       '';
                 }
-                final String timeString =
+                final timeString =
                     ScanCardPage.dateFormat.format(transaction.time);
 
-                final DateTime currentDate = transaction.time;
-                final DateTime? previousDate =
+                final currentDate = transaction.time;
+                final previousDate =
                     position > 0 ? card!.transactions[position - 1].time : null;
-                final bool isSameDate = previousDate != null &&
+                final isSameDate = previousDate != null &&
                     currentDate.year == previousDate.year &&
                     currentDate.month == previousDate.month &&
                     currentDate.day == previousDate.day;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
+                  children: [
                     if (!isSameDate)
                       Padding(
                         padding: const EdgeInsets.only(
@@ -283,14 +281,14 @@ class ScanCardPageState extends State<ScanCardPage>
       card = null;
       _highlightController.forward();
       _highlightController.addStatusListener(onAnimationStatusChanged);
-      final NFCTag tag = await FlutterNfcKit.poll();
+      final tag = await FlutterNfcKit.poll();
       setState(() {
         _highlightController.removeStatusListener(onAnimationStatusChanged);
         _highlightController.animateTo(1);
       });
       if (tag.type == NFCTagType.iso7816) {
-        for (int purseId = 0; purseId < 16; purseId++) {
-          final Uint8List result =
+        for (var purseId = 0; purseId < 16; purseId++) {
+          final result =
               await sendNfcCommand(<int>[0x90, 0x32, purseId, 0x00, 0x00]);
           if (result.isNotEmpty) {
             card = CEPASCard(purseId, result);

@@ -20,9 +20,8 @@ class CardAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    return Card(
       clipBehavior: Clip.antiAlias,
-      type: MaterialType.card,
       elevation: elevation ?? 0,
       shape: Theme.of(context).cardTheme.shape,
       child: InkWell(
@@ -33,9 +32,9 @@ class CardAppBar extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
+            children: [
               Row(
-                children: <Widget>[
+                children: [
                   if (leading != null) leading!,
                   Expanded(
                     child: title!,

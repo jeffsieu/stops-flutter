@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
-import 'package:implicitly_animated_reorderable_list/transitions.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
@@ -20,10 +19,15 @@ import '../widgets/never_focus_node.dart';
 class AddRoutePage extends StatefulWidget {
   const AddRoutePage({Key? key})
       : route = null,
+        routeId = null,
         super(key: key);
-  const AddRoutePage.edit(this.route, {Key? key}) : super(key: key);
+  AddRoutePage.edit(StoredUserRoute storedRoute, {Key? key})
+      : route = storedRoute,
+        routeId = storedRoute.id,
+        super(key: key);
 
   final UserRoute? route;
+  final int? routeId;
 
   @override
   State createState() {
@@ -61,7 +65,7 @@ class AddRoutePageState extends State<AddRoutePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(widget.route == null ? 'Add route' : 'Edit route'),
-        actions: <Widget>[
+        actions: [
           IconButton(
             icon: const Icon(Icons.done_rounded),
             tooltip: 'Done',
@@ -75,9 +79,9 @@ class AddRoutePageState extends State<AddRoutePage> {
           physics: _isReordering
               ? const NeverScrollableScrollPhysics()
               : const ScrollPhysics(),
-          children: <Widget>[
+          children: [
             Row(
-              children: <Widget>[
+              children: [
                 InkWell(
                   borderRadius: BorderRadius.circular(8.0),
                   onTap: _showColorDialog,
@@ -145,7 +149,7 @@ class AddRoutePageState extends State<AddRoutePage> {
           focusNode: NeverFocusNode(),
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.all(16.0),
-            border: InputBorder.none,
+            disabledBorder: InputBorder.none,
             hintText: 'Add bus stops',
             hintStyle:
                 const TextStyle().copyWith(color: Theme.of(context).hintColor),
@@ -156,9 +160,9 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   Widget _buildBusStops() {
-    final bool _isEditing = true;
+    const _isEditing = true;
     return Provider<EditModel>(
-      create: (_) => EditModel(isEditing: _isEditing),
+      create: (_) => const EditModel(isEditing: _isEditing),
       child: ImplicitlyAnimatedReorderableList<BusStop>(
         shrinkWrap: true,
         items: busStops,
@@ -255,69 +259,6 @@ class AddRoutePageState extends State<AddRoutePage> {
               );
             },
           );
-
-          return Reorderable(
-            key: ValueKey<BusStop>(busStop),
-            builder: (BuildContext context, Animation<double> dragAnimation,
-                bool inDrag) {
-              const double initialElevation = 2.0;
-              final double elevation =
-                  Tween<double>(begin: initialElevation, end: 10.0)
-                      .animate(CurvedAnimation(
-                          parent: dragAnimation, curve: Curves.easeOutCubic))
-                      .value;
-              final Color? materialColor = Color.lerp(
-                  Theme.of(context).cardColor,
-                  Colors.white,
-                  dragAnimation.value / 10);
-
-              final Widget card = Material(
-                color: materialColor,
-                elevation: elevation,
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Handle(
-                        child: ListTile(
-                          leading: SizedBox(
-                            width: 24,
-                            child: Text(
-                              '${position + 1}.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headline6!
-                                  .copyWith(color: _color),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                          title: Text(busStop.displayName),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      padding: const EdgeInsets.all(16.0),
-                      color: Theme.of(context).hintColor,
-                      icon: const Icon(Icons.clear_rounded),
-                      onPressed: () => setState(() {
-                        busStops.remove(busStop);
-                      }),
-                    ),
-                  ],
-                ),
-              );
-
-              if (dragAnimation.value > 0.0) {
-                return card;
-              }
-
-              return SizeFadeTransition(
-                sizeFraction: 0.75,
-                curve: Curves.easeInOut,
-                animation: itemAnimation,
-                child: card,
-              );
-            },
-          );
         },
       ),
     );
@@ -325,7 +266,7 @@ class AddRoutePageState extends State<AddRoutePage> {
 
   Future<void> _showColorDialog() async {
     _colorPickerColor = _color;
-    final Color? selectedColor = await showDialog<Color>(
+    final selectedColor = await showDialog<Color>(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
@@ -338,7 +279,7 @@ class AddRoutePageState extends State<AddRoutePage> {
                 _colorPickerColor = color;
               },
             ),
-            actions: <Widget>[
+            actions: [
               ButtonTheme(
                 minWidth: 0,
                 height: 36,
@@ -370,8 +311,8 @@ class AddRoutePageState extends State<AddRoutePage> {
 
   Future<void> _pushSearchRoute() async {
     final Widget page = SearchPage.onlyBusStops();
-    final FadePageRoute<BusStop> route = FadePageRoute<BusStop>(child: page);
-    final BusStop? selectedBusStop = await Navigator.push(context, route);
+    final route = FadePageRoute<BusStop>(child: page);
+    final selectedBusStop = await Navigator.push(context, route);
     if (selectedBusStop != null) {
       setState(() {
         busStops.add(selectedBusStop);
@@ -381,14 +322,27 @@ class AddRoutePageState extends State<AddRoutePage> {
 
   void _popRoute() {
     Navigator.pop(
-        context,
-        UserRoute.withId(
-            id: widget.route?.id,
-            name: _nameController.text,
-            color: _color,
-            busStops: busStops
-                .map((BusStop busStop) => BusStopWithPinnedServices.fromBusStop(
-                    busStop, <BusService>[]))
-                .toList()));
+      context,
+      widget.routeId != null
+          ? StoredUserRoute(
+              id: widget.routeId!,
+              name: _nameController.text,
+              color: _color,
+              busStops: busStops
+                  .map((BusStop busStop) =>
+                      BusStopWithPinnedServices.fromBusStop(
+                          busStop, <BusService>[]))
+                  .toList(),
+            )
+          : UserRoute(
+              name: _nameController.text,
+              color: _color,
+              busStops: busStops
+                  .map((BusStop busStop) =>
+                      BusStopWithPinnedServices.fromBusStop(
+                          busStop, <BusService>[]))
+                  .toList(),
+            ),
+    );
   }
 }

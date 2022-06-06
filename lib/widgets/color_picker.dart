@@ -45,14 +45,14 @@ class _ColorPickerState extends State<ColorPicker> {
     return Wrap(
       spacing: widget.spacing ?? 8.0,
       runSpacing: widget.runSpacing ?? 8.0,
-      children: <Widget>[
+      children: [
         for (Color color in widget.colors) buildColorWidget(color),
       ],
     );
   }
 
   Widget buildColorWidget(Color color) {
-    final bool isSelected = color == selectedColor;
+    final isSelected = color == selectedColor;
     return Material(
       color: color,
       shape: widget.shape,
@@ -60,7 +60,7 @@ class _ColorPickerState extends State<ColorPicker> {
       child: InkWell(
         onTap: () => _onColorTapped(color),
         child: Stack(
-          children: <Widget>[
+          children: [
             SizedBox(
               width: widget.size,
               height: widget.size,

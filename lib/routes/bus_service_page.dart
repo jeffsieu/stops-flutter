@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import '../models/bus_service_route.dart';
 import '../models/bus_service_with_routes.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_stop_with_distance.dart';
-import '../models/user_route.dart';
 import '../utils/database_utils.dart';
 import '../widgets/highlighted_icon.dart';
 import 'bottom_sheet_page.dart';
 
 class BusServicePage extends BottomSheetPage {
-  BusServicePage(this.serviceNumber, {Key? key})
+  const BusServicePage(this.serviceNumber, {Key? key})
       : focusedBusStop = null,
         super(key: key);
-  BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
+  const BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
       {Key? key})
       : super(key: key);
 
@@ -28,6 +29,8 @@ class BusServicePage extends BottomSheetPage {
 }
 
 class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
+  _BusServicePageState() : super(hasAppBar: false);
+
   BusServiceWithRoutes? service;
   int focusedDirection = 0;
 //  ScrollController controller;
@@ -39,10 +42,10 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   }
 
   Future<void> initService() async {
-    final BusServiceWithRoutes service =
+    final service =
         await getCachedBusServiceWithRoutes(widget.serviceNumber);
     if (widget.focusedBusStop != null) {
-      final BusServiceRoute focusedRoute = service.routes[0].busStops
+      final focusedRoute = service.routes[0].busStops
               .map((BusStopWithDistance b) => b.busStop)
               .contains(widget.focusedBusStop)
           ? service.routes[0]
@@ -62,9 +65,8 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
 
   @override
   Widget build(BuildContext context) {
-    buildSheet(hasAppBar: false);
-    final TabController tabController = TabController(length: 2, vsync: this);
-    final Widget bottomSheetContainer =
+    final tabController = TabController(length: 2, vsync: this);
+    final bottomSheetContainer =
         bottomSheet(child: _buildBody(tabController));
 
     tabController.index = focusedDirection;
@@ -78,28 +80,34 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
     return NestedScrollView(
 //      controller: controller,
       headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-        return <Widget>[
+        final hasTabBar = (service?.directionCount ?? 0) > 1;
+        return [
           SliverOverlapAbsorber(
             handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             sliver: SliverAppBar(
               elevation: 4.0,
               forceElevated: true,
               expandedHeight: 128.0 + kTextTabBarHeight,
+              collapsedHeight: kToolbarHeight,
               floating: true,
               pinned: true,
               flexibleSpace: FlexibleSpaceBar(
                 titlePadding: EdgeInsets.only(
-                    left: 72,
-                    bottom: (service?.directionCount ?? 0) > 1
-                        ? kTextTabBarHeight
-                        : 16.0),
-                title: Text(widget.serviceNumber),
+                    left: 72, bottom: hasTabBar ? kTextTabBarHeight : 0),
+                title: SizedBox(
+                  height: kToolbarHeight,
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(widget.serviceNumber,
+                        style: Theme.of(context).textTheme.headline6),
+                  ),
+                ),
                 collapseMode: CollapseMode.pin,
               ),
-              bottom: (service?.directionCount ?? 0) > 1
+              bottom: hasTabBar
                   ? TabBar(
                       controller: tabController,
-                      tabs: <Widget>[
+                      tabs: [
                         Tab(
                           text: 'To ${service!.destinations[0].defaultName}',
                         ),
@@ -122,7 +130,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   }
 
   Widget _buildRouteBusStops(BusServiceRoute route) {
-    final Color focusedColor = Theme.of(context).highlightColor;
+    final focusedColor = Theme.of(context).highlightColor;
 
     return MediaQuery.removePadding(
       context: context,
@@ -130,7 +138,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
       child: Builder(
         builder: (BuildContext context) {
           return CustomScrollView(
-            slivers: <Widget>[
+            slivers: [
               SliverOverlapInjector(
                 handle:
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -138,19 +146,19 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int position) {
-                    final BusStopWithDistance busStopWithDistance =
+                    final busStopWithDistance =
                         route.busStops[position];
-                    final BusStop busStop = busStopWithDistance.busStop;
-                    final double distance = busStopWithDistance.distance;
-                    final String previousRoad = position > 0
+                    final busStop = busStopWithDistance.busStop;
+                    final distance = busStopWithDistance.distance;
+                    final previousRoad = position > 0
                         ? route.busStops[position - 1].busStop.road
                         : '';
-                    final bool newRoad = busStop.road != previousRoad;
+                    final newRoad = busStop.road != previousRoad;
                     return Stack(
-                      children: <Widget>[
+                      children: [
                         Positioned.fill(
                           child: Row(
-                            children: <Widget>[
+                            children: [
                               Container(
                                 margin: position == 0
                                     ? const EdgeInsets.only(
@@ -169,33 +177,36 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
+                          children: [
                             if (newRoad)
                               Padding(
                                 padding: const EdgeInsets.only(
                                     left: 88.0, top: 24.0, bottom: 8.0),
                                 child: Text(busStop.road,
-                                    style:
-                                        Theme.of(context).textTheme.headline4),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium),
                               ),
                             Material(
                               color: busStop == widget.focusedBusStop
                                   ? focusedColor
                                   : Colors.transparent,
                               child: InkWell(
-                                onTap: () =>
-                                    showBusDetailSheet(busStop, UserRoute.home),
+                                onTap: () => context
+                                    .read<BusStopSheetBloc>()
+                                    .add(SheetRequested(
+                                        busStop, kDefaultRouteId)),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 8.0),
                                   title: Text(busStop.defaultName,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .headline6),
+                                          .titleMedium),
                                   subtitle: Text(busStop.code,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .subtitle2!
+                                          .titleSmall!
                                           .copyWith(
                                               color:
                                                   Theme.of(context).hintColor)),
@@ -214,7 +225,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                                           MainAxisAlignment.center,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
-                                      children: <Widget>[
+                                      children: [
                                         HighlightedIcon(
                                           iconColor: Theme.of(context)
                                               .colorScheme
@@ -235,7 +246,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                                               '$distance km',
                                               style: Theme.of(context)
                                                   .textTheme
-                                                  .subtitle2!
+                                                  .titleSmall!
                                                   .copyWith(
                                                       color: Theme.of(context)
                                                           .hintColor),
@@ -267,7 +278,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
       BusServiceWithRoutes service, TabController tabController) {
     return TabBarView(
       controller: tabController,
-      children: <Widget>[
+      children: [
         _buildRouteBusStops(service.routes[0]),
         _buildRouteBusStops(service.routes[1]),
       ],

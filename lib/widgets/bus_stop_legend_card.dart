@@ -8,7 +8,7 @@ class BusStopLegendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Brightness brightness = MediaQuery.of(context).platformBrightness;
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
@@ -22,10 +22,10 @@ class BusStopLegendCard extends StatelessWidget {
       child: Wrap(
         direction: Axis.vertical,
         spacing: 16,
-        children: <Widget>[
+        children: [
           Row(
             mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
+            children: [
               Icon(Icons.info_outline_rounded,
                   color: Theme.of(context).textTheme.headline4!.color),
               Container(width: 16.0),
@@ -33,49 +33,49 @@ class BusStopLegendCard extends StatelessWidget {
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 height: 16,
                 margin: const EdgeInsets.only(right: 16.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.0),
-                  color: getBusLoadColor(BusLoad.low, brightness),
+                  color: getBusLoadColor(BusLoad.low, theme),
                 ),
               ),
               const Text('Many seats'),
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 height: 16,
                 margin: const EdgeInsets.only(right: 16.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.0),
-                  color: getBusLoadColor(BusLoad.medium, brightness),
+                  color: getBusLoadColor(BusLoad.medium, theme),
                 ),
               ),
               const Text('Some seats'),
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 height: 16,
                 margin: const EdgeInsets.only(right: 16.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8.0),
-                  color: getBusLoadColor(BusLoad.high, brightness),
+                  color: getBusLoadColor(BusLoad.high, theme),
                 ),
               ),
               const Text('Few seats'),
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 margin: const EdgeInsets.only(right: 16.0),

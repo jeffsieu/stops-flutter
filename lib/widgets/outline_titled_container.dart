@@ -15,7 +15,7 @@ class OutlineTitledContainer extends StatelessWidget {
     this.curve = Curves.linear,
     this.showGap = true,
     List<Widget>? childrenBelowTitle,
-  })  : childrenBelowTitle = childrenBelowTitle ?? <Widget>[],
+  })  : childrenBelowTitle = childrenBelowTitle ?? [],
         super(key: key);
 
   final double titlePadding;
@@ -36,7 +36,7 @@ class OutlineTitledContainer extends StatelessWidget {
     return Material(
       color: backgroundColor,
       child: Stack(
-        children: <Widget>[
+        children: [
           AnimatedContainer(
             alignment: Alignment.topCenter,
             duration: duration,
@@ -56,7 +56,7 @@ class OutlineTitledContainer extends StatelessWidget {
                 duration: duration,
                 curve: curve,
                 child: Stack(
-                  children: <Widget>[
+                  children: [
                     if (body != null)
                       Visibility(
                         child: body!,
@@ -72,7 +72,7 @@ class OutlineTitledContainer extends StatelessWidget {
                           opacity: 0,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
+                            children: [
                               if (title != null) title!,
                               ...childrenBelowTitle,
                             ],
@@ -92,7 +92,7 @@ class OutlineTitledContainer extends StatelessWidget {
               padding: buildBody ? EdgeInsets.zero : collapsedTitlePadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
+                children: [
                   Padding(
                     padding: EdgeInsets.symmetric(
                         horizontal: titlePadding - titleBorderGap),
@@ -110,7 +110,7 @@ class OutlineTitledContainer extends StatelessWidget {
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: titlePadding),
                     child: Column(
-                      children: <Widget>[
+                      children: [
                         ...childrenBelowTitle,
                       ],
                     ),

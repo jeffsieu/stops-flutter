@@ -27,9 +27,7 @@ class BusService {
   }
 
   static Color listColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.light
-        ? Colors.redAccent
-        : Colors.redAccent[100]!;
+    return Theme.of(context).colorScheme.tertiary;
   }
 
   Map<String, dynamic> toMap() {
@@ -42,7 +40,7 @@ class BusService {
   @override
   bool operator ==(dynamic other) {
     if (other.runtimeType != runtimeType) return false;
-    final BusService otherBusService = other as BusService;
+    final otherBusService = other as BusService;
     return number == otherBusService.number &&
         operator == otherBusService.operator;
   }

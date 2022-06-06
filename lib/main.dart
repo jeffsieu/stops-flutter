@@ -1,3 +1,5 @@
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,7 +9,7 @@ import 'utils/database_utils.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final ThemeMode themeMode = await getThemeMode();
+  final themeMode = await getThemeMode();
   runApp(StopsApp(themeMode));
 }
 
@@ -23,8 +25,8 @@ class StopsApp extends StatefulWidget {
   static String monospacedFont = 'Cousine';
 
   static SystemUiOverlayStyle overlayStyleOf(BuildContext context) {
-    final Brightness brightness = Theme.of(context).brightness;
-    final SystemUiOverlayStyle templateStyle = brightness == Brightness.light
+    final brightness = Theme.of(context).brightness;
+    final templateStyle = brightness == Brightness.light
         ? SystemUiOverlayStyle.dark
         : SystemUiOverlayStyle.light;
     return templateStyle.copyWith(
@@ -48,42 +50,29 @@ class StopsAppState extends State<StopsApp> {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle headerTextStyle =
-        GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
-    final TextStyle mainTextStyle =
-        GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
+    final headerTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
+    final mainTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Stops Singapore',
-      themeMode: themeMode,
-      home: HomePage(),
-      theme: ThemeData(
-        toggleableActiveColor: Colors.deepOrangeAccent,
-        indicatorColor: Colors.orange,
-        popupMenuTheme: PopupMenuThemeData(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        buttonTheme: ButtonThemeData(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0)))),
-        cardTheme: CardTheme(
-            elevation: 2.0,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        dialogTheme: DialogTheme(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-        textTheme: TextTheme(
+    return DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) {
+        final lightColorScheme = lightDynamic != null
+            ? FlexColorScheme(colorScheme: lightDynamic).toScheme
+            : const FlexColorScheme(
+                    primary: Colors.deepOrange, brightness: Brightness.light)
+                .toScheme;
+
+        final darkColorScheme = darkDynamic != null
+            ? FlexColorScheme(colorScheme: darkDynamic).toScheme
+            : const FlexColorScheme(
+                    primary: Colors.orange, brightness: Brightness.dark)
+                .toScheme;
+
+        final lightTextTheme = TextTheme(
           headline1: mainTextStyle,
           headline2: mainTextStyle,
           headline3: mainTextStyle,
           headline4: headerTextStyle.copyWith(
-              color: Colors.deepOrangeAccent, fontSize: 18),
+              color: lightColorScheme.tertiary, fontSize: 18),
           headline5: headerTextStyle.copyWith(fontSize: 24),
           headline6: mainTextStyle,
           subtitle1: mainTextStyle,
@@ -93,73 +82,98 @@ class StopsAppState extends State<StopsApp> {
           button: mainTextStyle,
           caption: mainTextStyle,
           overline: mainTextStyle,
-        ),
-        textSelectionTheme: TextSelectionThemeData(
-          cursorColor: Colors.deepOrangeAccent,
-          selectionColor: Colors.orangeAccent[100],
-          selectionHandleColor: Colors.deepOrangeAccent,
-        ),
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.deepOrange,
-          accentColor: Colors.deepOrangeAccent,
-          brightness: Brightness.light,
-        ),
-      ),
-      darkTheme: ThemeData(
-          toggleableActiveColor: Colors.orangeAccent,
-          indicatorColor: Colors.orange,
-          scaffoldBackgroundColor: const Color(0xFF121212),
-          cardColor: const Color(0xFF272727),
-          canvasColor: const Color(0xFF323232),
-          snackBarTheme: const SnackBarThemeData(
-            backgroundColor: Color(0xFF323232),
-            contentTextStyle: TextStyle(color: Colors.white),
-            actionTextColor: Colors.orangeAccent,
+        );
+
+        final darkTextTheme = TextTheme(
+          headline1: mainTextStyle,
+          headline2: mainTextStyle,
+          headline3: mainTextStyle,
+          headline4: headerTextStyle.copyWith(
+              color: darkColorScheme.tertiary, fontSize: 18),
+          headline5: headerTextStyle.copyWith(fontSize: 24),
+          headline6: mainTextStyle,
+          subtitle1: mainTextStyle,
+          subtitle2: mainTextStyle,
+          bodyText1: mainTextStyle,
+          bodyText2: mainTextStyle,
+          button: mainTextStyle,
+          caption: mainTextStyle,
+          overline: mainTextStyle,
+        );
+
+        final lightTheme = FlexThemeData.light(
+          useMaterial3: true,
+          colorScheme: lightColorScheme,
+          fontFamily: GoogleFonts.nunitoSans().fontFamily,
+          blendLevel: 16,
+          subThemesData: const FlexSubThemesData(
+            inputDecoratorBorderType: FlexInputBorderType.underline,
+            inputDecoratorRadius: 8,
+            inputDecoratorIsFilled: false,
           ),
+          appBarStyle: FlexAppBarStyle.surface,
+          tabBarStyle: FlexTabBarStyle.forBackground,
+          surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+        );
+
+        final lightThemeWithBoldText = lightTheme.copyWith(
+          textTheme: lightTheme.textTheme.merge(lightTextTheme),
+          splashColor: Colors.black.withOpacity(0.05),
+          splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
           popupMenuTheme: PopupMenuThemeData(
-              color: const Color(0xFF323232),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0))),
-          buttonTheme: ButtonThemeData(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0))),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0)))),
-          cardTheme: CardTheme(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0))),
-          dialogTheme: DialogTheme(
-              backgroundColor: const Color(0xFF323232),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0))),
-          textTheme: TextTheme(
-            headline1: mainTextStyle,
-            headline2: mainTextStyle,
-            headline3: mainTextStyle,
-            headline4: headerTextStyle.copyWith(
-                color: Colors.orangeAccent, fontSize: 18),
-            headline5: headerTextStyle.copyWith(fontSize: 24),
-            headline6: mainTextStyle,
-            subtitle1: mainTextStyle,
-            subtitle2: mainTextStyle,
-            bodyText1: mainTextStyle,
-            bodyText2: mainTextStyle,
-            button: mainTextStyle,
-            caption: mainTextStyle,
-            overline: mainTextStyle,
+            elevation: 10,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            color: FlexSchemeSurfaceColors.blend(
+                    blendLevel: 32,
+                    schemeColors:
+                        FlexSchemeColor.from(primary: lightColorScheme.primary))
+                .dialogBackground,
           ),
-          textSelectionTheme: const TextSelectionThemeData(
-            cursorColor: Colors.orangeAccent,
-            selectionColor: Colors.deepOrangeAccent,
-            selectionHandleColor: Colors.orangeAccent,
+        );
+
+        final darkTheme = FlexThemeData.dark(
+          useMaterial3: true,
+          colorScheme: darkColorScheme,
+          fontFamily: GoogleFonts.nunitoSans().fontFamily,
+          blendLevel: 16,
+          subThemesData: const FlexSubThemesData(
+            inputDecoratorBorderType: FlexInputBorderType.underline,
+            inputDecoratorRadius: 8,
+            inputDecoratorIsFilled: false,
           ),
-          colorScheme: const ColorScheme.dark(
-            primary: Colors.orange,
-            secondary: Colors.orangeAccent,
-            secondaryVariant: Colors.deepOrangeAccent,
-          )),
+          appBarStyle: FlexAppBarStyle.surface,
+          tabBarStyle: FlexTabBarStyle.forBackground,
+          surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+        );
+
+        final darkThemeWithBoldText = darkTheme.copyWith(
+          textTheme: darkTheme.textTheme.merge(darkTextTheme),
+          splashColor: Colors.white.withOpacity(0.05),
+          splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
+          popupMenuTheme: PopupMenuThemeData(
+            elevation: 10,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            color: FlexSchemeSurfaceColors.blend(
+                    brightness: Brightness.dark,
+                    blendLevel: 32,
+                    schemeColors:
+                        FlexSchemeColor.from(primary: darkColorScheme.primary))
+                .dialogBackground,
+          ),
+        );
+
+        return MaterialApp(
+          title: 'Stops',
+          themeMode: themeMode,
+          home: const HomePage(),
+          theme: lightThemeWithBoldText,
+          darkTheme: darkThemeWithBoldText,
+        );
+      },
     );
   }
 }

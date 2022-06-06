@@ -21,7 +21,7 @@ class InfoCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[icon, const SizedBox(width: 16.0), title],
+        children: [icon, const SizedBox(width: 16.0), title],
       ),
     );
   }

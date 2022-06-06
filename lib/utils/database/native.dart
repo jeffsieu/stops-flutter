@@ -10,8 +10,8 @@ import '../database.dart';
 StopsDatabase constructDatabase({bool logStatements = false}) {
   if (Platform.isIOS || Platform.isAndroid) {
     final QueryExecutor executor = LazyDatabase(() async {
-      final Directory dbFolder = await getApplicationDocumentsDirectory();
-      final File file = File(path.join(dbFolder.path, 'busstop_database.db'));
+      final dbFolder = await getApplicationDocumentsDirectory();
+      final file = File(path.join(dbFolder.path, 'busstop_database.db'));
       return NativeDatabase(file, logStatements: logStatements);
     });
     return StopsDatabase(executor);
