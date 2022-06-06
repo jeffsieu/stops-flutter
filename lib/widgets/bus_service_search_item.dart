@@ -20,8 +20,8 @@ class BusServiceSearchItem extends StatelessWidget {
         child: Icon(Icons.directions_bus_rounded,
             color: BusService.listColor(context)),
       ),
-      title:
-          Text(busService.number, style: Theme.of(context).textTheme.headline6),
+      title: Text(busService.number,
+          style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }

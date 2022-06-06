@@ -1,7 +1,7 @@
 import '../utils/bus_api.dart';
 
 class BusStop {
-  BusStop({
+  const BusStop({
     required this.displayName,
     required this.defaultName,
     required this.code,
@@ -10,12 +10,19 @@ class BusStop {
     required this.longitude,
   });
 
-  String displayName;
-  String defaultName;
-  String code;
-  String road;
-  double latitude;
-  double longitude;
+  const BusStop.withCode(this.code)
+      : displayName = '',
+        defaultName = '',
+        road = '',
+        latitude = -1,
+        longitude = -1;
+
+  final String displayName;
+  final String defaultName;
+  final String code;
+  final String road;
+  final double latitude;
+  final double longitude;
 
   static BusStop fromJson(dynamic json) {
     return BusStop(
@@ -49,14 +56,22 @@ class BusStop {
     };
   }
 
-  static BusStop withCode(String code) {
+  BusStop copyWith({
+    String? displayName,
+    String? defaultName,
+    String? code,
+    String? road,
+    double? latitude,
+    double? longitude,
+  }) {
     return BusStop(
-        displayName: '',
-        defaultName: '',
-        code: code,
-        road: '',
-        latitude: -1,
-        longitude: -1);
+      displayName: displayName ?? this.displayName,
+      defaultName: defaultName ?? this.defaultName,
+      code: code ?? this.code,
+      road: road ?? this.road,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
   }
 
   @override

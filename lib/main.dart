@@ -72,39 +72,66 @@ class StopsAppState extends State<StopsApp> {
     );
 
     final ThemeData lightTheme = FlexThemeData.light(
-        colors: FlexSchemeColor.from(primary: Colors.deepOrange),
-        fontFamily: GoogleFonts.nunitoSans().fontFamily,
-        useSubThemes: true,
-        blendLevel: 10,
-        subThemesData: const FlexSubThemesData(
-          inputDecoratorBorderType: FlexInputBorderType.underline,
-          inputDecorationRadius: 8,
-          inputDecoratorIsFilled: false,
-        ),
-        appBarStyle: FlexAppBarStyle.surface,
-        tabBarStyle: FlexTabBarStyle.forBackground,
-        surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold);
+      useMaterial3: true,
+      colors: FlexSchemeColor.from(primary: Colors.deepOrange),
+      fontFamily: GoogleFonts.nunitoSans().fontFamily,
+      blendLevel: 16,
+      subThemesData: const FlexSubThemesData(
+        inputDecoratorBorderType: FlexInputBorderType.underline,
+        inputDecoratorRadius: 8,
+        inputDecoratorIsFilled: false,
+      ),
+      appBarStyle: FlexAppBarStyle.surface,
+      tabBarStyle: FlexTabBarStyle.forBackground,
+      surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+    );
 
     final ThemeData lightThemeWithBoldText = lightTheme.copyWith(
       textTheme: lightTheme.textTheme.merge(textTheme),
+      splashColor: Colors.black.withOpacity(0.05),
+      splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
+      popupMenuTheme: PopupMenuThemeData(
+        elevation: 10,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        color: FlexSchemeSurfaceColors.blend(
+                blendLevel: 32,
+                schemeColors: FlexSchemeColor.from(primary: Colors.deepOrange))
+            .dialogBackground,
+      ),
     );
 
     final ThemeData darkTheme = FlexThemeData.dark(
-        colors: FlexSchemeColor.from(primary: Colors.orange),
-        fontFamily: GoogleFonts.nunitoSans().fontFamily,
-        useSubThemes: true,
-        blendLevel: 10,
-        subThemesData: const FlexSubThemesData(
-          inputDecoratorBorderType: FlexInputBorderType.underline,
-          inputDecorationRadius: 8,
-          inputDecoratorIsFilled: false,
-        ),
-        appBarStyle: FlexAppBarStyle.surface,
-        tabBarStyle: FlexTabBarStyle.forBackground,
-        surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold);
+      useMaterial3: true,
+      colors: FlexSchemeColor.from(primary: Colors.orange),
+      fontFamily: GoogleFonts.nunitoSans().fontFamily,
+      blendLevel: 16,
+      subThemesData: const FlexSubThemesData(
+        inputDecoratorBorderType: FlexInputBorderType.underline,
+        inputDecoratorRadius: 8,
+        inputDecoratorIsFilled: false,
+      ),
+      appBarStyle: FlexAppBarStyle.surface,
+      tabBarStyle: FlexTabBarStyle.forBackground,
+      surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+    );
 
     final ThemeData darkThemeWithBoldText = darkTheme.copyWith(
       textTheme: darkTheme.textTheme.merge(textTheme),
+      splashColor: Colors.white.withOpacity(0.05),
+      splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
+      popupMenuTheme: PopupMenuThemeData(
+        elevation: 10,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        color: FlexSchemeSurfaceColors.blend(
+                brightness: Brightness.dark,
+                blendLevel: 32,
+                schemeColors: FlexSchemeColor.from(primary: Colors.orange))
+            .dialogBackground,
+      ),
     );
 
     return MaterialApp(

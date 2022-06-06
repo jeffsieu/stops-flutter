@@ -15,8 +15,6 @@ import 'bus_api.dart';
 import 'database.dart';
 import 'notification_utils.dart';
 
-/* Called when a bus stop is modified */
-typedef BusStopChangeListener = void Function(BusStop busStop);
 /* Called when bus is followed/un-followed */
 typedef BusFollowStatusListener = void Function(
     String stop, String bus, bool isFollowed);
@@ -24,21 +22,21 @@ typedef BusFollowStatusListener = void Function(
 typedef BusPinStatusListener = void Function(
     String stop, String bus, bool isPinned);
 
-const int defaultRouteId = -1;
+const int kDefaultRouteId = -1;
 const String defaultRouteName = 'Home';
 const String _themeModeKey = 'THEME_OPTION';
 const String _isBusFollowedKey = 'BUS_FOLLOW';
 const String _busTimingsKey = 'BUS_TIMINGS';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
 const String _searchHistoryKey = 'SEARCH_HISTORY';
-const String _areBusStopsCachedKey = 'BUS_STOP_CACHE';
-const String _areBusServicesCachedKey = 'BUS_SERVICE_CACHE';
+const String kAreBusStopsCachedKey = 'BUS_STOP_CACHE';
+const String kAreBusServicesCachedKey = 'BUS_SERVICE_CACHE';
 const String _areBusServiceRoutesCachedKey = 'BUS_ROUTE_CACHE';
 
 final Map<String, List<BusFollowStatusListener>> _busFollowStatusListeners =
     <String, List<BusFollowStatusListener>>{};
-final Map<BusStop, List<BusStopChangeListener>> _busStopListeners =
-    <BusStop, List<BusStopChangeListener>>{};
+final Map<String, ValueNotifier<BusStop>> _busStopListeners =
+    <String, ValueNotifier<BusStop>>{};
 final StreamController<List<Bus>> _followedBusesController =
     StreamController<List<Bus>>.broadcast(onListen: updateFollowedBusesStream);
 final Map<int, StreamController<StoredUserRoute>> _userRouteStreamControllers =
@@ -172,6 +170,7 @@ Future<List<BusStopWithDistance>> getNearestBusStops(
 
 Future<void> updateBusStop(BusStop busStop) async {
   await _database.updateBusStop(busStop);
+  _busStopListeners[busStop.code]?.value = busStop;
   // final Database database = await _accessDatabase();
   // await database.update('bus_stop', busStop.toMap(),
   //     where: 'code = ?', whereArgs: <String>[busStop.code]);
@@ -240,7 +239,7 @@ Future<void> addBusStopToRouteWithId(
     BusStop busStop, int routeId, BuildContext context) async {
   await _database.addBusStopToRouteWithId(busStop, routeId);
 
-  _updateBusStopListeners(busStop);
+  _updateBusStopListeners(busStop.code, busStop);
   await _updateRouteStream(routeId);
 
   /// TODO: SnackBar
@@ -257,7 +256,7 @@ Future<void> removeBusStopFromRoute(
     BusStop busStop, int routeId, BuildContext context) async {
   await _database.removeBusStopFromRoute(busStop, routeId);
 
-  _updateBusStopListeners(busStop);
+  _updateBusStopListeners(busStop.code, busStop);
   await _updateRouteStream(routeId);
 
   /// TODO: SnackBar
@@ -380,26 +379,8 @@ Future<void> moveBusStopPositionInRoute(
   // // await _updateRouteBusStopsStream(route);
 }
 
-void registerBusStopListener(BusStop busStop, BusStopChangeListener listener) {
-  _busStopListeners.putIfAbsent(busStop, () => <BusStopChangeListener>[]);
-  _busStopListeners[busStop]!.add(listener);
-}
-
-void unregisterBusStopListener(
-    BusStop busStop, BusStopChangeListener listener) {
-  if (_busStopListeners.containsKey(busStop)) {
-    final List<BusStopChangeListener> listeners = _busStopListeners[busStop]!;
-    listeners.remove(listener);
-    if (listeners.isEmpty) _busStopListeners.remove(busStop);
-  }
-}
-
-void _updateBusStopListeners(BusStop busStop) {
-  if (_busStopListeners[busStop] != null) {
-    for (BusStopChangeListener listener in _busStopListeners[busStop]!) {
-      listener(busStop);
-    }
-  }
+void _updateBusStopListeners(String code, BusStop busStop) {
+  _busStopListeners[code]?.value = busStop;
 }
 
 Future<void> followBus(
@@ -690,12 +671,12 @@ Future<void> cacheBusStops(List<BusStop> busStops) async {
   await _database.cacheBusStops(busStops);
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(_areBusStopsCachedKey, true);
+  await prefs.setBool(kAreBusStopsCachedKey, true);
 }
 
 Future<bool> areBusStopsCached() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  return prefs.containsKey(_areBusStopsCachedKey);
+  return prefs.containsKey(kAreBusStopsCachedKey);
 }
 
 Future<List<BusStop>> getCachedBusStops() async {
@@ -732,12 +713,12 @@ Future<void> cacheBusServices(List<BusService> busServices) async {
   // await batch.commit(noResult: true);
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.setBool(_areBusServicesCachedKey, true);
+  await prefs.setBool(kAreBusServicesCachedKey, true);
 }
 
 Future<bool> areBusServicesCached() async {
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  return prefs.containsKey(_areBusServicesCachedKey);
+  return prefs.containsKey(kAreBusServicesCachedKey);
 }
 
 Future<List<BusService>> getCachedBusServices() async {

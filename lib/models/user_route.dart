@@ -12,18 +12,20 @@ class StoredUserRoute extends UserRoute {
     required List<BusStopWithPinnedServices> busStops,
   }) : super(name: name, color: color, busStops: busStops);
 
-  static const StoredUserRoute home = StoredUserRoute(
-      id: defaultRouteId,
-      name: defaultRouteName,
-      color: Colors.transparent,
-      busStops: []);
+  // static const StoredUserRoute home = StoredUserRoute(
+  //     id: defaultRouteId,
+  //     name: defaultRouteName,
+  //     color: Colors.transparent,
+  //     busStops: []);
 
   final int id;
+
+  bool get isHome => id == kDefaultRouteId;
 
   @override
   bool operator ==(dynamic other) {
     if (other.runtimeType != runtimeType) return false;
-    final StoredUserRoute otherRoute = other as StoredUserRoute;
+    final otherRoute = other as StoredUserRoute;
     return id == otherRoute.id &&
         color == otherRoute.color &&
         listEquals(busStops, otherRoute.busStops);
@@ -54,26 +56,6 @@ class UserRoute {
       busStops: busStops,
     );
   }
-
-  // void update(UserRoute from) {
-  //   name = from.name;
-  //   color = from.color;
-  //   busStops = List<BusStopWithPinnedServices>.from(from.busStops);
-  // }
-
-  // @override
-  // bool operator ==(dynamic other) {
-  //   if (other.runtimeType != runtimeType) return false;
-  //   final UserRoute otherRoute = other as UserRoute;
-  //   return id == otherRoute.id &&
-  //       color == otherRoute.color &&
-  //       listEquals(busStops, otherRoute.busStops);
-  // }
-
-  // @override
-  // int get hashCode {
-  //   return id.hashCode;
-  // }
 
   @override
   String toString() {

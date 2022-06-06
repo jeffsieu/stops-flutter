@@ -71,7 +71,7 @@ class ScanCardPageState extends State<ScanCardPage>
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
             AnimatedBuilder(
               animation: _highlightController,
               builder: (BuildContext context, Widget? child) {
@@ -102,7 +102,7 @@ class ScanCardPageState extends State<ScanCardPage>
                   elevation: card != null ? 2.0 : 0,
                   child: Stack(
                     alignment: Alignment.bottomCenter,
-                    children: <Widget>[
+                    children: [
                       if (card != null) ...<Widget>{
                         Positioned(
                           top: 0,
@@ -146,7 +146,7 @@ class ScanCardPageState extends State<ScanCardPage>
                       } else ...<Widget>{
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
+                          children: [
                             Text(_prompt,
                                 style: Theme.of(context).textTheme.headline5),
                             Text(_subPrompt,
@@ -168,7 +168,7 @@ class ScanCardPageState extends State<ScanCardPage>
                 padding: const EdgeInsets.only(left: 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
+                  children: [
                     Text(
                         'Created: ${ScanCardPage.dateFormat.format(card!.creationDate)}',
                         style: Theme.of(context)
@@ -213,7 +213,7 @@ class ScanCardPageState extends State<ScanCardPage>
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
+                  children: [
                     if (!isSameDate)
                       Padding(
                         padding: const EdgeInsets.only(

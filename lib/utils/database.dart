@@ -16,10 +16,6 @@ import 'distance_utils.dart';
 
 part 'database.g.dart';
 
-const int defaultRouteId = -1;
-const String defaultRouteName = 'Home';
-const String _areBusStopsCachedKey = 'BUS_STOP_CACHE';
-
 @DataClassName('BusStopEntry')
 class BusStops extends Table {
   @override
@@ -85,8 +81,8 @@ class UserRouteBusStops extends Table {
   @override
   String get tableName => 'user_route_bus_stop';
 
-  IntColumn get routeId =>
-      integer().named('routeId').references(UserRoutes, #id)();
+  IntColumn get routeId => integer().named('routeId').customConstraint(
+      'FOREIGN KEY (routeId) REFERENCES user_route (id) ON DELETE CASCADE')();
   TextColumn get busStopCode => text()
       .named('busStopCode')
       .withLength(min: 5, max: 5)
@@ -113,7 +109,7 @@ class PinnedBusServices extends Table {
   @override
   List<String> get customConstraints => [
         // Custom constraint to reference composite primary key
-        'FOREIGN KEY (routeId, busStopCode) REFERENCES user_route_bus_stop (routeId, busStopCode)',
+        'FOREIGN KEY (routeId, busStopCode) REFERENCES user_route_bus_stop (routeId, busStopCode) ON DELETE CASCADE',
       ];
 }
 
@@ -131,7 +127,7 @@ class StopsDatabase extends _$StopsDatabase {
   StopsDatabase(QueryExecutor e) : super(e);
 
   static StopsDatabase create() {
-    return constructDatabase(logStatements: true);
+    return constructDatabase();
   }
 
   @override
@@ -143,19 +139,19 @@ class StopsDatabase extends _$StopsDatabase {
           // if (from == 1 && to == 2) {
           await m.recreateAllViews();
           await into(userRoutes).insert(UserRouteEntry(
-            id: defaultRouteId,
+            id: kDefaultRouteId,
             name: defaultRouteName,
             position: -1,
             color: 0,
           ));
           final SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setBool(_areBusStopsCachedKey, false);
+          await prefs.setBool(kAreBusStopsCachedKey, false);
           // }
         },
         onCreate: (Migrator m) async {
           await m.createAll();
           await into(userRoutes).insert(UserRouteEntry(
-            id: defaultRouteId,
+            id: kDefaultRouteId,
             name: defaultRouteName,
             position: -1,
             color: 0,
@@ -200,7 +196,7 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> updateBusStop(BusStop busStop) async {
-    final BusStopEntry entry = busStop.toEntry();
+    final entry = busStop.toEntry();
     await update(busStops).replace(entry);
   }
 
@@ -291,7 +287,10 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<void> updateUserRoute(StoredUserRoute route) async {
     await transaction(() async {
-      await update(userRoutes).replace(route.toCompanion());
+      await (update(userRoutes)..where((ur) => ur.id.equals(route.id)))
+          .write(route.toCompanion());
+
+      // TODO: handle the case when bus stops are pinned: foreign key constraint
 
       // Remove all bus stops from route
       await (delete(userRouteBusStops)
@@ -317,6 +316,12 @@ class StopsDatabase extends _$StopsDatabase {
         .position;
 
     await transaction(() async {
+      await (delete(pinnedBusServices)
+            ..where((p) => p.routeId.equals(route.id)))
+          .go();
+      await (delete(userRouteBusStops)
+            ..where((u) => u.routeId.equals(route.id)))
+          .go();
       await (delete(userRoutes)..where((u) => u.id.equals(route.id))).go();
 
       // Shift all positions down by 1
@@ -334,7 +339,7 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<List<UserRouteEntry>> getStoredUserRoutes() async {
     final query = select(userRoutes)
-      ..where((ur) => ur.id.equals(defaultRouteId).not())
+      ..where((ur) => ur.id.equals(kDefaultRouteId).not())
       ..orderBy([(ur) => OrderingTerm(expression: ur.position)]);
     final results = await query.get();
     // final List<UserRoute> routes = results.map((e) => e.toModel()).toList();
@@ -506,7 +511,8 @@ class StopsDatabase extends _$StopsDatabase {
     final result = await (select(pinnedBusServices)
           ..where((p) => p.routeId.equals(route.id))
           ..where((p) => p.busStopCode.equals(busStop.code))
-          ..where((p) => p.busServiceNumber.equals(busService.number)))
+          ..where((p) => p.busServiceNumber.equals(busService.number))
+          ..limit(1))
         .getSingleOrNull();
     return result != null;
   }
@@ -577,7 +583,9 @@ extension on UserRoute {
       position: position,
     );
   }
+}
 
+extension on StoredUserRoute {
   UserRoutesCompanion toCompanion() {
     return UserRoutesCompanion(
       name: Value<String>(name),

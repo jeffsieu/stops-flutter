@@ -29,7 +29,7 @@ class _FetchDataDialogState extends State<FetchDataDialog> {
           : 'Re-fetching cached data'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
+        children: [
           LinearProgressIndicator(value: progress),
           Text('${(progress * 100).toInt()}%'),
         ],

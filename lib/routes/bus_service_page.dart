@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import '../models/bus_service_route.dart';
 import '../models/bus_service_with_routes.dart';
 import '../models/bus_stop.dart';
@@ -28,6 +30,8 @@ class BusServicePage extends BottomSheetPage {
 }
 
 class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
+  _BusServicePageState() : super(hasAppBar: false);
+
   BusServiceWithRoutes? service;
   int focusedDirection = 0;
 //  ScrollController controller;
@@ -62,7 +66,6 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
 
   @override
   Widget build(BuildContext context) {
-    buildSheet(hasAppBar: false);
     final TabController tabController = TabController(length: 2, vsync: this);
     final Widget bottomSheetContainer =
         bottomSheet(child: _buildBody(tabController));
@@ -78,28 +81,34 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
     return NestedScrollView(
 //      controller: controller,
       headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-        return <Widget>[
+        final hasTabBar = (service?.directionCount ?? 0) > 1;
+        return [
           SliverOverlapAbsorber(
             handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             sliver: SliverAppBar(
               elevation: 4.0,
               forceElevated: true,
               expandedHeight: 128.0 + kTextTabBarHeight,
+              collapsedHeight: kToolbarHeight,
               floating: true,
               pinned: true,
               flexibleSpace: FlexibleSpaceBar(
                 titlePadding: EdgeInsets.only(
-                    left: 72,
-                    bottom: (service?.directionCount ?? 0) > 1
-                        ? kTextTabBarHeight
-                        : 16.0),
-                title: Text(widget.serviceNumber),
+                    left: 72, bottom: hasTabBar ? kTextTabBarHeight : 0),
+                title: SizedBox(
+                  height: kToolbarHeight,
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(widget.serviceNumber,
+                        style: Theme.of(context).textTheme.headline6),
+                  ),
+                ),
                 collapseMode: CollapseMode.pin,
               ),
-              bottom: (service?.directionCount ?? 0) > 1
+              bottom: hasTabBar
                   ? TabBar(
                       controller: tabController,
-                      tabs: <Widget>[
+                      tabs: [
                         Tab(
                           text: 'To ${service!.destinations[0].defaultName}',
                         ),
@@ -130,7 +139,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
       child: Builder(
         builder: (BuildContext context) {
           return CustomScrollView(
-            slivers: <Widget>[
+            slivers: [
               SliverOverlapInjector(
                 handle:
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -147,10 +156,10 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                         : '';
                     final bool newRoad = busStop.road != previousRoad;
                     return Stack(
-                      children: <Widget>[
+                      children: [
                         Positioned.fill(
                           child: Row(
-                            children: <Widget>[
+                            children: [
                               Container(
                                 margin: position == 0
                                     ? const EdgeInsets.only(
@@ -169,22 +178,25 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
+                          children: [
                             if (newRoad)
                               Padding(
                                 padding: const EdgeInsets.only(
                                     left: 88.0, top: 24.0, bottom: 8.0),
                                 child: Text(busStop.road,
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium),
                               ),
                             Material(
                               color: busStop == widget.focusedBusStop
                                   ? focusedColor
                                   : Colors.transparent,
                               child: InkWell(
-                                onTap: () => showBusStopDetailSheet(
-                                    busStop, StoredUserRoute.home),
+                                onTap: () => context
+                                    .read<BusStopSheetBloc>()
+                                    .add(SheetRequested(
+                                        busStop, kDefaultRouteId)),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 8.0),
@@ -214,7 +226,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                                           MainAxisAlignment.center,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
-                                      children: <Widget>[
+                                      children: [
                                         HighlightedIcon(
                                           iconColor: Theme.of(context)
                                               .colorScheme
@@ -267,7 +279,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
       BusServiceWithRoutes service, TabController tabController) {
     return TabBarView(
       controller: tabController,
-      children: <Widget>[
+      children: [
         _buildRouteBusStops(service.routes[0]),
         _buildRouteBusStops(service.routes[1]),
       ],

@@ -27,7 +27,6 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
 
   @override
   Widget build(BuildContext context) {
-    print('building overlist with route id: ${widget.routeId}');
     final BuildContext rootContext = context;
     final bool _isEditing = context.watch<EditModel>().isEditing;
 
@@ -66,7 +65,6 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                   // _busStops = snapshot.data!;
                 }
               }
-              print('snapshot route: ${snapshot.data}');
               return Provider<StoredUserRoute>(
                 create: (_) => snapshot.data!,
                 child: MediaQuery.removePadding(
@@ -115,7 +113,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                         key: Key(busStop.hashCode.toString()),
                         child: Stack(
                           alignment: Alignment.centerLeft,
-                          children: <Widget>[
+                          children: [
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 16.0),
@@ -157,7 +155,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                                   type: MaterialType.transparency,
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
-                                    children: <Widget>[
+                                    children: [
                                       AnimatedOpacity(
                                         duration:
                                             const Duration(milliseconds: 600),
@@ -183,7 +181,7 @@ class BusStopOverviewListState extends State<BusStopOverviewList> {
                                               onPressed: () async {
                                                 await removeBusStopFromRoute(
                                                     busStop,
-                                                    defaultRouteId,
+                                                    kDefaultRouteId,
                                                     rootContext);
                                               },
                                               icon: Icon(

@@ -45,33 +45,32 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
     with SingleTickerProviderStateMixin {
   bool _isStarEnabled = false;
 
-  late BusStopChangeListener _busStopListener;
-
   @override
   void initState() {
     super.initState();
-    isBusStopInRouteWithId(widget.busStop, defaultRouteId).then((bool contains) {
+    isBusStopInRouteWithId(widget.busStop, kDefaultRouteId)
+        .then((bool contains) {
       if (mounted) {
         setState(() {
           _isStarEnabled = contains;
         });
       }
     });
-    _busStopListener = (BusStop busStop) {
-      isBusStopInRouteWithId(widget.busStop, defaultRouteId).then((bool contains) {
-        if (mounted) {
-          setState(() {
-            _isStarEnabled = contains;
-          });
-        }
-      });
-    };
-    registerBusStopListener(widget.busStop, _busStopListener);
+    // _busStopListener = (BusStop busStop) {
+    //   isBusStopInRouteWithId(widget.busStop, defaultRouteId).then((bool contains) {
+    //     if (mounted) {
+    //       setState(() {
+    //         _isStarEnabled = contains;
+    //       });
+    //     }
+    //   });
+    // };
+    // registerBusStopListener(widget.busStop, _busStopListener);
   }
 
   @override
   void dispose() {
-    unregisterBusStopListener(widget.busStop, _busStopListener);
+    // unregisterBusStopListener(widget.busStop, _busStopListener);
     super.dispose();
   }
 
@@ -86,7 +85,7 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
+          children: [
             HighlightedIcon(
               iconColor: Theme.of(context).colorScheme.primary,
               child: SvgPicture.asset(
@@ -114,7 +113,7 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
       ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+        children: [
           AutoSizeText.rich(
             TextSpan(
               text: widget.nameStart,
@@ -173,10 +172,11 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
                     _isStarEnabled = !_isStarEnabled;
                   });
                   if (_isStarEnabled) {
-                    addBusStopToRouteWithId(widget.busStop, defaultRouteId, context);
+                    addBusStopToRouteWithId(
+                        widget.busStop, kDefaultRouteId, context);
                   } else {
                     removeBusStopFromRoute(
-                        widget.busStop, defaultRouteId, context);
+                        widget.busStop, kDefaultRouteId, context);
                   }
                 } else if (item == 'Show on map') {
                   widget.onShowOnMapTap();

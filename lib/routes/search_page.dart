@@ -12,6 +12,7 @@ import 'package:latlong2/latlong.dart' as latlong;
 import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 
 import '../main.dart';
 import '../models/bus_service.dart';
@@ -20,6 +21,7 @@ import '../models/bus_stop_with_distance.dart';
 import '../models/user_route.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_utils.dart';
+import '../utils/database.dart';
 import '../utils/database_utils.dart';
 import '../utils/location_utils.dart';
 import '../widgets/bus_service_search_item.dart';
@@ -58,6 +60,8 @@ class SearchPage extends BottomSheetPage {
 
 class _SearchPageState extends BottomSheetPageState<SearchPage>
     with WidgetsBindingObserver {
+  _SearchPageState() : super(hasAppBar: false);
+
   // The number of pixels to offset the FAB by animates out
   // via a fade down
   final double _resultsSheetCollapsedHeight = 132;
@@ -151,7 +155,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         : _resultsSheetAnimationController.upperBound!;
 
     if (widget.showMap) {
-      WidgetsBinding.instance!.addPostFrameCallback((Duration timeStamp) {
+      WidgetsBinding.instance.addPostFrameCallback((Duration timeStamp) {
         _resultsSheetAnimationController.value = sheetLowerBound;
       });
     }
@@ -243,7 +247,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       });
     });
 
-    WidgetsBinding.instance?.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -251,7 +255,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     _textController.dispose();
     _clearIconAnimationController.dispose();
     _mapClipperAnimationController.dispose();
-    WidgetsBinding.instance?.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -303,7 +307,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
-    buildSheet(hasAppBar: false);
     if (_query.isEmpty) {
       _clearIconAnimationController.reverse();
     } else {
@@ -370,11 +373,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         bottom: TabBar(
           controller: _tabController,
           onTap: _onTabTap,
-          tabs: <Widget>[
+          tabs: [
             Tab(
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const <Widget>[
+                children: const [
                   Icon(Icons.list_rounded),
                   SizedBox(width: 8.0),
                   Text('List'),
@@ -384,7 +387,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             Tab(
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const <Widget>[
+                children: const [
                   Icon(Icons.map_rounded),
                   SizedBox(width: 8.0),
                   Text('Map'),
@@ -393,7 +396,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             ),
           ],
         ),
-        actions: <Widget>[
+        actions: [
           ScaleTransition(
               scale: _clearIconAnimation,
               child: IconButton(
@@ -461,7 +464,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   Widget _buildBody() {
     _generateQueryResults();
-    final List<Widget> slivers = <Widget>[
+    final List<Widget> slivers = [
       SliverToBoxAdapter(
         child: AnimatedBuilder(
             animation: _resultsSheetAnimationController,
@@ -481,14 +484,13 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 ),
               );
             },
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  if (_query.isEmpty) _buildHistory(),
-                  if (!_showServicesOnly && _filteredBusServices.isNotEmpty)
-                    _buildBusServicesSliverHeader(),
-                  _buildBusServiceList(),
-                ])),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (_query.isEmpty) _buildHistory(),
+              if (!_showServicesOnly && _filteredBusServices.isNotEmpty)
+                _buildBusServicesSliverHeader(),
+              _buildBusServiceList(),
+            ])),
       ),
       if (!_showServicesOnly) ...<Widget>{
         _buildBusStopsSliverHeader(),
@@ -505,7 +507,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               width: 48.0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
+                children: [
                   HighlightedIcon(
                     child: const Icon(Icons.search_off_rounded),
                     iconColor: Theme.of(context).hintColor,
@@ -517,7 +519,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               'Nothing found for "$_query"',
               style: Theme.of(context)
                   .textTheme
-                  .headline6
+                  .titleMedium
                   ?.copyWith(fontWeight: FontWeight.normal),
             ),
           ),
@@ -525,15 +527,17 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     ];
 
     final Widget body = Stack(
-      children: <Widget>[
+      children: [
         CustomRubberBottomSheet(
           key: widget._resultsSheetKey,
           animationController: _resultsSheetAnimationController,
           scrollController: _scrollController,
           lowerLayer: Stack(
             alignment: Alignment.topCenter,
-            children: <Widget>[
-              _buildMapWidget(),
+            children: [
+              Builder(builder: (context) {
+                return _buildMapWidget(context);
+              }),
               if (LocationUtils.isLocationAllowed())
                 Positioned(
                   bottom: _resultsSheetCollapsedHeight + 16.0,
@@ -564,7 +568,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
+                  children: [
                     AnimatedOpacity(
                       duration: const Duration(milliseconds: 300),
                       curve: _query.isEmpty
@@ -586,7 +590,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                             padding: const EdgeInsets.symmetric(
                                 vertical: 8.0, horizontal: 12.0),
                             child: Row(
-                              children: <Widget>[
+                              children: [
                                 Icon(Icons.info_outline_rounded,
                                     color: Theme.of(context).hintColor,
                                     size: 20.0),
@@ -670,8 +674,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           left: 0,
           right: 0,
           child: Column(
-            children: <Widget>[
+            children: [
               AppBar(
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
                 systemOverlayStyle: SystemUiOverlayStyle(
                   statusBarBrightness: Theme.of(context).brightness,
                 ),
@@ -692,7 +698,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     return body;
   }
 
-  Widget _buildMapWidget() {
+  Widget _buildMapWidget(BuildContext context) {
     /* Initialize google map */
     final CameraPosition initialCameraPosition =
         _getCameraPositionFromLocation();
@@ -745,7 +751,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           _focusedBusStop = null;
         });
       },
-      markers: _buildMapMarkersAround(_markerOrigin),
+      markers: _buildMapMarkersAround(_markerOrigin, context),
     );
 
     return _googleMap;
@@ -760,7 +766,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     );
   }
 
-  Set<Marker> _buildMapMarkersAround(LatLng? position) {
+  Set<Marker> _buildMapMarkersAround(LatLng? position, BuildContext context) {
     final Set<Marker> markers = <Marker>{};
 
     if (position == null) {
@@ -778,7 +784,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             InfoWindow(title: busStop.displayName, snippet: busStop.road),
         onTap: () {
           if (_focusedBusStop == busStop || super.isBusDetailSheetVisible()) {
-            showBusStopDetailSheet(busStop, context.read<StoredUserRoute>());
+            showBusStopDetailSheet(busStop, context);
           } else {
             focusBusStopOnMap(busStop);
           }
@@ -929,7 +935,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       padding: const EdgeInsets.only(top: 24.0, left: 80.0, bottom: 8.0),
       child: Text(
         'Services',
-        style: Theme.of(context).textTheme.headline4?.copyWith(
+        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               color: BusService.listColor(context),
             ),
       ),
@@ -959,12 +965,15 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                       text: TextSpan(children: <InlineSpan>[
                     TextSpan(
                         text: 'Bus stops',
-                        style: Theme.of(context).textTheme.titleLarge),
+                        style: Theme.of(context).textTheme.headlineMedium),
                     if (LocationUtils.currentLocationTimestamp != null)
                       TextSpan(
                         text:
                             ' • as of ${dateFormat.format(LocationUtils.currentLocationTimestamp!)}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
                               color: Theme.of(context).hintColor,
                             ),
                       ),
@@ -988,7 +997,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                         : (_query.isEmpty
                             ? 'Nearest stop'
                             : 'Nearest matching stop'),
-                    style: Theme.of(context).textTheme.titleLarge),
+                    style: Theme.of(context).textTheme.headlineMedium),
               ),
             ),
             expandedPercentage: _resultsSheetExpandedPercentage,
@@ -1004,7 +1013,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       required double expandedPercentage,
       bool offset = true}) {
     return Stack(
-      children: <Widget>[
+      children: [
         Transform.translate(
           offset: Offset(
               0,
@@ -1058,7 +1067,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     );
   }
 
-  Widget _buildBusStopSearchItem(BusStop busStop,
+  Widget _buildBusStopSearchItem(BusStop busStop, BuildContext context,
       {bool isFocusedBusStopItem = false}) {
     final _QueryMetadata metadata = _queryMetadata[busStop]!;
 
@@ -1113,7 +1122,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         animation.whenCompleteOrCancel(focusOnBusStop);
       },
       busStop: busStop,
-      onTap: () => _onBusStopSearchItemTapped(busStop),
+      onTap: () => _onBusStopSearchItemTapped(busStop, context),
     );
   }
 
@@ -1123,14 +1132,14 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       (BuildContext context, int position) {
         final BusStop busStop = _filteredBusStops[position];
 
-        final Widget item = _buildBusStopSearchItem(busStop);
-        return position == 0 ? _buildClosestBusStopItem() : item;
+        final Widget item = _buildBusStopSearchItem(busStop, context);
+        return position == 0 ? _buildClosestBusStopItem(context) : item;
       },
       childCount: _showServicesOnly ? 0 : _filteredBusStops.length,
     ));
   }
 
-  Widget _buildClosestBusStopItem() {
+  Widget _buildClosestBusStopItem(BuildContext context) {
     return AnimatedBuilder(
       animation: _resultsSheetAnimationController,
       builder: (BuildContext context, Widget? child) {
@@ -1138,6 +1147,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
           expandedChild: child,
           collapsedChild: _buildBusStopSearchItem(
             _displayedBusStop!,
+            context,
             isFocusedBusStopItem: true,
           ),
           expandedPercentage: _resultsSheetExpandedPercentage,
@@ -1146,6 +1156,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       },
       child: _buildBusStopSearchItem(
         _filteredBusStops[0],
+        context,
         isFocusedBusStopItem: false,
       ),
     );
@@ -1155,7 +1166,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     FocusScope.of(context).unfocus();
   }
 
-  void _onBusStopSearchItemTapped(BusStop busStop) {
+  void _onBusStopSearchItemTapped(BusStop busStop, BuildContext context) {
     if (widget.isSimpleMode) {
       // Return result
       Navigator.pop(context, busStop);
@@ -1163,14 +1174,17 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       // Show bus detail sheet
       FocusScope.of(context).unfocus();
       Future<void>.delayed(const Duration(milliseconds: 100), () {
-        showBusStopDetailSheet(busStop, StoredUserRoute.home);
+        showBusStopDetailSheet(busStop, context);
       });
     }
   }
 
-  @override
-  Future<void> showBusStopDetailSheet(BusStop busStop, StoredUserRoute route) async {
-    super.showBusStopDetailSheet(busStop, route);
+  // @override
+  Future<void> showBusStopDetailSheet(
+      BusStop busStop, BuildContext context) async {
+    context
+        .read<BusStopSheetBloc>()
+        .add(SheetRequested(busStop, kDefaultRouteId));
     pushHistory(_query.trim());
   }
 

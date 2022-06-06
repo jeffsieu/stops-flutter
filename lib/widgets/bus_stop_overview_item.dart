@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_stop_with_pinned_services.dart';
@@ -32,22 +33,15 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
   late final Stream<List<BusServiceArrivalResult>> _busArrivalStream =
       BusAPI().busStopArrivalStream(widget.busStop);
   // ignore: prefer_function_declarations_over_variables
-  late final BusStopChangeListener _busStopListener = (BusStop busStop) {
-    setState(() {
-      widget.busStop.displayName = busStop.displayName;
-    });
-  };
 
   @override
   void initState() {
     super.initState();
     _latestData = BusAPI().getLatestArrival(widget.busStop);
-    registerBusStopListener(widget.busStop, _busStopListener);
   }
 
   @override
   void dispose() {
-    unregisterBusStopListener(widget.busStop, _busStopListener);
     super.dispose();
   }
 
@@ -69,7 +63,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
+          children: [
             _buildPinnedServices(widget.busStop.pinnedServices),
           ],
         ),
@@ -91,12 +85,12 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
         buildBody: !isEditing,
         collapsedTitlePadding: const EdgeInsetsDirectional.only(
             start: 48.0, end: 16.0, top: 8.0, bottom: 8.0),
-        title: Text(name, style: Theme.of(context).textTheme.headline6),
-        childrenBelowTitle: <Widget>[
+        title: Text(name, style: Theme.of(context).textTheme.titleLarge),
+        childrenBelowTitle: [
           Text('$code · $road',
               style: Theme.of(context)
                   .textTheme
-                  .subtitle2!
+                  .titleSmall!
                   .copyWith(color: Theme.of(context).hintColor)),
         ],
         body: child,
@@ -110,7 +104,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
     if (pinnedServices.isEmpty) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
+        children: [
           OutlinedButton.icon(
             icon: const Icon(Icons.add_rounded),
             label: Text(BusAPI.kNoPinnedBusesError,
@@ -119,9 +113,8 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                     .subtitle1!
                     .copyWith(color: Theme.of(context).hintColor)),
             onPressed: () async {
-              await BottomSheetPage.of(context)?.showBusStopDetailSheet(
-                  widget.busStop, context.read<StoredUserRoute>());
-              BottomSheetPage.of(context)?.edit();
+              context.read<BusStopSheetBloc>().add(SheetRequested.withEdit(
+                  widget.busStop, context.read<StoredUserRoute>().id));
             },
           ),
         ],
@@ -137,7 +130,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
           if (snapshot.hasError) {
             return Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
+              children: [
                 Icon(Icons.signal_wifi_connected_no_internet_4_rounded,
                     color: Theme.of(context).hintColor),
                 const SizedBox(width: 16.0),
@@ -174,7 +167,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                       child: Wrap(
                         spacing: 16.0,
                         direction: Axis.horizontal,
-                        children: <Widget>[
+                        children: [
                           for (BusServiceArrivalResult arrivalResult
                               in busArrivals)
                             BusTimingRow.unfocusable(widget.busStop,
@@ -185,7 +178,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
                   : Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
+                        children: [
                           Icon(Icons.bus_alert_rounded,
                               color: Theme.of(context).hintColor),
                           const SizedBox(width: 16.0),
@@ -206,7 +199,7 @@ class BusStopOverviewItemState extends State<BusStopOverviewItem> {
 
   void _showDetailSheet() {
     FocusScope.of(context).unfocus();
-    HomePage.of(context)!
-        .showBusStopDetailSheet(widget.busStop, context.read<StoredUserRoute>());
+    context.read<BusStopSheetBloc>().add(
+        SheetRequested(widget.busStop, context.read<StoredUserRoute>().id));
   }
 }

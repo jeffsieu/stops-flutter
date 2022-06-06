@@ -66,7 +66,7 @@ class AddRoutePageState extends State<AddRoutePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(widget.route == null ? 'Add route' : 'Edit route'),
-        actions: <Widget>[
+        actions: [
           IconButton(
             icon: const Icon(Icons.done_rounded),
             tooltip: 'Done',
@@ -80,9 +80,9 @@ class AddRoutePageState extends State<AddRoutePage> {
           physics: _isReordering
               ? const NeverScrollableScrollPhysics()
               : const ScrollPhysics(),
-          children: <Widget>[
+          children: [
             Row(
-              children: <Widget>[
+              children: [
                 InkWell(
                   borderRadius: BorderRadius.circular(8.0),
                   onTap: _showColorDialog,
@@ -150,7 +150,7 @@ class AddRoutePageState extends State<AddRoutePage> {
           focusNode: NeverFocusNode(),
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.all(16.0),
-            border: InputBorder.none,
+            disabledBorder: InputBorder.none,
             hintText: 'Add bus stops',
             hintStyle:
                 const TextStyle().copyWith(color: Theme.of(context).hintColor),
@@ -161,7 +161,7 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   Widget _buildBusStops() {
-    final bool _isEditing = true;
+    final _isEditing = true;
     return Provider<EditModel>(
       create: (_) => EditModel(isEditing: _isEditing),
       child: ImplicitlyAnimatedReorderableList<BusStop>(
@@ -267,7 +267,7 @@ class AddRoutePageState extends State<AddRoutePage> {
 
   Future<void> _showColorDialog() async {
     _colorPickerColor = _color;
-    final Color? selectedColor = await showDialog<Color>(
+    final selectedColor = await showDialog<Color>(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
@@ -280,7 +280,7 @@ class AddRoutePageState extends State<AddRoutePage> {
                 _colorPickerColor = color;
               },
             ),
-            actions: <Widget>[
+            actions: [
               ButtonTheme(
                 minWidth: 0,
                 height: 36,
@@ -312,8 +312,8 @@ class AddRoutePageState extends State<AddRoutePage> {
 
   Future<void> _pushSearchRoute() async {
     final Widget page = SearchPage.onlyBusStops();
-    final FadePageRoute<BusStop> route = FadePageRoute<BusStop>(child: page);
-    final BusStop? selectedBusStop = await Navigator.push(context, route);
+    final route = FadePageRoute<BusStop>(child: page);
+    final selectedBusStop = await Navigator.push(context, route);
     if (selectedBusStop != null) {
       setState(() {
         busStops.add(selectedBusStop);

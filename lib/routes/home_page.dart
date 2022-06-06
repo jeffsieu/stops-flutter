@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import '../main.dart';
 import '../models/bus.dart';
 import '../models/bus_stop.dart';
@@ -53,6 +54,8 @@ class HomePage extends BottomSheetPage {
 
 class _HomePageState extends BottomSheetPageState<HomePage>
     with WidgetsBindingObserver {
+  _HomePageState() : super(hasAppBar: false);
+
   final Duration _minimumRefreshDuration = const Duration(milliseconds: 300);
   int _bottomNavIndex = 0;
   int _suggestionsCount = 1;
@@ -73,7 +76,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance?.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
     showSetupDialog();
     if (!kIsWeb) {
       const QuickActions quickActions = QuickActions();
@@ -93,7 +96,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
   @override
   void dispose() {
-    WidgetsBinding.instance?.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     _fabScaleAnimationController.dispose();
     super.dispose();
   }
@@ -124,7 +127,6 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    buildSheet(hasAppBar: false);
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
 
     final Widget bottomSheetContainer = bottomSheet(child: _buildBody());
@@ -220,12 +222,13 @@ class _HomePageState extends BottomSheetPageState<HomePage>
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.all(16.0),
             border: InputBorder.none,
+            disabledBorder: InputBorder.none,
             hintText: 'Search for stops, services',
             hintStyle:
                 const TextStyle().copyWith(color: Theme.of(context).hintColor),
           ),
         ),
-        actions: <Widget>[
+        actions: [
           IconButton(
             tooltip: 'Search on map',
             icon: Icon(Icons.map_rounded, color: Theme.of(context).hintColor),
@@ -268,7 +271,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
   Widget _buildBody() {
     return Stack(
-      children: <Widget>[
+      children: [
         CustomScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           controller: _scrollController,
@@ -276,7 +279,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
           physics: canScroll
               ? const AlwaysScrollableScrollPhysics()
               : const NeverScrollableScrollPhysics(),
-          slivers: <Widget>[
+          slivers: [
             SliverToBoxAdapter(
               child: Container(
                 alignment: Alignment.topCenter,
@@ -301,6 +304,9 @@ class _HomePageState extends BottomSheetPageState<HomePage>
           left: 0,
           right: 0,
           child: AppBar(
+            surfaceTintColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            scrolledUnderElevation: 0,
             systemOverlayStyle: SystemUiOverlayStyle(
               statusBarBrightness: Theme.of(context).brightness,
             ),
@@ -309,6 +315,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
             automaticallyImplyLeading: false,
             titleSpacing: 16.0,
             elevation: 0.0,
+            toolbarHeight: kToolbarHeight + 8,
             title: _buildSearchField(),
           ),
         ),
@@ -345,7 +352,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                       padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
+                        children: [
                           Padding(
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 16.0),
@@ -364,8 +371,9 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                 final Bus bus = snapshot.data![position];
                                 return ListTile(
                                   onTap: () {
-                                    showBusStopDetailSheet(bus.busStop,
-                                        context.read<StoredUserRoute>());
+                                    context.read<BusStopSheetBloc>().add(
+                                        SheetRequested(
+                                            bus.busStop, kDefaultRouteId));
                                   },
                                   title: StreamBuilder<
                                       List<BusServiceArrivalResult>>(
@@ -403,7 +411,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                             ),
                           ),
                           Row(
-                            children: <Widget>[
+                            children: [
                               TextButton.icon(
                                 icon:
                                     const Icon(Icons.notifications_off_rounded),
@@ -439,8 +447,9 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                         }
 
                                         // Update the bus stop detail sheet to reflect change in bus stop follow status
-                                        widget.bottomSheetKey.currentState!
-                                            .setState(() {});
+                                        // TODO - This is a hack, find a better way to do this
+                                        // widget.bottomSheetKey.currentState!
+                                        //     .setState(() {});
                                       },
                                     ),
                                   ));
@@ -461,7 +470,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
   Widget _buildNearbyStops() {
     return FutureBuilder<StoredUserRoute>(
-        future: getRouteWithId(defaultRouteId),
+        future: getRouteWithId(kDefaultRouteId),
         builder: (context, snapshot) {
           if (snapshot == null || !snapshot.hasData) {
             return Container();
@@ -492,7 +501,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
+                    children: [
                       Container(
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.all(16.0),
@@ -501,7 +510,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                 (_busServiceFilterText.isEmpty
                                     ? ''
                                     : ' (with bus $_busServiceFilterText)'),
-                            style: Theme.of(context).textTheme.titleLarge),
+                            style: Theme.of(context).textTheme.headlineMedium),
                       ),
                       TextField(
                         autofocus: false,
@@ -559,7 +568,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                 body: Padding(
                                   padding: const EdgeInsets.all(16.0),
                                   child: Row(
-                                    children: <Widget>[
+                                    children: [
                                       CrossedIcon(
                                         icon: Icon(
                                           Icons.directions_bus_rounded,
@@ -584,7 +593,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                       const SizedBox(height: 8.0),
                       IntrinsicHeight(
                         child: Row(
-                          children: <Widget>[
+                          children: [
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 300),
                               child: TextButton.icon(
@@ -650,19 +659,19 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                       .copyWith(color: Theme.of(context).hintColor)),
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
+                children: [
                   InkWell(
                     borderRadius: BorderRadius.circular(8.0),
                     onTap: busStopWithDistance != null
-                        ? () => showBusStopDetailSheet(
-                            busStopWithDistance.busStop,
-                            context.read<StoredUserRoute>())
+                        ? () => context.read<BusStopSheetBloc>().add(
+                            SheetRequested(
+                                busStopWithDistance.busStop, kDefaultRouteId))
                         : null,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
+                        children: [
                           Text(busStopNameText,
                               style: Theme.of(context).textTheme.titleMedium),
                           Text(busStopCodeText,
@@ -723,7 +732,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   }
 
   List<Widget> _buildHomeItems() {
-    return <Widget>[
+    return [
       _buildTrackedBuses(),
       if (LocationUtils.isLocationAllowed()) ...<Widget>{
         _buildNearbyStops(),
@@ -739,7 +748,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
       ProxyProvider0<EditModel>(
         update: (_, __) => EditModel(isEditing: _isEditing),
         child: const BusStopOverviewList(
-          routeId: defaultRouteId,
+          routeId: kDefaultRouteId,
         ),
       ),
       // _busStopOverviewList,
@@ -753,8 +762,8 @@ class _HomePageState extends BottomSheetPageState<HomePage>
           const EdgeInsets.only(top: 0, left: 32.0, right: 16.0, bottom: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Text('My Stops', style: Theme.of(context).textTheme.titleLarge),
+        children: [
+          Text('My Stops', style: Theme.of(context).textTheme.headlineMedium),
           // OverflowButton
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 300),
@@ -796,11 +805,10 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   }
 
   List<Widget> _buildRoutesItems() {
-    return <Widget>[
+    return [
       NotificationListener<RouteActionNotification>(
         onNotification: (RouteActionNotification notification) {
           if (notification.action == RouteAction.select) {
-            print('selected: ${notification.route.id}');
             _pushRoutePageRoute(notification.route);
             return true;
           }

@@ -53,7 +53,7 @@ class RoutePageState extends State<RoutePage> {
                 return CustomScrollView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  slivers: <Widget>[
+                  slivers: [
                     SliverToBoxAdapter(
                       child: _buildHeader(),
                     ),
@@ -96,7 +96,7 @@ class RoutePageState extends State<RoutePage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Row(
-        children: <Widget>[
+        children: [
           IconButton(
             color: widget.route.color.of(context),
             icon: const Icon(Icons.arrow_back_rounded),

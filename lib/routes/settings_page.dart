@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info/package_info.dart';
 
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../main.dart';
 import '../utils/database_utils.dart';
@@ -41,7 +42,7 @@ class SettingsPageState extends State<SettingsPage> {
         title: const Text('Settings'),
       ),
       body: ListView(
-        children: <Widget>[
+        children: [
           _buildThemeTile(),
           _buildRefreshDataTile(),
           _buildAboutTile(),
@@ -64,7 +65,7 @@ class SettingsPageState extends State<SettingsPage> {
                 contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
+                  children: [
                     RadioListTile<ThemeMode>(
                       title: Text(_getThemeLabel(ThemeMode.system)),
                       value: ThemeMode.system,
@@ -108,7 +109,7 @@ class SettingsPageState extends State<SettingsPage> {
           ),
           applicationName: appName,
           applicationVersion: appVersion,
-          children: <Widget>[
+          children: [
             RichText(
               text: TextSpan(
                 text: 'Made by ',
@@ -121,10 +122,9 @@ class SettingsPageState extends State<SettingsPage> {
                     recognizer: TapGestureRecognizer()
                       ..onTap = () async {
                         const String url = 'https://github.com/jeffsieu';
-                        if (await canLaunch(url)) {
-                          await launch(
+                        if (await canLaunchUrlString(url)) {
+                          await launchUrlString(
                             url,
-                            forceSafariVC: false,
                           );
                         }
                       },

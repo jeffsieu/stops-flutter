@@ -13,8 +13,8 @@ analyzer:
 
 linter:
   rules:
-    - always_specify_types
     - always_declare_return_types
+    - omit_local_variable_types
     - avoid_returning_null_for_future
     - await_only_futures
     - prefer_null_aware_operators

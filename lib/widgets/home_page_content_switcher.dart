@@ -16,7 +16,7 @@ class HomePageContentSwitcher extends StatelessWidget {
       child: child,
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
         return Stack(
-          children: <Widget>[
+          children: [
             ...previousChildren,
             if (currentChild != null) currentChild,
           ],

@@ -207,12 +207,10 @@ class BusAPI {
     while (!isAtListEnd) {
       final List<Future<String>> futures = <Future<String>>[];
       for (int i = 0; i < concurrentCount; i++) {
-        print('adding item $i');
         futures.add(_fetchAsString(url, skip));
         skip += 500;
       }
       final List<String> results = await Future.wait(futures);
-      print('erm?');
       for (String result in results) {
         try {
           final List<dynamic>? rawList =
@@ -228,7 +226,6 @@ class BusAPI {
         }
       }
     }
-    print('returning!');
     return resultList;
   }
 

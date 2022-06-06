@@ -22,10 +22,10 @@ class BusStopLegendCard extends StatelessWidget {
       child: Wrap(
         direction: Axis.vertical,
         spacing: 16,
-        children: <Widget>[
+        children: [
           Row(
             mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
+            children: [
               Icon(Icons.info_outline_rounded,
                   color: Theme.of(context).textTheme.headline4!.color),
               Container(width: 16.0),
@@ -33,7 +33,7 @@ class BusStopLegendCard extends StatelessWidget {
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 height: 16,
@@ -47,7 +47,7 @@ class BusStopLegendCard extends StatelessWidget {
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 height: 16,
@@ -61,7 +61,7 @@ class BusStopLegendCard extends StatelessWidget {
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 height: 16,
@@ -75,7 +75,7 @@ class BusStopLegendCard extends StatelessWidget {
             ],
           ),
           Row(
-            children: <Widget>[
+            children: [
               Container(
                 width: 48,
                 margin: const EdgeInsets.only(right: 16.0),
