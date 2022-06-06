@@ -57,11 +57,15 @@ class StopsAppState extends State<StopsApp> {
       builder: (lightDynamic, darkDynamic) {
         final lightColorScheme = lightDynamic != null
             ? FlexColorScheme(colorScheme: lightDynamic).toScheme
-            : const FlexColorScheme(primary: Colors.deepOrange).toScheme;
+            : const FlexColorScheme(
+                    primary: Colors.deepOrange, brightness: Brightness.light)
+                .toScheme;
 
         final darkColorScheme = darkDynamic != null
             ? FlexColorScheme(colorScheme: darkDynamic).toScheme
-            : const FlexColorScheme(primary: Colors.orange).toScheme;
+            : const FlexColorScheme(
+                    primary: Colors.orange, brightness: Brightness.dark)
+                .toScheme;
 
         final lightTextTheme = TextTheme(
           headline1: mainTextStyle,

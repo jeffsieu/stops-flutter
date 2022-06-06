@@ -40,6 +40,29 @@ class LocationUtils {
   }
 
   static Future<LocationData?> getLocation() async {
+    var serviceEnabled = await location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await location.requestService();
+      if (!serviceEnabled) {
+        // User denied the request
+        _currentLocation = null;
+        return _currentLocation;
+      }
+    }
+
+    // Location service is enabled, check for permission
+    var permission = await location.hasPermission();
+    if (permission == PermissionStatus.denied) {
+      permission = await location.requestPermission();
+    }
+
+    if (permission != PermissionStatus.granted &&
+        permission != PermissionStatus.grantedLimited) {
+      // User denied the request
+      _currentLocation = null;
+      return _currentLocation;
+    }
+
     if (isLocationCurrent()) return _currentLocation;
     try {
       _currentLocation = await location.getLocation();

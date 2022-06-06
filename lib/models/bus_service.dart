@@ -27,9 +27,7 @@ class BusService {
   }
 
   static Color listColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.light
-        ? Colors.redAccent
-        : Colors.redAccent[100]!;
+    return Theme.of(context).colorScheme.tertiary;
   }
 
   Map<String, dynamic> toMap() {
