@@ -62,7 +62,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   // The number of pixels to offset the FAB by animates out
   // via a fade down
-  final double _resultsSheetCollapsedHeight = 132;
+  final double _resultsSheetCollapsedHeight = 124;
   final LatLng _defaultCameraPosition = const LatLng(1.3521, 103.8198);
 
   List<BusService> _busServices = <BusService>[];
