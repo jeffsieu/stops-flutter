@@ -16,6 +16,7 @@ import 'distance_utils.dart';
 
 part 'database.g.dart';
 
+
 @DataClassName('BusStopEntry')
 class BusStops extends Table {
   @override
