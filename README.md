@@ -55,6 +55,10 @@ googleMaps.apiKey=apikey
  }
  ```
  
+ ### Building
+ 1. Run `flutter pub get` to install dependencies.
+ 2. Build the project using `flutter build apk` or run it using `flutter run`.
+ 
 ## Built with
  - [Flutter](https://flutter.dev/) - The mobile-app framework used
  - [Rubber](https://github.com/mcrovero/rubber) - An awesome bottom-sheet implementation in Flutter
