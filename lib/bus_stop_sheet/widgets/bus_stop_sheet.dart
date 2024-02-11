@@ -10,7 +10,6 @@ import '../../models/bus_stop.dart';
 import '../../models/user_route.dart';
 import '../../routes/settings_page.dart';
 import '../../utils/bus_api.dart';
-import '../../utils/bus_service_arrival_result.dart';
 import '../../utils/database_utils.dart';
 import '../../widgets/bus_stop_legend_card.dart';
 import '../bloc/bus_stop_sheet_bloc.dart';
@@ -27,7 +26,7 @@ const double _sheetHalfBoundValue = 0.5;
 
 class BusStopSheet extends ConsumerStatefulWidget {
   BusStopSheet(
-      {Key? key, required TickerProvider vsync, required this.hasAppBar})
+      {super.key, required TickerProvider vsync, required this.hasAppBar})
       : rubberAnimationController = RubberAnimationController(
           vsync: vsync,
           lowerBoundValue: AnimationControllerValue(percentage: 0),
@@ -37,8 +36,7 @@ class BusStopSheet extends ConsumerStatefulWidget {
           springDescription: SpringDescription.withDampingRatio(
               mass: 1, ratio: DampingRatio.NO_BOUNCY, stiffness: Stiffness.LOW),
         ),
-        scrollController = ScrollController(),
-        super(key: key) {
+        scrollController = ScrollController() {
     rubberAnimationController.addStatusListener((AnimationStatus status) {
       if (status == AnimationStatus.completed) {
         rubberAnimationController.halfBoundValue = null;
@@ -183,8 +181,9 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
           },
         ),
       ],
-      child: WillPopScope(
-        onWillPop: _onWillPop,
+      child: PopScope(
+        canPop: _canPop,
+        onPopInvoked: _onPopInvoked,
         child: Material(
           type: MaterialType.card,
           borderRadius: const BorderRadius.only(
@@ -215,11 +214,8 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
     super.dispose();
   }
 
-  Future<bool> _onWillPop() async {
+  bool get _canPop {
     if (context.read<BusStopSheetBloc>().state.isEditing) {
-      setState(() {
-        context.read<BusStopSheetBloc>().add(const EditModeExited());
-      });
       return false;
     }
 
@@ -229,6 +225,24 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
     }
 
     return true;
+  }
+
+  void _onPopInvoked(bool didPop) {
+    if (didPop) {
+      return;
+    }
+
+    if (context.read<BusStopSheetBloc>().state.isEditing) {
+      setState(() {
+        context.read<BusStopSheetBloc>().add(const EditModeExited());
+      });
+      return;
+    }
+
+    if (widget.rubberAnimationController.value != 0) {
+      widget.rubberAnimationController.animateTo(to: 0);
+      return;
+    }
   }
 
   Widget _buildFooter(BuildContext context) {
@@ -276,7 +290,7 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
                   child: Text('Missing bus services?',
                       style: Theme.of(context)
                           .textTheme
-                          .subtitle2!
+                          .titleSmall!
                           .copyWith(color: Theme.of(context).hintColor)),
                 ),
               ),
@@ -308,7 +322,7 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
                     padding: const EdgeInsets.only(top: 16.0, left: 16.0),
                     child: Text(
                       'Rename bus stop',
-                      style: Theme.of(context).textTheme.headline6,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                   Container(height: 16.0),

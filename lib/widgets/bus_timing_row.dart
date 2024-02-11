@@ -20,15 +20,13 @@ import '../utils/time_utils.dart';
 class BusTimingRow extends StatefulWidget {
   const BusTimingRow(
       this.busStop, this.busService, this.arrivalResult, this.isEditing,
-      {Key? key})
-      : showNotificationButton = true,
-        super(key: key);
+      {super.key})
+      : showNotificationButton = true;
   const BusTimingRow.unfocusable(
       this.busStop, this.busService, this.arrivalResult,
-      {Key? key})
+      {super.key})
       : isEditing = false,
-        showNotificationButton = true,
-        super(key: key);
+        showNotificationButton = true;
 
   final BusStop busStop;
   final BusService busService;
@@ -145,9 +143,9 @@ class _BusTimingState extends State<BusTimingRow>
                           widget.busService.number.padAsServiceNumber(),
                           style: GoogleFonts.getFont(
                             StopsApp.monospacedFont,
-                            textStyle: Theme.of(context).textTheme.headline5,
+                            textStyle: Theme.of(context).textTheme.headlineSmall,
                             color: widget.hasArrivals
-                                ? Theme.of(context).textTheme.headline6!.color
+                                ? Theme.of(context).textTheme.titleLarge!.color
                                 : Theme.of(context).hintColor,
                           ),
                         ),
@@ -243,7 +241,7 @@ class _BusTimingState extends State<BusTimingRow>
 }
 
 class _BusTimingItem extends StatefulWidget {
-  const _BusTimingItem(this.busArrival, {Key? key}) : super(key: key);
+  const _BusTimingItem(this.busArrival, {super.key});
 
   final BusArrival? busArrival;
 
@@ -299,7 +297,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
           getBusTypeVerbose(widget.busArrival?.type),
           style: Theme.of(context)
               .textTheme
-              .bodyText2!
+              .bodyMedium!
               .copyWith(color: busLoadColor.withOpacity(0.5)),
         ),
         SizedBox(
@@ -321,7 +319,7 @@ class _BusTimingItemState extends State<_BusTimingItem>
                     : '',
                 style: Theme.of(context)
                     .textTheme
-                    .headline6!
+                    .titleLarge!
                     .copyWith(color: busLoadColor, fontSize: 24),
               ),
             ),

@@ -16,7 +16,6 @@ import '../utils/database_utils.dart';
 part 'bus_api.g.dart';
 
 const String _kApiTag = 'AccountKey';
-String? _kApiKey;
 
 const String _kRootUrl = 'http://datamall2.mytransport.sg/ltaodataservice/';
 const String _kGetBusStopsUrl = 'BusStops';

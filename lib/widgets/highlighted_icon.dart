@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class HighlightedIcon extends StatelessWidget {
   const HighlightedIcon({
-    Key? key,
+    super.key,
     required this.child,
     required this.iconColor,
-  }) : super(key: key);
+  });
 
   final Widget child;
   final Color iconColor;

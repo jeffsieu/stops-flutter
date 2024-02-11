@@ -13,12 +13,10 @@ import '../widgets/highlighted_icon.dart';
 import 'bottom_sheet_page.dart';
 
 class BusServicePage extends BottomSheetPage {
-  const BusServicePage(this.serviceNumber, {Key? key})
-      : focusedBusStop = null,
-        super(key: key);
+  const BusServicePage(this.serviceNumber, {super.key})
+      : focusedBusStop = null;
   const BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
-      {Key? key})
-      : super(key: key);
+      {super.key});
 
   final String serviceNumber;
   final BusStop? focusedBusStop;
@@ -98,7 +96,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(widget.serviceNumber,
-                        style: Theme.of(context).textTheme.headline6),
+                        style: Theme.of(context).textTheme.titleLarge),
                   ),
                 ),
                 collapseMode: CollapseMode.pin,

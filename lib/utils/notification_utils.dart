@@ -4,7 +4,6 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../models/bus.dart';
-import 'bus_api.dart';
 import 'bus_utils.dart';
 import 'database_utils.dart';
 import 'time_utils.dart';
@@ -81,7 +80,7 @@ Future<void> updateNotifications() async {
     // TODO: Fix arrival Time
     // final arrivalTime =
     //     await BusAPI().getArrivalTime(followedBus.busStop, busNumber);
-    final DateTime? arrivalTime = null;
+    const DateTime? arrivalTime = null;
 
     var minutesLeft = 0;
     if (arrivalTime != null) {

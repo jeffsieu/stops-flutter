@@ -14,8 +14,7 @@ import '../bloc/bus_stop_sheet_bloc.dart';
 import 'bus_stop_sheet.dart';
 
 class BusStopSheetServiceList extends ConsumerWidget {
-  const BusStopSheetServiceList({Key? key, required this.timingListAnimation})
-      : super(key: key);
+  const BusStopSheetServiceList({super.key, required this.timingListAnimation});
 
   final Animation<double> timingListAnimation;
 
@@ -40,14 +39,14 @@ class BusStopSheetServiceList extends ConsumerWidget {
                     children: [
                       Text(
                         'Pinned bus services',
-                        style: Theme.of(context).textTheme.headline4,
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       Text(
                         'Arrival times of pinned buses are displayed on the ${routeId == kDefaultRouteId ? 'homepage' : 'route page'}',
                         textAlign: TextAlign.center,
                         style: Theme.of(context)
                             .textTheme
-                            .bodyText2!
+                            .bodyMedium!
                             .copyWith(color: Theme.of(context).hintColor),
                       )
                     ],
@@ -108,7 +107,7 @@ class BusStopSheetServiceList extends ConsumerWidget {
                           BusApiError.noBusesInService.message,
                           style: Theme.of(context)
                               .textTheme
-                              .subtitle1!
+                              .titleMedium!
                               .copyWith(color: Theme.of(context).hintColor),
                         ),
                       ),
@@ -173,7 +172,7 @@ class BusStopSheetServiceList extends ConsumerWidget {
                 error.toString(),
                 style: Theme.of(context)
                     .textTheme
-                    .subtitle1!
+                    .titleMedium!
                     .copyWith(color: Theme.of(context).hintColor),
               ),
             ),
@@ -191,7 +190,7 @@ class BusStopSheetServiceList extends ConsumerWidget {
       child: Text(text,
           style: Theme.of(context)
               .textTheme
-              .subtitle1!
+              .titleMedium!
               .copyWith(color: Theme.of(context).hintColor)),
     );
   }

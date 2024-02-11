@@ -183,14 +183,14 @@ class BusStopSearchItemState extends State<BusStopSearchItem>
               },
               itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
                 PopupMenuItem<String>(
+                  value: 'Pin',
                   child: Text(
                     _isStarEnabled ? 'Unpin from home' : 'Pin to home',
                   ),
-                  value: 'Pin',
                 ),
                 const PopupMenuItem<String>(
-                  child: Text('Show on map'),
                   value: 'Show on map',
+                  child: Text('Show on map'),
                 ),
               ],
             ),

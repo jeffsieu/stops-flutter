@@ -8,10 +8,10 @@ import 'bus_stop_sheet_header_dropdown.dart';
 
 class BusStopSheetHeader extends StatelessWidget {
   const BusStopSheetHeader({
-    Key? key,
+    super.key,
     required this.rubberAnimationController,
     required this.hasAppBar,
-  }) : super(key: key);
+  });
 
   final RubberAnimationController rubberAnimationController;
   final bool hasAppBar;
@@ -61,11 +61,11 @@ class BusStopSheetHeader extends StatelessWidget {
                   layoutBuilder:
                       (Widget? currentChild, List<Widget> previousChildren) {
                     return Stack(
+                      alignment: Alignment.topCenter,
                       children: [
                         ...previousChildren,
                         if (currentChild != null) currentChild,
                       ],
-                      alignment: Alignment.topCenter,
                     );
                   },
                   transitionBuilder:
@@ -103,7 +103,7 @@ class BusStopSheetHeader extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: Theme.of(context)
                               .textTheme
-                              .subtitle2!
+                              .titleSmall!
                               .copyWith(color: Theme.of(context).hintColor)),
                     ],
                   ),

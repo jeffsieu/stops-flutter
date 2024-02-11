@@ -4,8 +4,7 @@ import '../models/bus_stop.dart';
 import '../models/user_route.dart';
 
 class RouteListItem extends StatelessWidget {
-  const RouteListItem({Key? key, required this.route, required this.index})
-      : super(key: key);
+  const RouteListItem({super.key, required this.route, required this.index});
 
   final StoredUserRoute route;
   final int index;
@@ -27,14 +26,14 @@ class RouteListItem extends StatelessWidget {
             color: route.color.of(context),
           ),
         ),
-        title: Text(route.name, style: Theme.of(context).textTheme.headline6),
+        title: Text(route.name, style: Theme.of(context).textTheme.titleLarge),
         subtitle: Text(
             route.busStops
                 .map<String>((BusStop busStop) => busStop.displayName)
                 .join(' > '),
             style: Theme.of(context)
                 .textTheme
-                .subtitle2!
+                .titleSmall!
                 .copyWith(color: Theme.of(context).hintColor)),
         trailing: PopupMenuButton<RouteAction>(
           icon:
@@ -46,9 +45,11 @@ class RouteListItem extends StatelessWidget {
           itemBuilder: (BuildContext context) {
             return <PopupMenuItem<RouteAction>>[
               const PopupMenuItem<RouteAction>(
-                  child: Text('Edit'), value: RouteAction.edit),
+                  value: RouteAction.edit,
+                  child: Text('Edit')),
               const PopupMenuItem<RouteAction>(
-                  child: Text('Delete'), value: RouteAction.delete),
+                  value: RouteAction.delete,
+                  child: Text('Delete')),
             ];
           },
         ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import '../utils/bus_api.dart';
 import '../utils/database_utils.dart';
@@ -10,15 +9,14 @@ import '../widgets/bus_stop_overview_item.dart';
 import 'edit_model.dart';
 
 class BusStopOverviewList extends StatelessWidget {
-  const BusStopOverviewList({Key? key, required this.routeId})
-      : super(key: key);
+  const BusStopOverviewList({super.key, required this.routeId});
 
   final int routeId;
 
   @override
   Widget build(BuildContext context) {
     final rootContext = context;
-    final _isEditing = context.watch<EditModel>().isEditing;
+    final isEditing = context.watch<EditModel>().isEditing;
 
     return StreamBuilder<StoredUserRoute>(
         initialData: null,
@@ -45,7 +43,7 @@ class BusStopOverviewList extends StatelessWidget {
                           'Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.',
                           style: Theme.of(context)
                               .textTheme
-                              .headline4!
+                              .headlineMedium!
                               .copyWith(color: Theme.of(context).hintColor)),
                     ),
                   );
@@ -88,7 +86,7 @@ class BusStopOverviewList extends StatelessWidget {
                       final Widget busStopItem = BusStopOverviewItem(
                         busStop,
                         key: Key(busStop.code +
-                            hashList(busStop.pinnedServices).toString()),
+                            Object.hashAll(busStop.pinnedServices).toString()),
                       );
 
                       return Stack(
@@ -102,16 +100,16 @@ class BusStopOverviewList extends StatelessWidget {
                           ),
                           AnimatedOpacity(
                             duration: const Duration(milliseconds: 600),
-                            opacity: _isEditing ? 1.0 : 0.0,
+                            opacity: isEditing ? 1.0 : 0.0,
                             curve: const Interval(0.5, 1),
                             child: AnimatedSlide(
                               duration: const Duration(milliseconds: 600),
-                              offset: _isEditing
+                              offset: isEditing
                                   ? Offset.zero
                                   : const Offset(0, 0.25),
                               curve: const Interval(0.5, 1,
                                   curve: Curves.easeOutCubic),
-                              child: _isEditing
+                              child: isEditing
                                   ? ReorderableDragStartListener(
                                       index: position,
                                       child: Padding(
@@ -141,17 +139,17 @@ class BusStopOverviewList extends StatelessWidget {
                                     AnimatedOpacity(
                                       duration:
                                           const Duration(milliseconds: 600),
-                                      opacity: _isEditing ? 1.0 : 0.0,
-                                      curve: _isEditing
+                                      opacity: isEditing ? 1.0 : 0.0,
+                                      curve: isEditing
                                           ? const Interval(0.5, 1)
                                           : const Interval(0, 0.25),
                                       child: AnimatedSlide(
                                         duration:
                                             const Duration(milliseconds: 600),
-                                        offset: _isEditing
+                                        offset: isEditing
                                             ? Offset.zero
                                             : const Offset(0, 0.25),
-                                        curve: _isEditing
+                                        curve: isEditing
                                             ? const Interval(0.5, 1,
                                                 curve: Curves.easeOutCubic)
                                             : const Interval(0, 0.5,

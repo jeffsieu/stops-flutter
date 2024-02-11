@@ -6,7 +6,7 @@ import '../../utils/database_utils.dart';
 import '../bloc/bus_stop_sheet_bloc.dart';
 
 class BusStopSheetHeaderDropdown extends StatelessWidget {
-  const BusStopSheetHeaderDropdown({Key? key}) : super(key: key);
+  const BusStopSheetHeaderDropdown({super.key});
 
   @override
   Widget build(BuildContext context) {

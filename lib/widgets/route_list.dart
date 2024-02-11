@@ -6,7 +6,7 @@ import '../utils/reorder_status_notification.dart';
 import 'route_list_item.dart';
 
 class RouteList extends StatefulWidget {
-  const RouteList({Key? key}) : super(key: key);
+  const RouteList({super.key});
 
   @override
   State createState() {
@@ -47,7 +47,7 @@ class RouteListState extends State<RouteList> {
                     'No routes created.\n\nCreate a route to organize bus stops you go to frequently.',
                     style: Theme.of(context)
                         .textTheme
-                        .headline4!
+                        .headlineMedium!
                         .copyWith(color: Theme.of(context).hintColor)),
               ),
             );

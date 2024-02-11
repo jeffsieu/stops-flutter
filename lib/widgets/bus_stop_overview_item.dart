@@ -14,7 +14,7 @@ import 'edit_model.dart';
 import 'outline_titled_container.dart';
 
 class BusStopOverviewItem extends ConsumerWidget {
-  const BusStopOverviewItem(this.busStop, {Key? key}) : super(key: key);
+  const BusStopOverviewItem(this.busStop, {super.key});
 
   final BusStopWithPinnedServices busStop;
 
@@ -84,7 +84,7 @@ class BusStopOverviewItem extends ConsumerWidget {
             label: Text(BusApiError.noPinnedBuses.message,
                 style: Theme.of(context)
                     .textTheme
-                    .subtitle1!
+                    .titleMedium!
                     .copyWith(color: Theme.of(context).hintColor)),
             onPressed: () async {
               context.read<BusStopSheetBloc>().add(SheetRequested.withEdit(
@@ -136,7 +136,7 @@ class BusStopOverviewItem extends ConsumerWidget {
                             Text(BusApiError.noPinnedBusesInService.message,
                                 style: Theme.of(context)
                                     .textTheme
-                                    .subtitle1!
+                                    .titleMedium!
                                     .copyWith(
                                         color: Theme.of(context).hintColor)),
                           ],
@@ -154,7 +154,7 @@ class BusStopOverviewItem extends ConsumerWidget {
                   Text(error.toString(),
                       style: Theme.of(context)
                           .textTheme
-                          .subtitle1!
+                          .titleMedium!
                           .copyWith(color: Theme.of(context).hintColor)),
                 ],
               );

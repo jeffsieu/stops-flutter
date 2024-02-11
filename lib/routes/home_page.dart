@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +22,6 @@ import '../routes/route_page.dart';
 import '../routes/scan_card_page.dart';
 import '../routes/settings_page.dart';
 import '../utils/bus_api.dart';
-import '../utils/bus_service_arrival_result.dart';
 import '../utils/database_utils.dart';
 import '../utils/location_utils.dart';
 import '../utils/reorder_status_notification.dart';
@@ -42,7 +40,7 @@ import 'fade_page_route.dart';
 import 'search_page.dart';
 
 class HomePage extends BottomSheetPage {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -130,8 +128,9 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
     final bottomSheetContainer = bottomSheet(child: _buildBody());
 
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: _canPop,
+      onPopInvoked: _onPopInvoked,
       child: KeyboardDismissOnTap(
         child: Scaffold(
           body: bottomSheetContainer,
@@ -182,9 +181,9 @@ class _HomePageState extends BottomSheetPageState<HomePage>
     );
   }
 
-  Future<bool> _onWillPop() async {
-    if (isBusDetailSheetVisible()) {
-      return true;
+  void _onPopInvoked(bool didPop) {
+    if (didPop) {
+      return;
     }
 
     if (_activeRoute != null) {
@@ -192,13 +191,26 @@ class _HomePageState extends BottomSheetPageState<HomePage>
         _activeRoute = null;
       });
       _fabScaleAnimationController.forward();
-      return false;
+      return;
     }
     if (_bottomNavIndex == 1) {
       setState(() {
         _bottomNavIndex = 0;
         _fabScaleAnimationController.reverse();
       });
+      return;
+    }
+  }
+
+  bool get _canPop {
+    if (isBusDetailSheetVisible()) {
+      return true;
+    }
+
+    if (_activeRoute != null) {
+      return false;
+    }
+    if (_bottomNavIndex == 1) {
       return false;
     }
     return true;
@@ -252,12 +264,12 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                   if (snapshot.hasData &&
                       snapshot.data == NFCAvailability.available)
                     const PopupMenuItem<String>(
-                      child: Text('Check card value'),
                       value: 'Check card value',
+                      child: Text('Check card value'),
                     ),
                   const PopupMenuItem<String>(
-                    child: Text('Settings'),
                     value: 'Settings',
+                    child: Text('Settings'),
                   ),
                 ],
               );
@@ -493,10 +505,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
-                            'Nearby stops' +
-                                (_busServiceFilterText.isEmpty
-                                    ? ''
-                                    : ' (with bus $_busServiceFilterText)'),
+                            'Nearby stops${_busServiceFilterText.isEmpty ? '' : ' (with bus $_busServiceFilterText)'}',
                             style: Theme.of(context).textTheme.headlineMedium),
                       ),
                       TextField(
@@ -565,7 +574,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                         'Nothing found',
                                         style: Theme.of(context)
                                             .textTheme
-                                            .subtitle1!
+                                            .titleMedium!
                                             .copyWith(
                                                 color: Theme.of(context)
                                                     .hintColor),

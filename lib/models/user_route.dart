@@ -7,10 +7,10 @@ import 'bus_stop_with_pinned_services.dart';
 class StoredUserRoute extends UserRoute {
   const StoredUserRoute({
     required this.id,
-    required String name,
-    required Color color,
-    required List<BusStopWithPinnedServices> busStops,
-  }) : super(name: name, color: color, busStops: busStops);
+    required super.name,
+    required super.color,
+    required super.busStops,
+  });
 
   // static const StoredUserRoute home = StoredUserRoute(
   //     id: defaultRouteId,

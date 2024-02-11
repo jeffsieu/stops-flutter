@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class OutlineTitledContainer extends StatelessWidget {
   OutlineTitledContainer({
-    Key? key,
+    super.key,
     this.title,
     this.body,
     this.collapsedTitlePadding = EdgeInsets.zero,
@@ -15,8 +15,7 @@ class OutlineTitledContainer extends StatelessWidget {
     this.curve = Curves.linear,
     this.showGap = true,
     List<Widget>? childrenBelowTitle,
-  })  : childrenBelowTitle = childrenBelowTitle ?? [],
-        super(key: key);
+  })  : childrenBelowTitle = childrenBelowTitle ?? [];
 
   final double titlePadding;
   final double titleBorderGap;
@@ -59,9 +58,9 @@ class OutlineTitledContainer extends StatelessWidget {
                   children: [
                     if (body != null)
                       Visibility(
-                        child: body!,
                         visible: buildBody,
                         maintainState: true,
+                        child: body!,
                       ),
                     Visibility(
                       maintainState: true,

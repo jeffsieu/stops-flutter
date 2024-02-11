@@ -13,7 +13,7 @@ import '../utils/cepas/nfc_commands.dart';
 class ScanCardPage extends StatefulWidget {
   static DateFormat dateFormat = DateFormat('dd MMMM yyyy');
 
-  const ScanCardPage({Key? key}) : super(key: key);
+  const ScanCardPage({super.key});
 
   @override
   State createState() {
@@ -55,7 +55,7 @@ class ScanCardPageState extends State<ScanCardPage>
       appBar: AppBar(
         elevation: 0.0,
         title: Text('Check card value',
-            style: Theme.of(context).textTheme.headline6),
+            style: Theme.of(context).textTheme.titleLarge),
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarBrightness: Theme.of(context).brightness,
         ),
@@ -119,7 +119,7 @@ class ScanCardPageState extends State<ScanCardPage>
                             child: Text('\$${card!.balance}',
                                 style: Theme.of(context)
                                     .textTheme
-                                    .headline3!
+                                    .displaySmall!
                                     .copyWith(
                                         color: Theme.of(context)
                                             .colorScheme
@@ -133,7 +133,7 @@ class ScanCardPageState extends State<ScanCardPage>
                                 StopsApp.monospacedFont,
                                 textStyle: Theme.of(context)
                                     .textTheme
-                                    .headline5!
+                                    .headlineSmall!
                                     .copyWith(
                                       color: Theme.of(context).hintColor,
                                     ),
@@ -146,11 +146,11 @@ class ScanCardPageState extends State<ScanCardPage>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(_prompt,
-                                style: Theme.of(context).textTheme.headline5),
+                                style: Theme.of(context).textTheme.headlineSmall),
                             Text(_subPrompt,
                                 style: Theme.of(context)
                                     .textTheme
-                                    .headline6!
+                                    .titleLarge!
                                     .copyWith(
                                         color: Theme.of(context).hintColor)),
                           ],
@@ -171,13 +171,13 @@ class ScanCardPageState extends State<ScanCardPage>
                         'Created: ${ScanCardPage.dateFormat.format(card!.creationDate)}',
                         style: Theme.of(context)
                             .textTheme
-                            .subtitle1!
+                            .titleMedium!
                             .copyWith(color: Theme.of(context).hintColor)),
                     Text(
                         'Expiring: ${ScanCardPage.dateFormat.format(card!.expiryDate)}',
                         style: Theme.of(context)
                             .textTheme
-                            .subtitle1!
+                            .titleMedium!
                             .copyWith(color: Theme.of(context).hintColor)),
                   ],
                 ),
@@ -217,11 +217,11 @@ class ScanCardPageState extends State<ScanCardPage>
                         padding: const EdgeInsets.only(
                             left: 16.0, top: 32.0, right: 16.0, bottom: 16.0),
                         child: Text(timeString,
-                            style: Theme.of(context).textTheme.headline4),
+                            style: Theme.of(context).textTheme.headlineMedium),
                       ),
                     ListTile(
                       title: Text(_formatAmount(transaction.amountCents),
-                          style: Theme.of(context).textTheme.headline6),
+                          style: Theme.of(context).textTheme.titleLarge),
                       subtitle: Text(
                         transaction.type +
                             (busServiceNumber.isNotEmpty
@@ -229,7 +229,7 @@ class ScanCardPageState extends State<ScanCardPage>
                                 : ''),
                         style: Theme.of(context)
                             .textTheme
-                            .subtitle2!
+                            .titleSmall!
                             .copyWith(color: Theme.of(context).hintColor),
                       ),
                       trailing: busServiceNumber.isNotEmpty

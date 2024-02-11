@@ -4,8 +4,7 @@ import '../models/bus_service.dart';
 import '../widgets/highlighted_icon.dart';
 
 class BusServiceSearchItem extends StatelessWidget {
-  const BusServiceSearchItem({Key? key, required this.busService, this.onTap})
-      : super(key: key);
+  const BusServiceSearchItem({super.key, required this.busService, this.onTap});
 
   final BusService busService;
   final void Function()? onTap;

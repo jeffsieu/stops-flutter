@@ -13,7 +13,7 @@ class SettingsPage extends StatefulWidget {
   static const String _kThemeLabelLight = 'Light';
   static const String _kThemeLabelDark = 'Dark';
 
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   State createState() {
@@ -112,7 +112,7 @@ class SettingsPageState extends State<SettingsPage> {
             RichText(
               text: TextSpan(
                 text: 'Made by ',
-                style: Theme.of(context).textTheme.bodyText2,
+                style: Theme.of(context).textTheme.bodyMedium,
                 children: <TextSpan>[
                   TextSpan(
                     text: 'Jeff Sieu',

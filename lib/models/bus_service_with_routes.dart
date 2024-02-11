@@ -6,10 +6,10 @@ class BusServiceWithRoutes extends BusService {
   final List<BusServiceRoute> routes;
 
   BusServiceWithRoutes._({
-    required String number,
-    required String operator,
+    required super.number,
+    required super.operator,
     required this.routes,
-  }) : super(number: number, operator: operator);
+  });
 
   static BusServiceWithRoutes fromBusService(
       BusService busService, List<BusServiceRoute> routes) {

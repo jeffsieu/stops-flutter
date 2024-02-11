@@ -7,7 +7,7 @@ import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import '../bus_stop_sheet/widgets/bus_stop_sheet.dart';
 
 abstract class BottomSheetPage extends ConsumerStatefulWidget {
-  const BottomSheetPage({Key? key}) : super(key: key);
+  const BottomSheetPage({super.key});
 
   static BottomSheetPageState<BottomSheetPage>? of(BuildContext context) =>
       context.findAncestorStateOfType<BottomSheetPageState<BottomSheetPage>>();

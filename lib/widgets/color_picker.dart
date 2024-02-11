@@ -9,8 +9,8 @@ class ColorPicker extends StatefulWidget {
     this.spacing,
     this.runSpacing,
     this.shape = const CircleBorder(),
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   final double size;
   final List<Color> colors;

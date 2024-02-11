@@ -3,21 +3,14 @@ import 'bus_stop.dart';
 
 class BusStopWithPinnedServices extends BusStop {
   BusStopWithPinnedServices._({
-    required String displayName,
-    required String defaultName,
-    required String code,
-    required String road,
-    required double latitude,
-    required double longitude,
+    required super.displayName,
+    required super.defaultName,
+    required super.code,
+    required super.road,
+    required super.latitude,
+    required super.longitude,
     required this.pinnedServices,
-  }) : super(
-          displayName: displayName,
-          defaultName: defaultName,
-          code: code,
-          road: road,
-          latitude: latitude,
-          longitude: longitude,
-        );
+  });
 
   List<BusService> pinnedServices;
 

@@ -12,7 +12,6 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' as latlong;
 import 'package:location/location.dart';
 import 'package:provider/provider.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rubber/rubber.dart';
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 
@@ -33,13 +32,10 @@ import 'bottom_sheet_page.dart';
 import 'bus_service_page.dart';
 
 class SearchPage extends BottomSheetPage {
-  SearchPage({Key? key, this.showMap = false})
-      : isSimpleMode = false,
-        super(key: key);
-  SearchPage.onlyBusStops({Key? key})
+  SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
+  SearchPage.onlyBusStops({super.key})
       : showMap = false,
-        isSimpleMode = true,
-        super(key: key);
+        isSimpleMode = true;
 
   static const int _furthestBusStopDistanceMeters = 3000;
   static const double _searchDifferenceThreshold = 0.2;
@@ -270,13 +266,29 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     }
   }
 
-  Future<bool> _onWillPop() async {
+  bool get _canPop {
+    if (_query.isNotEmpty) {
+      return false;
+    }
+
+    if (widget.showMap != _isMapVisible) {
+      return false;
+    }
+
+    return true;
+  }
+
+  void _onPopInvoked(bool didPop) {
+    if (didPop) {
+      return;
+    }
+
     // Clear query if not empty
     if (_query.isNotEmpty) {
       setState(() {
         _query = '';
       });
-      return false;
+      return;
     }
 
     // If launched as list view, return to list view first
@@ -293,10 +305,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             : _resultsSheetAnimationController.upperBound,
         velocity: SearchPage._launchVelocity,
       );
-      return false;
+      return;
     }
-
-    return true;
   }
 
   @override
@@ -315,8 +325,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     }
     final bottomSheetContainer = bottomSheet(child: _buildBody());
 
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: _canPop,
+      onPopInvoked: _onPopInvoked,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         body: Material(child: bottomSheetContainer),
@@ -368,11 +379,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         bottom: TabBar(
           controller: _tabController,
           onTap: _onTabTap,
-          tabs: [
+          tabs: const [
             Tab(
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Icon(Icons.list_rounded),
                   SizedBox(width: 8.0),
                   Text('List'),
@@ -382,7 +393,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
             Tab(
               icon: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Icon(Icons.map_rounded),
                   SizedBox(width: 8.0),
                   Text('Map'),
@@ -504,8 +515,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   HighlightedIcon(
-                    child: const Icon(Icons.search_off_rounded),
                     iconColor: Theme.of(context).hintColor,
+                    child: const Icon(Icons.search_off_rounded),
                   ),
                 ],
               ),
@@ -621,14 +632,14 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                                   LatLng(centerLatitude, centerLongitude);
                             });
                           },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).cardColor,
+                          ),
                           child: Text(
                               'Search this area for ${_query.isEmpty ? 'stops' : '"$_query"'}',
                               style: TextStyle(
                                   color:
                                       Theme.of(context).colorScheme.secondary)),
-                          style: ElevatedButton.styleFrom(
-                            primary: Theme.of(context).cardColor,
-                          ),
                         ),
                       ),
                     ),

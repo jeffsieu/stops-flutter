@@ -6,6 +6,7 @@ LocationData? _currentLocation;
 DateTime? _currentLocationTimestamp;
 bool? hasPermission;
 
+// TODO: Refactor using Riverpod
 class LocationUtils {
   static DateTime? get currentLocationTimestamp {
     return _currentLocationTimestamp;

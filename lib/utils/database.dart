@@ -2,10 +2,10 @@
 
 import 'dart:io';
 
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart' show Color;
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -164,7 +164,7 @@ class StopsDatabase extends _$StopsDatabase {
         onUpgrade: (Migrator m, int from, int to) async {
           // if (from == 1 && to == 2) {
           await m.recreateAllViews();
-          await into(userRoutes).insert(UserRouteEntry(
+          await into(userRoutes).insert(const UserRouteEntry(
             id: kDefaultRouteId,
             name: defaultRouteName,
             position: -1,
@@ -176,7 +176,7 @@ class StopsDatabase extends _$StopsDatabase {
         },
         onCreate: (Migrator m) async {
           await m.createAll();
-          await into(userRoutes).insert(UserRouteEntry(
+          await into(userRoutes).insert(const UserRouteEntry(
             id: kDefaultRouteId,
             name: defaultRouteName,
             position: -1,

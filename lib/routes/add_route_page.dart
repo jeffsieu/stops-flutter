@@ -16,14 +16,12 @@ import '../widgets/edit_model.dart';
 import '../widgets/never_focus_node.dart';
 
 class AddRoutePage extends StatefulWidget {
-  const AddRoutePage({Key? key})
+  const AddRoutePage({super.key})
       : route = null,
-        routeId = null,
-        super(key: key);
-  AddRoutePage.edit(StoredUserRoute storedRoute, {Key? key})
+        routeId = null;
+  AddRoutePage.edit(StoredUserRoute storedRoute, {super.key})
       : route = storedRoute,
-        routeId = storedRoute.id,
-        super(key: key);
+        routeId = storedRoute.id;
 
   final UserRoute? route;
   final int? routeId;
@@ -159,9 +157,9 @@ class AddRoutePageState extends State<AddRoutePage> {
   }
 
   Widget _buildBusStops() {
-    const _isEditing = true;
+    const isEditing = true;
     return Provider<EditModel>(
-      create: (_) => const EditModel(isEditing: _isEditing),
+      create: (_) => const EditModel(isEditing: isEditing),
       child: ReorderableListView.builder(
         shrinkWrap: true,
         itemCount: busStops.length,
@@ -197,13 +195,13 @@ class AddRoutePageState extends State<AddRoutePage> {
               Positioned.fill(
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 600),
-                  opacity: _isEditing ? 1.0 : 0.0,
+                  opacity: isEditing ? 1.0 : 0.0,
                   curve: const Interval(0.5, 1),
                   child: AnimatedSlide(
                     duration: const Duration(milliseconds: 600),
-                    offset: _isEditing ? Offset.zero : const Offset(0, 0.25),
+                    offset: isEditing ? Offset.zero : const Offset(0, 0.25),
                     curve: const Interval(0.5, 1, curve: Curves.easeOutCubic),
-                    child: _isEditing
+                    child: isEditing
                         ? ReorderableDragStartListener(
                             index: position,
                             child: Row(
@@ -234,7 +232,7 @@ class AddRoutePageState extends State<AddRoutePage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        _isEditing
+                        isEditing
                             ? Padding(
                                 padding:
                                     const EdgeInsetsDirectional.only(end: 0.0),

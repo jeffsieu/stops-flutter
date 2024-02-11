@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 class CardAppBar extends StatelessWidget {
   const CardAppBar({
-    Key? key,
+    super.key,
     this.onTap,
     this.leading,
     this.title,
     this.bottom,
     this.actions,
     this.elevation,
-  }) : super(key: key);
+  });
 
   final Widget? leading;
   final Widget? title;

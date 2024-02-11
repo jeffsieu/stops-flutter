@@ -5,7 +5,7 @@ import '../models/bus_service.dart';
 import '../utils/bus_api.dart';
 
 class FetchDataDialog extends ConsumerStatefulWidget {
-  const FetchDataDialog({Key? key, required this.isSetup}) : super(key: key);
+  const FetchDataDialog({super.key, required this.isSetup});
   final bool isSetup;
 
   @override

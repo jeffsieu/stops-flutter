@@ -9,7 +9,7 @@ import '../widgets/bus_stop_overview_list.dart';
 import '../widgets/edit_model.dart';
 
 class RoutePage extends StatefulWidget {
-  const RoutePage(this.route, {Key? key}) : super(key: key);
+  const RoutePage(this.route, {super.key});
   final StoredUserRoute route;
 
   @override
@@ -66,7 +66,7 @@ class RoutePageState extends State<RoutePage> {
                                 'This route has no stops.\n\nTap the edit icon to add stops to this route.',
                                 style: Theme.of(context)
                                     .textTheme
-                                    .headline4!
+                                    .headlineMedium!
                                     .copyWith(
                                         color: Theme.of(context).hintColor)),
                           ),
@@ -108,7 +108,7 @@ class RoutePageState extends State<RoutePage> {
             child: Text(widget.route.name,
                 style: Theme.of(context)
                     .textTheme
-                    .headline4!
+                    .headlineMedium!
                     .copyWith(color: widget.route.color.of(context))),
           ),
           IconButton(
