@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 
 import '../models/bus_stop.dart';
 import '../models/user_route.dart';
 
 class RouteListItem extends StatelessWidget {
-  const RouteListItem(this.route, {Key? key}) : super(key: key);
+  const RouteListItem({Key? key, required this.route, required this.index})
+      : super(key: key);
 
   final StoredUserRoute route;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    return Handle(
-      delay: const Duration(milliseconds: 500),
+    return ReorderableDelayedDragStartListener(
+      index: index,
       child: ListTile(
         contentPadding: const EdgeInsets.only(left: 24.0, right: 16.0),
         onTap: () {

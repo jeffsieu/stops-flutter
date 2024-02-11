@@ -29,7 +29,7 @@ class BusStops extends Table {
   RealColumn get longitude => real()();
 
   @override
-  Set<Column<dynamic>> get primaryKey => {code};
+  Set<Column> get primaryKey => {code};
 }
 
 @DataClassName('BusServiceEntry')
@@ -41,7 +41,7 @@ class BusServices extends Table {
   TextColumn get operator => text()();
 
   @override
-  Set<Column<dynamic>> get primaryKey => {number};
+  Set<Column> get primaryKey => {number};
 }
 
 @DataClassName('BusServiceRouteEntry')
@@ -61,8 +61,7 @@ class BusRoutes extends Table {
   RealColumn get distance => real()();
 
   @override
-  Set<Column<dynamic>> get primaryKey =>
-      {serviceNumber, direction, busStopCode};
+  Set<Column> get primaryKey => {serviceNumber, direction, busStopCode};
 }
 
 @DataClassName('UserRouteEntry')
@@ -90,7 +89,7 @@ class UserRouteBusStops extends Table {
   IntColumn get position => integer()();
 
   @override
-  Set<Column<dynamic>> get primaryKey => {routeId, busStopCode};
+  Set<Column> get primaryKey => {routeId, busStopCode};
 }
 
 @DataClassName('PinnedBusServiceEntry')
@@ -225,7 +224,7 @@ class StopsDatabase extends _$StopsDatabase {
       ..addColumns([newBusStopPositionColumn])
       ..where(userRouteBusStops.routeId.equals(routeId));
     final newBusStopPosition = (await newBusStopPositionQuery.getSingle())
-        .read(newBusStopPositionColumn);
+        .read(newBusStopPositionColumn)!;
     await into(userRouteBusStops).insert(UserRouteBusStopEntry(
       routeId: routeId,
       busStopCode: busStop.code,
@@ -266,7 +265,7 @@ class StopsDatabase extends _$StopsDatabase {
     final newRoutePositionQuery = selectOnly(userRoutes)
       ..addColumns([userRoutes.id.count()]);
     final newRoutePosition =
-        (await newRoutePositionQuery.getSingle()).read(userRoutes.id.count()) -
+        (await newRoutePositionQuery.getSingle()).read(userRoutes.id.count())! -
             1;
 
     // Insert new route

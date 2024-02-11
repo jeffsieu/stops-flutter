@@ -27,13 +27,15 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-def googleMapsApiKey = localProperties.getProperty('googleMaps.apiKey', '')
+def MAPS_API_KEY = localProperties['MAPS_API_KEY']
 
 apply plugin: 'com.android.application'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    compileSdkVersion 31
+    namespace "com.jeffsieu.stops"
+    compileSdkVersion flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
 
     lintOptions {
         disable 'InvalidPackage'
@@ -42,13 +44,13 @@ android {
 
     defaultConfig {
         applicationId "com.jeffsieu.stops"
-        minSdkVersion 20
-        targetSdkVersion 31
+        minSdkVersion Math.max(flutter.minSdkVersion, 20)
+        targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
-        manifestPlaceholders = [googleMapsApiKey:googleMapsApiKey]
+        manifestPlaceholders["MAPS_API_KEY"] = MAPS_API_KEY
     }
 
     signingConfigs {
@@ -58,6 +60,10 @@ android {
             storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
             storePassword keystoreProperties['storePassword']
         }
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
@@ -80,6 +86,7 @@ flutter {
 }
 
 dependencies {
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

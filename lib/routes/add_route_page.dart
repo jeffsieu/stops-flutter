@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
@@ -163,101 +162,101 @@ class AddRoutePageState extends State<AddRoutePage> {
     const _isEditing = true;
     return Provider<EditModel>(
       create: (_) => const EditModel(isEditing: _isEditing),
-      child: ImplicitlyAnimatedReorderableList<BusStop>(
+      child: ReorderableListView.builder(
         shrinkWrap: true,
-        items: busStops,
-        areItemsTheSame: (BusStop oldBusStop, BusStop newBusStop) =>
-            oldBusStop == newBusStop,
-        onReorderStarted: (BusStop busStop, int position) {
+        itemCount: busStops.length,
+        buildDefaultDragHandles: false,
+        onReorderStart: (int position) {
           _isReordering = true;
         },
-        onReorderFinished:
-            (BusStop item, int from, int to, List<BusStop> newBusStops) {
+        onReorder: (int oldIndex, int newIndex) {
+          if (oldIndex < newIndex) {
+            newIndex -= 1;
+          }
+          final newBusStops = List<BusStop>.from(busStops);
+          final item = newBusStops.removeAt(oldIndex);
+          newBusStops.insert(newIndex, item);
+
           setState(() {
             busStops = newBusStops;
           });
         },
-        itemBuilder: (BuildContext context, Animation<double> itemAnimation,
-            BusStop busStop, int position) {
-          return Reorderable(
-            key: Key(busStop.hashCode.toString()),
-            builder: (BuildContext context, Animation<double> dragAnimation,
-                bool inDrag) {
-              final Widget busStopItem = BusStopOverviewItem(
-                BusStopWithPinnedServices.fromBusStop(busStop, <BusService>[]),
-                key: Key(busStop.code),
-              );
+        itemBuilder: (BuildContext context, int position) {
+          final busStop = busStops[position];
 
-              return Stack(
-                alignment: Alignment.centerLeft,
-                children: [
-                  busStopItem,
-                  Positioned.fill(
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 600),
-                      opacity: _isEditing ? 1.0 : 0.0,
-                      curve: const Interval(0.5, 1),
-                      child: AnimatedSlide(
-                        duration: const Duration(milliseconds: 600),
-                        offset:
-                            _isEditing ? Offset.zero : const Offset(0, 0.25),
-                        curve:
-                            const Interval(0.5, 1, curve: Curves.easeOutCubic),
-                        child: _isEditing
-                            ? Handle(
-                                child: Row(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsetsDirectional.only(
-                                          start: 16.0),
-                                      child: Icon(
-                                        Icons.drag_handle_rounded,
-                                        color: Theme.of(context).hintColor,
-                                      ),
-                                    ),
-                                  ],
+          final Widget busStopItem = BusStopOverviewItem(
+            BusStopWithPinnedServices.fromBusStop(busStop, <BusService>[]),
+            key: Key(busStop.code),
+          );
+
+          return Stack(
+            key: Key(busStop.hashCode.toString()),
+            alignment: Alignment.centerLeft,
+            children: [
+              busStopItem,
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 600),
+                  opacity: _isEditing ? 1.0 : 0.0,
+                  curve: const Interval(0.5, 1),
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 600),
+                    offset: _isEditing ? Offset.zero : const Offset(0, 0.25),
+                    curve: const Interval(0.5, 1, curve: Curves.easeOutCubic),
+                    child: _isEditing
+                        ? ReorderableDragStartListener(
+                            index: position,
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.only(
+                                      start: 16.0),
+                                  child: Icon(
+                                    Icons.drag_handle_rounded,
+                                    color: Theme.of(context).hintColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Container(),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 9.0,
+                      horizontal:
+                          1.0), // Offset by 1 to account for card outline
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _isEditing
+                            ? Padding(
+                                padding:
+                                    const EdgeInsetsDirectional.only(end: 0.0),
+                                child: IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      busStops.remove(busStop);
+                                    });
+                                  },
+                                  icon: Icon(
+                                    Icons.clear_rounded,
+                                    color: Theme.of(context).hintColor,
+                                  ),
                                 ),
                               )
                             : Container(),
-                      ),
+                      ],
                     ),
                   ),
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 9.0,
-                          horizontal:
-                              1.0), // Offset by 1 to account for card outline
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            _isEditing
-                                ? Padding(
-                                    padding: const EdgeInsetsDirectional.only(
-                                        end: 0.0),
-                                    child: IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          busStops.remove(busStop);
-                                        });
-                                      },
-                                      icon: Icon(
-                                        Icons.clear_rounded,
-                                        color: Theme.of(context).hintColor,
-                                      ),
-                                    ),
-                                  )
-                                : Container(),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+                ),
+              ),
+            ],
           );
         },
       ),

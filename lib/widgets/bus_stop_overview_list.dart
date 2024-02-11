@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 import 'package:provider/provider.dart';
 
 import '../models/bus_stop_with_pinned_services.dart';
@@ -61,136 +60,128 @@ class BusStopOverviewList extends StatelessWidget {
                 child: MediaQuery.removePadding(
                   context: context,
                   removeTop: true,
-                  child: ImplicitlyAnimatedReorderableList<
-                      BusStopWithPinnedServices>(
+                  child: ReorderableListView.builder(
                     shrinkWrap: true,
+                    buildDefaultDragHandles: false,
                     physics: const NeverScrollableScrollPhysics(),
-                    items: snapshot.data!.busStops,
-                    areItemsTheSame: (BusStopWithPinnedServices busStop,
-                            BusStopWithPinnedServices otherBusStop) =>
-                        busStop.code == otherBusStop.code,
-                    onReorderStarted:
-                        (BusStopWithPinnedServices busStop, int position) {
+                    itemCount: snapshot.data!.busStops.length,
+                    onReorderStart: (int position) {
                       ReorderStatusNotification(true).dispatch(context);
                     },
-                    onReorderFinished: (BusStopWithPinnedServices busStop,
-                        int from,
-                        int to,
-                        List<BusStopWithPinnedServices> newBusStops) async {
+                    onReorder: (
+                      int oldIndex,
+                      int newIndex,
+                    ) async {
                       ReorderStatusNotification(false).dispatch(context);
-                      if (from == to) {
-                        return;
-                      }
+
                       // setState(() {
                       //   _busStops
                       //     ..clear()
                       //     ..addAll(newBusStops);
                       // });
                       await moveBusStopPositionInRoute(
-                          from, to, context.read<StoredUserRoute>());
+                          oldIndex, newIndex, context.read<StoredUserRoute>());
                       // setState(() {});
                     },
-                    itemBuilder: (BuildContext context,
-                        Animation<double> itemAnimation,
-                        BusStopWithPinnedServices busStop,
-                        int position) {
+                    itemBuilder: (BuildContext context, int position) {
+                      final busStop = snapshot.data!.busStops[position];
                       final Widget busStopItem = BusStopOverviewItem(
                         busStop,
                         key: Key(busStop.code +
                             hashList(busStop.pinnedServices).toString()),
                       );
 
-                      return Reorderable(
+                      return Stack(
                         key: Key(busStop.hashCode.toString()),
-                        child: Stack(
-                          alignment: Alignment.centerLeft,
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: busStopItem,
-                            ),
-                            AnimatedOpacity(
+                        alignment: Alignment.centerLeft,
+                        children: [
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: busStopItem,
+                          ),
+                          AnimatedOpacity(
+                            duration: const Duration(milliseconds: 600),
+                            opacity: _isEditing ? 1.0 : 0.0,
+                            curve: const Interval(0.5, 1),
+                            child: AnimatedSlide(
                               duration: const Duration(milliseconds: 600),
-                              opacity: _isEditing ? 1.0 : 0.0,
-                              curve: const Interval(0.5, 1),
-                              child: AnimatedSlide(
-                                duration: const Duration(milliseconds: 600),
-                                offset: _isEditing
-                                    ? Offset.zero
-                                    : const Offset(0, 0.25),
-                                curve: const Interval(0.5, 1,
-                                    curve: Curves.easeOutCubic),
-                                child: _isEditing
-                                    ? Handle(
+                              offset: _isEditing
+                                  ? Offset.zero
+                                  : const Offset(0, 0.25),
+                              curve: const Interval(0.5, 1,
+                                  curve: Curves.easeOutCubic),
+                              child: _isEditing
+                                  ? ReorderableDragStartListener(
+                                      index: position,
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsetsDirectional.only(
+                                                start: 32.0),
+                                        child: Icon(
+                                          Icons.drag_handle_rounded,
+                                          color: Theme.of(context).hintColor,
+                                        ),
+                                      ),
+                                    )
+                                  : Container(),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 17.0,
+                                  vertical:
+                                      9.0), // Offset by 1 to account for outline
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    AnimatedOpacity(
+                                      duration:
+                                          const Duration(milliseconds: 600),
+                                      opacity: _isEditing ? 1.0 : 0.0,
+                                      curve: _isEditing
+                                          ? const Interval(0.5, 1)
+                                          : const Interval(0, 0.25),
+                                      child: AnimatedSlide(
+                                        duration:
+                                            const Duration(milliseconds: 600),
+                                        offset: _isEditing
+                                            ? Offset.zero
+                                            : const Offset(0, 0.25),
+                                        curve: _isEditing
+                                            ? const Interval(0.5, 1,
+                                                curve: Curves.easeOutCubic)
+                                            : const Interval(0, 0.5,
+                                                curve: Curves.easeOutCubic),
                                         child: Padding(
                                           padding:
                                               const EdgeInsetsDirectional.only(
-                                                  start: 32.0),
-                                          child: Icon(
-                                            Icons.drag_handle_rounded,
-                                            color: Theme.of(context).hintColor,
-                                          ),
-                                        ),
-                                      )
-                                    : Container(),
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 17.0,
-                                    vertical:
-                                        9.0), // Offset by 1 to account for outline
-                                child: Material(
-                                  type: MaterialType.transparency,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      AnimatedOpacity(
-                                        duration:
-                                            const Duration(milliseconds: 600),
-                                        opacity: _isEditing ? 1.0 : 0.0,
-                                        curve: _isEditing
-                                            ? const Interval(0.5, 1)
-                                            : const Interval(0, 0.25),
-                                        child: AnimatedSlide(
-                                          duration:
-                                              const Duration(milliseconds: 600),
-                                          offset: _isEditing
-                                              ? Offset.zero
-                                              : const Offset(0, 0.25),
-                                          curve: _isEditing
-                                              ? const Interval(0.5, 1,
-                                                  curve: Curves.easeOutCubic)
-                                              : const Interval(0, 0.5,
-                                                  curve: Curves.easeOutCubic),
-                                          child: Padding(
-                                            padding: const EdgeInsetsDirectional
-                                                .only(end: 8.0),
-                                            child: IconButton(
-                                              onPressed: () async {
-                                                await removeBusStopFromRoute(
-                                                    busStop,
-                                                    kDefaultRouteId,
-                                                    rootContext);
-                                              },
-                                              icon: Icon(
-                                                Icons.clear_rounded,
-                                                color:
-                                                    Theme.of(context).hintColor,
-                                              ),
+                                                  end: 8.0),
+                                          child: IconButton(
+                                            onPressed: () async {
+                                              await removeBusStopFromRoute(
+                                                  busStop,
+                                                  kDefaultRouteId,
+                                                  rootContext);
+                                            },
+                                            icon: Icon(
+                                              Icons.clear_rounded,
+                                              color:
+                                                  Theme.of(context).hintColor,
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       );
                     },
                   ),

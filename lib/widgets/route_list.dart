@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
-import 'package:implicitly_animated_reorderable_list/transitions.dart';
-
 import '../models/user_route.dart';
 import '../utils/database_utils.dart';
 import '../utils/reorder_status_notification.dart';
@@ -28,8 +25,8 @@ class RouteListState extends State<RouteList> {
       child: FutureBuilder<List<StoredUserRoute>>(
         future: getUserRoutes(),
         initialData: _routes,
-        builder:
-            (BuildContext context, AsyncSnapshot<List<StoredUserRoute>> snapshot) {
+        builder: (BuildContext context,
+            AsyncSnapshot<List<StoredUserRoute>> snapshot) {
           if (!snapshot.hasData ||
               (snapshot.data == _routes && snapshot.data!.isEmpty)) {
             return const Center(child: CircularProgressIndicator());
@@ -68,21 +65,27 @@ class RouteListState extends State<RouteList> {
               }
               return false;
             },
-            child: ImplicitlyAnimatedReorderableList<StoredUserRoute>(
+            child: ReorderableListView.builder(
               padding: const EdgeInsets.only(
                   top: 8.0, bottom: kFloatingActionButtonMargin + 48),
+              buildDefaultDragHandles: false,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              items: _routes,
-              areItemsTheSame:
-                  (StoredUserRoute oldUserRoute, StoredUserRoute newUserRoute) =>
-                      oldUserRoute == newUserRoute,
-              onReorderStarted: (UserRoute item, int position) {
+              itemCount: _routes.length,
+              onReorderStart: (int position) {
                 ReorderStatusNotification(true).dispatch(context);
               },
-              onReorderFinished: (StoredUserRoute item, int from, int to,
-                  List<StoredUserRoute> newUserRoutes) async {
-                await moveUserRoutePosition(from, to);
+              onReorder: (int oldIndex, int newIndex) async {
+                await moveUserRoutePosition(oldIndex, newIndex);
+
+                if (oldIndex < newIndex) {
+                  newIndex -= 1;
+                }
+
+                final newUserRoutes = List<StoredUserRoute>.from(_routes);
+                final route = newUserRoutes.removeAt(oldIndex);
+                newUserRoutes.insert(newIndex, route);
+
                 ReorderStatusNotification(false).dispatch(context);
                 setState(() {
                   _routes
@@ -90,43 +93,13 @@ class RouteListState extends State<RouteList> {
                     ..addAll(newUserRoutes);
                 });
               },
-              itemBuilder: (BuildContext context,
-                  Animation<double> itemAnimation,
-                  StoredUserRoute userRoute,
-                  int position) {
-                return Reorderable(
+              itemBuilder: (BuildContext context, int position) {
+                final userRoute = _routes[position];
+
+                return RouteListItem(
                   key: ValueKey<StoredUserRoute>(userRoute),
-                  builder: (BuildContext context,
-                      Animation<double> dragAnimation, bool inDrag) {
-                    const initialElevation = 0.0;
-                    final materialColor = Color.lerp(
-                        Theme.of(context).scaffoldBackgroundColor,
-                        Colors.white,
-                        dragAnimation.value / 10);
-                    final elevation =
-                        Tween<double>(begin: initialElevation, end: 10.0)
-                            .animate(CurvedAnimation(
-                                parent: dragAnimation,
-                                curve: Curves.easeOutCubic))
-                            .value;
-
-                    final Widget child = Material(
-                      color: materialColor,
-                      elevation: elevation,
-                      child: RouteListItem(userRoute),
-                    );
-
-                    if (dragAnimation.value > 0.0) {
-                      return child;
-                    }
-
-                    return SizeFadeTransition(
-                      sizeFraction: 0.75,
-                      curve: Curves.easeInOut,
-                      animation: itemAnimation,
-                      child: child,
-                    );
-                  },
+                  route: userRoute,
+                  index: position,
                 );
               },
             ),

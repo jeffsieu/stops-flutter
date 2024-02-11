@@ -1,6 +1,5 @@
 # Miscellaneous
 *.class
-*.lock
 *.log
 *.pyc
 *.swp
@@ -64,6 +63,7 @@ unlinked_spec.ds
 **/android/app/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
+**/android/secret.properties
 *.jks
 
 # iOS/XCode related

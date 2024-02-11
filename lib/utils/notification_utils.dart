@@ -29,10 +29,11 @@ const AndroidInitializationSettings androidSettings =
     AndroidInitializationSettings('ic_notification');
 const Future<dynamic> Function(int, String?, String?, String?)?
     onDidReceiveLocalNotification = null;
-const IOSInitializationSettings iosSettings = IOSInitializationSettings(
-    onDidReceiveLocalNotification: onDidReceiveLocalNotification);
+const DarwinInitializationSettings darwinSettings =
+    DarwinInitializationSettings(
+        onDidReceiveLocalNotification: onDidReceiveLocalNotification);
 const InitializationSettings initializationSettings =
-    InitializationSettings(android: androidSettings, iOS: iosSettings);
+    InitializationSettings(android: androidSettings, iOS: darwinSettings);
 
 AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
   _busArrivalChannelId,
@@ -44,9 +45,9 @@ AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
   enableVibration: true,
   vibrationPattern: Int64List.fromList(<int>[0, 30, 60, 30, 60, 30, 60, 800]),
 );
-IOSNotificationDetails iosDetails = const IOSNotificationDetails();
+DarwinNotificationDetails darwinDetails = const DarwinNotificationDetails();
 NotificationDetails notificationDetails =
-    NotificationDetails(android: androidDetails, iOS: iosDetails);
+    NotificationDetails(android: androidDetails, iOS: darwinDetails);
 
 bool _isInitialized = false;
 
@@ -122,8 +123,7 @@ Future<void> updateNotifications() async {
       compareBusNumber(a.split(' ')[0], b.split(' ')[0]));
   final message = longMessageParts.join('\n');
 
-  final silentAndroidDetails =
-      AndroidNotificationDetails(
+  final silentAndroidDetails = AndroidNotificationDetails(
     _busArrivalSilentChannelId,
     _busArrivalSilentChannelName,
     channelDescription: _busArrivalSilentChannelDescription,
@@ -140,7 +140,7 @@ Future<void> updateNotifications() async {
   );
 
   final silentNotificationDetails =
-      NotificationDetails(android: silentAndroidDetails, iOS: iosDetails);
+      NotificationDetails(android: silentAndroidDetails, iOS: darwinDetails);
 
   notifications.show(
     silentNotificationId,
