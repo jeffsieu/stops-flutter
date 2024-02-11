@@ -27,7 +27,7 @@ class BusStopOverviewList extends StatelessWidget {
             (BuildContext context, AsyncSnapshot<StoredUserRoute> snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.none:
-              return _messageBox(BusAPI.kNoInternetError);
+              return _messageBox(BusApiError.noInternet.message);
             case ConnectionState.waiting:
               if (snapshot.data == null) {
                 return const Center(child: CircularProgressIndicator());

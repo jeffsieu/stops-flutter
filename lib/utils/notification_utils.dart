@@ -77,8 +77,11 @@ Future<void> updateNotifications() async {
   for (var followedBus in followedBuses) {
     final busNumber = followedBus.busService.number;
     final stopCode = followedBus.busStop.code;
-    final arrivalTime =
-        await BusAPI().getArrivalTime(followedBus.busStop, busNumber);
+
+    // TODO: Fix arrival Time
+    // final arrivalTime =
+    //     await BusAPI().getArrivalTime(followedBus.busStop, busNumber);
+    final DateTime? arrivalTime = null;
 
     var minutesLeft = 0;
     if (arrivalTime != null) {

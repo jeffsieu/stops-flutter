@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/bus_service.dart';
 import '../utils/bus_api.dart';
 
-class FetchDataDialog extends StatefulWidget {
+class FetchDataDialog extends ConsumerStatefulWidget {
   const FetchDataDialog({Key? key, required this.isSetup}) : super(key: key);
   final bool isSetup;
 
   @override
-  State<StatefulWidget> createState() {
+  ConsumerState<FetchDataDialog> createState() {
     return _FetchDataDialogState();
   }
 }
 
-class _FetchDataDialogState extends State<FetchDataDialog> {
+class _FetchDataDialogState extends ConsumerState<FetchDataDialog> {
   double progress = 0.25;
 
   @override
@@ -38,15 +40,18 @@ class _FetchDataDialogState extends State<FetchDataDialog> {
   }
 
   Future<void> _fetchData() async {
-    await BusAPI().fetchAndStoreBusStops();
+    await ref.read(busStopListProvider.notifier).fetchFromApi();
     setState(() {
       progress += 0.25;
     });
-    await BusAPI().fetchAndStoreBusServices();
+    await ref.read(busServiceListProvider.notifier).fetchFromApi();
     setState(() {
       progress += 0.40;
     });
-    await BusAPI().fetchAndStoreBusServiceRoutes();
+    await ref
+        .read(busServiceRouteListProvider(BusService(number: '', operator: ''))
+            .notifier)
+        .fetchFromApi();
     setState(() {
       progress += 0.10;
     });

@@ -26,12 +26,12 @@ class BusStop {
 
   static BusStop fromJson(dynamic json) {
     return BusStop(
-        displayName: json[BusAPI.kBusStopNameKey] as String,
-        defaultName: json[BusAPI.kBusStopNameKey] as String,
-        code: json[BusAPI.kBusStopCodeKey] as String,
-        road: json[BusAPI.kBusStopRoadKey] as String,
-        latitude: json[BusAPI.kBusStopLatitudeKey] as double,
-        longitude: json[BusAPI.kBusStopLongitudeKey] as double);
+        displayName: json[kBusStopNameKey] as String,
+        defaultName: json[kBusStopNameKey] as String,
+        code: json[kBusStopCodeKey] as String,
+        road: json[kBusStopRoadKey] as String,
+        latitude: json[kBusStopLatitudeKey] as double,
+        longitude: json[kBusStopLongitudeKey] as double);
   }
 
   static BusStop fromMap(Map<String, dynamic> map) {

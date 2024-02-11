@@ -6,11 +6,13 @@ import 'package:collection/collection.dart';
 import 'package:edit_distance/edit_distance.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' as latlong;
 import 'package:location/location.dart';
 import 'package:provider/provider.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rubber/rubber.dart';
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 
@@ -48,7 +50,7 @@ class SearchPage extends BottomSheetPage {
   final GlobalKey _resultsSheetKey = GlobalKey();
 
   @override
-  State<StatefulWidget> createState() {
+  ConsumerState<ConsumerStatefulWidget> createState() {
     return _SearchPageState();
   }
 
@@ -65,9 +67,11 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   final double _resultsSheetCollapsedHeight = 124;
   final LatLng _defaultCameraPosition = const LatLng(1.3521, 103.8198);
 
-  List<BusService> _busServices = <BusService>[];
+  List<BusStop> get _busStops =>
+      ref.watch(busStopListProvider).valueOrNull ?? [];
+  List<BusService> get _busServices =>
+      ref.watch(busServiceListProvider).valueOrNull ?? [];
   late List<BusService> _filteredBusServices;
-  List<BusStop> _busStops = <BusStop>[];
   late List<BusStop> _filteredBusStops;
   JaroWinkler jw = JaroWinkler();
 
@@ -227,15 +231,8 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       });
     }
 
-    _fetchBusStops();
-
     // If normal mode, perform bus service and map-related functions
     if (widget.isSimpleMode) return;
-
-    _fetchBusServices();
-    areBusServiceRoutesCached().then((bool stored) {
-      if (!stored) BusAPI().fetchAndStoreBusServiceRoutes();
-    });
 
     rootBundle
         .loadString('assets/maps/map_style_dark.json')
@@ -1204,24 +1201,9 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   Future<void> _fetchBusStops() async {
-    final busStops = await BusAPI().fetchBusStops();
-
-    if (mounted) {
-      setState(() {
-        _busStops = List<BusStop>.from(busStops);
-      });
-    }
+    // TODO: Fix this
     if (location != null) {
       _updateBusStopDistances(location!);
-    }
-  }
-
-  Future<void> _fetchBusServices() async {
-    final busServices = await BusAPI().fetchBusServices();
-    if (mounted) {
-      setState(() {
-        _busServices = busServices;
-      });
     }
   }
 

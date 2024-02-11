@@ -35,13 +35,13 @@ class BusArrival {
   });
 
   static BusArrival? fromJson(dynamic json) {
-    final typeString = json[BusAPI.kBusServiceTypeKey] as String?;
+    final typeString = json[kBusServiceTypeKey] as String?;
     BusType? type;
-    if (typeString == BusAPI.kBusServiceTypeSingle) {
+    if (typeString == kBusServiceTypeSingle) {
       type = BusType.single;
-    } else if (typeString == BusAPI.kBusServiceTypeDouble) {
+    } else if (typeString == kBusServiceTypeDouble) {
       type = BusType.double;
-    } else if (typeString == BusAPI.kBusServiceTypeBendy) {
+    } else if (typeString == kBusServiceTypeBendy) {
       type = BusType.bendy;
     } else if (typeString?.isEmpty ?? true) {
       type = null;
@@ -49,13 +49,13 @@ class BusArrival {
       throw Exception('Unknown bus type: $typeString');
     }
 
-    final loadString = json[BusAPI.kBusServiceLoadKey] as String?;
+    final loadString = json[kBusServiceLoadKey] as String?;
     BusLoad? load;
-    if (loadString == BusAPI.kBusServiceLoadLow) {
+    if (loadString == kBusServiceLoadLow) {
       load = BusLoad.low;
-    } else if (loadString == BusAPI.kBusServiceLoadMedium) {
+    } else if (loadString == kBusServiceLoadMedium) {
       load = BusLoad.medium;
-    } else if (loadString == BusAPI.kBusServiceLoadHigh) {
+    } else if (loadString == kBusServiceLoadHigh) {
       load = BusLoad.high;
     } else if (loadString?.isEmpty ?? true) {
       load = null;
@@ -64,11 +64,11 @@ class BusArrival {
     }
 
     final latitude =
-        double.tryParse(json[BusAPI.kBusServiceLatitudeKey] as String) ?? 0;
+        double.tryParse(json[kBusServiceLatitudeKey] as String) ?? 0;
     final longitude =
-        double.tryParse(json[BusAPI.kBusServiceLongitudeKey] as String) ?? 0;
+        double.tryParse(json[kBusServiceLongitudeKey] as String) ?? 0;
     final arrivalTime =
-        DateTime.tryParse(json[BusAPI.kBusServiceArrivalTimeKey] as String);
+        DateTime.tryParse(json[kBusServiceArrivalTimeKey] as String);
 
     if (arrivalTime == null) return null;
     return BusArrival._(
@@ -88,4 +88,5 @@ class BusArrival {
 }
 
 enum BusType { single, double, bendy }
+
 enum BusLoad { low, medium, high }

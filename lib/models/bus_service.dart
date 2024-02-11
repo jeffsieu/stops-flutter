@@ -14,8 +14,8 @@ class BusService {
 
   static BusService fromJson(dynamic json) {
     return BusService(
-      number: json[BusAPI.kBusServiceNumberKey] as String,
-      operator: json[BusAPI.kBusServiceOperatorKey] as String,
+      number: json[kBusServiceNumberKey] as String,
+      operator: json[kBusServiceOperatorKey] as String,
     );
   }
 

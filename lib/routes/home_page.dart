@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
+import 'package:provider/provider.dart' hide Consumer;
 import 'package:quick_actions/quick_actions.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -372,25 +373,15 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                                         SheetRequested(
                                             bus.busStop, kDefaultRouteId));
                                   },
-                                  title: StreamBuilder<
-                                      List<BusServiceArrivalResult>>(
-                                    stream: BusAPI()
-                                        .busStopArrivalStream(bus.busStop),
-                                    builder: (BuildContext context,
-                                        AsyncSnapshot<
-                                                List<BusServiceArrivalResult>>
-                                            snapshot) {
-                                      DateTime? arrivalTime;
-                                      if (snapshot.hasData) {
-                                        for (var arrivalResult
-                                            in snapshot.data!) {
-                                          if (arrivalResult.busService ==
-                                              bus.busService) {
-                                            arrivalTime = arrivalResult
-                                                .buses.firstOrNull?.arrivalTime;
-                                          }
-                                        }
-                                      }
+                                  title: Consumer(
+                                    builder: (context, ref, child) {
+                                      final arrivalTime = ref
+                                          .watch(firstArrivalTimeProvider(
+                                              busStop: bus.busStop,
+                                              busServiceNumber:
+                                                  bus.busService.number))
+                                          .value;
+
                                       return Text(
                                         arrivalTime != null
                                             ? '${bus.busService.number} - ${arrivalTime.getMinutesFromNow()} min'

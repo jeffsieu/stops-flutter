@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
 
@@ -24,7 +25,7 @@ const double _launchVelocity = 5.0;
 const double kTitleFadeInDurationFactor = 0.5;
 const double _sheetHalfBoundValue = 0.5;
 
-class BusStopSheet extends StatefulWidget {
+class BusStopSheet extends ConsumerStatefulWidget {
   BusStopSheet(
       {Key? key, required TickerProvider vsync, required this.hasAppBar})
       : rubberAnimationController = RubberAnimationController(
@@ -53,12 +54,12 @@ class BusStopSheet extends StatefulWidget {
       context.findAncestorStateOfType<_BusStopSheetState>();
 
   @override
-  State<StatefulWidget> createState() => _BusStopSheetState();
+  ConsumerState<BusStopSheet> createState() => _BusStopSheetState();
 }
 
-class _BusStopSheetState extends State<BusStopSheet>
+class _BusStopSheetState extends ConsumerState<BusStopSheet>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  List<BusServiceArrivalResult>? _latestData;
+  BusStop? busStop;
   bool _isAnimating = false;
 
   late final AnimationController timingListAnimationController =
@@ -68,14 +69,16 @@ class _BusStopSheetState extends State<BusStopSheet>
 
   /// Updates the bottom sheet with details of another bus stop.
   /// Called externally from the parent containing this widget.
-  Future<void> updateWith(BusStop? busStop, int? routeId) async {
-    if (busStop == null || routeId == null) {
-      setState(() {});
+  Future<void> updateWith(BusStop? newBusStop, int? routeId) async {
+    if (newBusStop == null || routeId == null) {
+      setState(() {
+        busStop = newBusStop;
+      });
       return;
     }
     setState(() {
-      _latestData = BusAPI().getLatestArrival(busStop);
-      textController = TextEditingController(text: busStop.displayName);
+      busStop = newBusStop;
+      textController = TextEditingController(text: newBusStop.displayName);
 
       timingListAnimationController.forward(from: 0);
       widget.rubberAnimationController.halfBoundValue =
@@ -229,7 +232,9 @@ class _BusStopSheetState extends State<BusStopSheet>
   }
 
   Widget _buildFooter(BuildContext context) {
-    final rowCount = _latestData?.length ?? 0;
+    final rowCount = busStop == null
+        ? 0
+        : ref.watch(busStopArrivalsProvider(busStop!)).value?.length ?? 0;
     final startOffset = (rowCount * kSheetRowAnimationOffset).clamp(0.0, 1.0);
     final endOffset =
         (rowCount * kSheetRowAnimationOffset + kSheetRowAnimDuration)

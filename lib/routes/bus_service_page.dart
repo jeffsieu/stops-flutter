@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
@@ -23,7 +24,7 @@ class BusServicePage extends BottomSheetPage {
   final BusStop? focusedBusStop;
 
   @override
-  State<StatefulWidget> createState() {
+  ConsumerState<ConsumerStatefulWidget> createState() {
     return _BusServicePageState();
   }
 }
@@ -42,8 +43,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   }
 
   Future<void> initService() async {
-    final service =
-        await getCachedBusServiceWithRoutes(widget.serviceNumber);
+    final service = await getCachedBusServiceWithRoutes(widget.serviceNumber);
     if (widget.focusedBusStop != null) {
       final focusedRoute = service.routes[0].busStops
               .map((BusStopWithDistance b) => b.busStop)
@@ -66,8 +66,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   @override
   Widget build(BuildContext context) {
     final tabController = TabController(length: 2, vsync: this);
-    final bottomSheetContainer =
-        bottomSheet(child: _buildBody(tabController));
+    final bottomSheetContainer = bottomSheet(child: _buildBody(tabController));
 
     tabController.index = focusedDirection;
 
@@ -146,8 +145,7 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int position) {
-                    final busStopWithDistance =
-                        route.busStops[position];
+                    final busStopWithDistance = route.busStops[position];
                     final busStop = busStopWithDistance.busStop;
                     final distance = busStopWithDistance.distance;
                     final previousRoad = position > 0

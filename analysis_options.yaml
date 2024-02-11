@@ -1,7 +1,7 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
-  exclude: 
+  exclude:
     - build/**
     - test/**.mocks.dart
     - lib/widgets/custom_rubber_bottom_sheet.dart
@@ -10,6 +10,8 @@ analyzer:
     strict-raw-types: true
   strong-mode:
     implicit-casts: false
+  plugins:
+    - custom_lint
 
 linter:
   rules:

@@ -42,7 +42,7 @@ final StreamController<List<Bus>> _followedBusesController =
 final Map<int, StreamController<StoredUserRoute>> _userRouteStreamControllers =
     <int, StreamController<StoredUserRoute>>{};
 
-final StopsDatabase _database = StopsDatabase.create();
+final StopsDatabase _database = StopsDatabase();
 
 // Future<Database> _accessDatabase() async {
 //   return openDatabase(
@@ -117,8 +117,7 @@ final StopsDatabase _database = StopsDatabase.create();
 
 Future<ThemeMode> getThemeMode() async {
   final prefs = await SharedPreferences.getInstance();
-  final themeModeIndex =
-      prefs.getInt(_themeModeKey) ?? ThemeMode.system.index;
+  final themeModeIndex = prefs.getInt(_themeModeKey) ?? ThemeMode.system.index;
   return ThemeMode.values[themeModeIndex];
 }
 
@@ -188,8 +187,7 @@ Stream<StoredUserRoute> routeStream(int routeId) {
 }
 
 Future<StoredUserRoute> getRouteWithId(int routeId) async {
-  final routeEntry =
-      await _database.getRouteEntryWithId(routeId);
+  final routeEntry = await _database.getRouteEntryWithId(routeId);
   final List<BusStop> busStops = await getBusStopsInRouteWithId(routeId);
   final routeBusStops = <BusStopWithPinnedServices>[];
   for (var busStop in busStops) {
@@ -220,10 +218,8 @@ Future<List<BusStopWithPinnedServices>> getBusStopsInRouteWithId(
   // final List<BusStop> busStops = List<BusStop>.generate(
   //     result.length, (int i) => BusStop.fromMap(result[i]));
 
-  final busStops =
-      await _database.getBusStopsInRouteWithId(routeId);
-  final busStopsWithPinnedServices =
-      <BusStopWithPinnedServices>[];
+  final busStops = await _database.getBusStopsInRouteWithId(routeId);
+  final busStopsWithPinnedServices = <BusStopWithPinnedServices>[];
 
   for (var busStop in busStops) {
     final pinnedServices =
@@ -293,8 +289,7 @@ Future<List<StoredUserRoute>> getUserRoutes() async {
   //     where: 'id != $defaultRouteId', orderBy: 'position');
   // final List<UserRoute> routes =
   //     result.map<UserRoute>(UserRoute.fromMap).toList();
-  final routeEntries =
-      await _database.getStoredUserRoutes();
+  final routeEntries = await _database.getStoredUserRoutes();
   final routes = <StoredUserRoute>[];
   for (var routeEntry in routeEntries) {
     final List<BusStop> busStops =
@@ -529,8 +524,7 @@ Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
   updateFollowedBusesStream();
   updateNotifications();
 
-  for (var entry
-      in _busFollowStatusListeners.entries) {
+  for (var entry in _busFollowStatusListeners.entries) {
     final tokens = entry.key.split(' ');
     final stop = tokens[0];
     final bus = tokens[1];
@@ -747,11 +741,10 @@ Future<BusServiceWithRoutes> getCachedBusServiceWithRoutes(
 }
 
 Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {
-  final serviceNumber = busStop[BusAPI.kBusServiceNumberKey] as String;
-  final direction = busStop[BusAPI.kBusServiceDirectionKey] as int;
-  final busStopCode = busStop[BusAPI.kBusStopCodeKey] as String;
-  final distance =
-      double.parse(busStop[BusAPI.kBusStopDistanceKey].toString());
+  final serviceNumber = busStop[kBusServiceNumberKey] as String;
+  final direction = busStop[kBusServiceDirectionKey] as int;
+  final busStopCode = busStop[kBusStopCodeKey] as String;
+  final distance = double.parse(busStop[kBusStopDistanceKey].toString());
 
   final json = <String, dynamic>{
     'serviceNumber': serviceNumber,
@@ -774,7 +767,8 @@ Future<void> cacheBusServiceRoutes(
   //   );
   // }
   // await batch.commit(noResult: true);
-  await _database.cacheBusServiceRoutes(busServiceRoutesRaw);
+  await _database.cacheBusServiceRoutes(
+      busServiceRoutesRaw.map(BusServiceRouteEntry.fromJson).toList());
 
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool(_areBusServiceRoutesCachedKey, true);
@@ -786,7 +780,7 @@ Future<bool> areBusServiceRoutesCached() async {
 }
 
 Future<List<BusServiceRoute>> getCachedBusRoutes(BusService busService) async {
-  return await _database.getCachedBusRoutes(busService);
+  return await _database.getCachedBusServiceRoutes(busService);
   // final Database database = await _accessDatabase();
   // final List<Map<String, dynamic>> maps = await database.query('bus_route',
   //     where: 'serviceNumber = ?',
