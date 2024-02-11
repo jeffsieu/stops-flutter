@@ -7,8 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
+import 'package:location/location.dart';
 import 'package:provider/provider.dart' hide Consumer;
 import 'package:quick_actions/quick_actions.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart' hide Provider;
 import 'package:shimmer/shimmer.dart';
 
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
@@ -23,9 +25,9 @@ import '../routes/scan_card_page.dart';
 import '../routes/settings_page.dart';
 import '../utils/bus_api.dart';
 import '../utils/database_utils.dart';
-import '../utils/location_utils.dart';
 import '../utils/reorder_status_notification.dart';
 import '../utils/time_utils.dart';
+import '../utils/user_location.dart';
 import '../widgets/bus_stop_overview_list.dart';
 import '../widgets/card_app_bar.dart';
 import '../widgets/crossed_icon.dart';
@@ -39,6 +41,37 @@ import 'bottom_sheet_page.dart';
 import 'fade_page_route.dart';
 import 'search_page.dart';
 
+part 'home_page.g.dart';
+
+const Duration _minimumRefreshDuration = Duration(milliseconds: 300);
+
+@riverpod
+Future<List<BusStopWithDistance>?> nearestBusStops(
+    NearestBusStopsRef ref, String busServiceFilter) async {
+  // Wait at least 300ms before refreshing
+  final stopwatch = Stopwatch()..start();
+
+  final locationData = await ref
+      .watch(userLocationProvider.selectAsync((snapshot) => snapshot.data));
+
+  if (locationData == null) {
+    stopwatch.stop();
+    return null;
+  } else {
+    final result = await getNearestBusStops(
+        locationData.latitude!, locationData.longitude!, busServiceFilter);
+
+    // Wait at least 300ms before refreshing
+    if (stopwatch.elapsed < _minimumRefreshDuration) {
+      await Future.delayed(_minimumRefreshDuration - stopwatch.elapsed);
+    }
+
+    stopwatch.stop();
+
+    return result;
+  }
+}
+
 class HomePage extends BottomSheetPage {
   const HomePage({super.key});
 
@@ -49,15 +82,11 @@ class HomePage extends BottomSheetPage {
       context.findAncestorStateOfType<_HomePageState>();
 }
 
-class _HomePageState extends BottomSheetPageState<HomePage>
-    with WidgetsBindingObserver {
+class _HomePageState extends BottomSheetPageState<HomePage> {
   _HomePageState() : super(hasAppBar: false);
 
-  final Duration _minimumRefreshDuration = const Duration(milliseconds: 300);
   int _bottomNavIndex = 0;
   int _suggestionsCount = 1;
-  List<BusStopWithDistance>? _nearestBusStops;
-  bool _isNearestBusStopsCurrent = false;
   bool _isEditing = false;
   List<Bus>? _followedBuses;
   final ScrollController _scrollController = ScrollController();
@@ -69,11 +98,16 @@ class _HomePageState extends BottomSheetPageState<HomePage>
       TextEditingController();
   String get _busServiceFilterText => _busServiceTextController.text;
   StoredUserRoute? _activeRoute;
+  bool get hasLocationPermissions => ref.watch(userLocationProvider
+      .select((value) => value.valueOrNull?.hasPermission ?? false));
+  LocationData? get locationData => ref
+      .watch(userLocationProvider.select((value) => value.valueOrNull?.data));
+  AsyncValue<List<BusStopWithDistance>?> get _nearestBusStops =>
+      ref.watch(nearestBusStopsProvider(_busServiceFilterText));
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     showSetupDialog();
     if (!kIsWeb) {
       const quickActions = QuickActions();
@@ -93,16 +127,8 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _fabScaleAnimationController.dispose();
     super.dispose();
-  }
-
-  @override
-  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.resumed) {
-      refresh();
-    }
   }
 
   Future<void> showSetupDialog() async {
@@ -476,24 +502,11 @@ class _HomePageState extends BottomSheetPageState<HomePage>
 
           return Provider<StoredUserRoute>(
             create: (context) => snapshot.data!,
-            child: FutureBuilder<List<BusStopWithDistance>?>(
-              future: _getNearestBusStops(_busServiceFilterText)
-                  .withMinimumDuration(_isNearestBusStopsCurrent
-                      ? Duration.zero
-                      : _minimumRefreshDuration),
-              initialData: _nearestBusStops,
-              builder: (BuildContext context,
-                  AsyncSnapshot<List<BusStopWithDistance>?> snapshot) {
-                if (!LocationUtils.isLocationAllowed()) {
+            child: Builder(
+              builder: (BuildContext context) {
+                if (!hasLocationPermissions) {
                   return Container();
                 }
-
-                if (snapshot.hasData &&
-                    snapshot.connectionState == ConnectionState.done) {
-                  _nearestBusStops = snapshot.data!;
-                  _isNearestBusStopsCurrent = true;
-                }
-                final isLoaded = _nearestBusStops?.isNotEmpty ?? false;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -524,37 +537,32 @@ class _HomePageState extends BottomSheetPageState<HomePage>
                         ),
                         controller: _busServiceTextController,
                         keyboardType: TextInputType.number,
-                        onChanged: (String value) {
-                          setState(() {
-                            _isNearestBusStopsCurrent = false;
-                          });
-                        },
                       ),
                       const SizedBox(height: 16.0),
                       AnimatedSize(
                         alignment: Alignment.topCenter,
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
-                        child: (_nearestBusStops?.isNotEmpty ?? true)
+                        child: (_nearestBusStops.valueOrNull?.isNotEmpty ??
+                                true)
                             ? ListView.separated(
                                 physics: const NeverScrollableScrollPhysics(),
                                 scrollDirection: Axis.vertical,
                                 shrinkWrap: true,
                                 itemCount: min(
                                     _suggestionsCount,
-                                    _nearestBusStops?.length ??
+                                    _nearestBusStops.valueOrNull?.length ??
                                         _suggestionsCount),
                                 separatorBuilder:
                                     (BuildContext context, int position) =>
                                         const SizedBox(height: 8.0),
                                 itemBuilder:
                                     (BuildContext context, int position) {
-                                  final busStopWithDistance = isLoaded &&
-                                          position < _nearestBusStops!.length
-                                      ? _nearestBusStops![position]
-                                      : null;
-                                  return _buildSuggestionItem(
-                                      busStopWithDistance);
+                                  return switch (_nearestBusStops) {
+                                    AsyncData(:final value) =>
+                                      _buildSuggestionItem(value?[position]),
+                                    _ => _buildSuggestionItem(null),
+                                  };
                                 },
                               )
                             : OutlineTitledContainer(
@@ -637,7 +645,8 @@ class _HomePageState extends BottomSheetPageState<HomePage>
         ? '${busStop.code} · ${busStop.road}'
         : '${Random().nextInt(90000) + 10000} · ${Random().nextInt(99) + 1} Street';
 
-    final showShimmer = !_isNearestBusStopsCurrent;
+    final showShimmer =
+        _nearestBusStops.isRefreshing || _nearestBusStops.isReloading;
 
     Widget buildChild(bool showShimmer) => Builder(builder: (context) {
           return Padding(
@@ -728,7 +737,7 @@ class _HomePageState extends BottomSheetPageState<HomePage>
   List<Widget> _buildHomeItems() {
     return [
       _buildTrackedBuses(),
-      if (LocationUtils.isLocationAllowed()) ...<Widget>{
+      if (hasLocationPermissions) ...<Widget>{
         _buildNearbyStops(),
         const Divider(
           height: 32.0,
@@ -817,26 +826,8 @@ class _HomePageState extends BottomSheetPageState<HomePage>
     ];
   }
 
-  Future<List<BusStopWithDistance>?> _getNearestBusStops(
-      String busServiceFilter) async {
-    final locationData = await LocationUtils.getLocation();
-    if (locationData == null) {
-      return null;
-    } else {
-      return await getNearestBusStops(
-          locationData.latitude!, locationData.longitude!, busServiceFilter);
-    }
-  }
-
   Future<void> refreshLocation() async {
-    setState(() {
-      LocationUtils.invalidateLocation();
-      _isNearestBusStopsCurrent = false;
-    });
-  }
-
-  Future<void> refresh() async {
-    setState(() {});
+    ref.invalidate(userLocationProvider);
   }
 
   Future<void> _pushAddRouteRoute() async {

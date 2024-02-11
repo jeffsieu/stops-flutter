@@ -10,8 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' as latlong;
-import 'package:location/location.dart';
 import 'package:provider/provider.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rubber/rubber.dart';
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 
@@ -22,7 +22,7 @@ import '../models/bus_stop_with_distance.dart';
 import '../utils/bus_api.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
-import '../utils/location_utils.dart';
+import '../utils/user_location.dart';
 import '../widgets/bus_service_search_item.dart';
 import '../widgets/bus_stop_search_item.dart';
 import '../widgets/card_app_bar.dart';
@@ -30,6 +30,39 @@ import '../widgets/custom_rubber_bottom_sheet.dart';
 import '../widgets/highlighted_icon.dart';
 import 'bottom_sheet_page.dart';
 import 'bus_service_page.dart';
+
+part 'search_page.g.dart';
+
+@riverpod
+Future<List<BusStop>> busStopsByDistance(BusStopsByDistanceRef ref) async {
+  final busStops = await ref.watch(busStopListProvider.future);
+  final location = await ref.watch(userLocationProvider.future);
+  final locationData = location.data;
+
+  if (locationData == null) {
+    return busStops;
+  }
+
+  final distanceMetadata = <BusStop, double>{};
+
+  for (var busStop in busStops) {
+    final distanceMeters = const latlong.Distance().as(
+        latlong.LengthUnit.Meter,
+        latlong.LatLng(locationData.latitude!, locationData.longitude!),
+        latlong.LatLng(busStop.latitude, busStop.longitude));
+    distanceMetadata[busStop] = distanceMeters;
+  }
+
+  /* Sort stops by distance */
+  return busStops.sorted((BusStop a, BusStop b) {
+    final distanceA = distanceMetadata[a];
+    final distanceB = distanceMetadata[b];
+    if (distanceA == null || distanceB == null) {
+      return 0;
+    }
+    return (distanceA - distanceB).floor();
+  });
+}
 
 class SearchPage extends BottomSheetPage {
   SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
@@ -47,16 +80,15 @@ class SearchPage extends BottomSheetPage {
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() {
-    return _SearchPageState();
+    return SearchPageState();
   }
 
-  static _SearchPageState? of(BuildContext context) =>
-      context.findAncestorStateOfType<_SearchPageState>();
+  static SearchPageState? of(BuildContext context) =>
+      context.findAncestorStateOfType<SearchPageState>();
 }
 
-class _SearchPageState extends BottomSheetPageState<SearchPage>
-    with WidgetsBindingObserver {
-  _SearchPageState() : super(hasAppBar: false);
+class SearchPageState extends BottomSheetPageState<SearchPage> {
+  SearchPageState() : super(hasAppBar: false);
 
   // The number of pixels to offset the FAB by animates out
   // via a fade down
@@ -83,8 +115,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
 
   List<String> _searchHistory = <String>[];
 
-  LocationData? location;
-  bool _isDistanceLoaded = false;
+  UserLocationSnapshot get userLocation =>
+      ref.watch(userLocationProvider).value ??
+      UserLocationSnapshot.noService(timestamp: DateTime.now());
+  final bool _isDistanceLoaded = false;
   final bool _showServicesOnly = false;
   late bool _isMapVisible = widget.showMap;
   bool _isRefocusButtonVisible = true;
@@ -94,11 +128,13 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   BusStop? get _displayedBusStop =>
       _focusedBusStop ?? _filteredBusStops.firstOrNull;
 
-  LatLng get _markerOrigin =>
-      _focusedLocation ??
-      (location != null
-          ? LatLng(location!.latitude!, location!.longitude!)
-          : _defaultCameraPosition);
+  LatLng get _markerOrigin {
+    final userLocationData = userLocation.data;
+    return _focusedLocation ??
+        (userLocationData != null
+            ? LatLng(userLocationData.latitude!, userLocationData.longitude!)
+            : _defaultCameraPosition);
+  }
 
   late final AnimationController _clearIconAnimationController =
       AnimationController(
@@ -202,31 +238,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
       // }
     });
 
-    /* Retrieve user location then sort bus stops accordingly */
-    location = LocationUtils.getLatestLocation();
-
-    // Update distances to latest location
-    if (location != null) {
-      _updateBusStopDistances(location!);
-      _isRefocusButtonVisible = false;
-      if (!LocationUtils.isLocationCurrent()) {}
-    }
-
-    // Refresh location if necessary
-    if (location == null || !LocationUtils.isLocationCurrent()) {
-      LocationUtils.getLocation().then((LocationData? location) {
-        setState(() {
-          this.location = location;
-        });
-        if (location != null) {
-          _updateBusStopDistances(location);
-          setState(() {
-            _isRefocusButtonVisible = false;
-          });
-        }
-      });
-    }
-
     // If normal mode, perform bus service and map-related functions
     if (widget.isSimpleMode) return;
 
@@ -237,8 +248,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         _googleMapDarkStyle = style;
       });
     });
-
-    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -246,24 +255,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
     _textController.dispose();
     _clearIconAnimationController.dispose();
     _mapClipperAnimationController.dispose();
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  @override
-  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.resumed) {
-      if (location == null || !LocationUtils.isLocationCurrent()) {
-        LocationUtils.getLocation().then((LocationData? location) {
-          setState(() {
-            this.location = location;
-          });
-          if (location != null) {
-            _updateBusStopDistances(location);
-          }
-        });
-      }
-    }
   }
 
   bool get _canPop {
@@ -544,7 +536,7 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
               Builder(builder: (context) {
                 return _buildMapWidget(context);
               }),
-              if (LocationUtils.isLocationAllowed())
+              if (userLocation.data != null)
                 Positioned(
                   bottom: _resultsSheetCollapsedHeight + 16.0,
                   child: FloatingActionButton.extended(
@@ -553,11 +545,18 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                       onPressed: () async {
                         final controller = await _googleMapController.future;
                         final currentZoom = await controller.getZoomLevel();
+
+                        final locationData = userLocation.data;
+
+                        if (locationData == null) {
+                          return;
+                        }
+
                         controller.animateCamera(
                           CameraUpdate.newCameraPosition(
                             CameraPosition(
-                              target: LatLng(
-                                  location!.latitude!, location!.longitude!),
+                              target: LatLng(locationData.latitude!,
+                                  locationData.longitude!),
                               zoom: currentZoom,
                             ),
                           ),
@@ -761,9 +760,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
   }
 
   CameraPosition _getCameraPositionFromLocation() {
+    final locationData = userLocation.data;
     return CameraPosition(
-      target: location != null
-          ? LatLng(location!.latitude!, location!.longitude!)
+      target: locationData != null
+          ? LatLng(locationData.latitude!, locationData.longitude!)
           : _defaultCameraPosition,
       zoom: 18,
     );
@@ -886,10 +886,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         _focusedBusStop = null;
       }
     }
-
-    if (location != null && !_isDistanceLoaded) {
-      _updateBusStopDistances(location!);
-    }
   }
 
   Widget _buildHistory() {
@@ -968,10 +964,10 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
                     TextSpan(
                         text: 'Bus stops',
                         style: Theme.of(context).textTheme.headlineMedium),
-                    if (LocationUtils.currentLocationTimestamp != null)
+                    if (userLocation.data != null)
                       TextSpan(
                         text:
-                            ' • as of ${dateFormat.format(LocationUtils.currentLocationTimestamp!)}',
+                            ' • as of ${dateFormat.format(userLocation.timestamp)}',
                         style: Theme.of(context)
                             .textTheme
                             .headlineMedium
@@ -1187,35 +1183,6 @@ class _SearchPageState extends BottomSheetPageState<SearchPage>
         .read<BusStopSheetBloc>()
         .add(SheetRequested(busStop, kDefaultRouteId));
     pushHistory(_query.trim());
-  }
-
-  Future<void> _updateBusStopDistances(LocationData location) async {
-    for (var busStop in _busStops) {
-      final distanceMeters = const latlong.Distance().as(
-          latlong.LengthUnit.Meter,
-          latlong.LatLng(location.latitude!, location.longitude!),
-          latlong.LatLng(busStop.latitude, busStop.longitude));
-      _distanceMetadata[busStop] = distanceMeters;
-    }
-
-    /* Sort stops by distance */
-    _busStops.sort((BusStop a, BusStop b) {
-      final distanceA = _distanceMetadata[a];
-      final distanceB = _distanceMetadata[b];
-      if (distanceA == null || distanceB == null) {
-        return 0;
-      }
-      return (distanceA - distanceB).floor();
-    });
-
-    _isDistanceLoaded = true;
-  }
-
-  Future<void> _fetchBusStops() async {
-    // TODO: Fix this
-    if (location != null) {
-      _updateBusStopDistances(location!);
-    }
   }
 
   static Iterable<BusService> _filterBusServices(

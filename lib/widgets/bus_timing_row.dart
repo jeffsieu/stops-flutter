@@ -11,7 +11,6 @@ import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
 import '../models/user_route.dart';
 import '../routes/bus_service_page.dart';
-import '../routes/home_page.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
@@ -90,7 +89,7 @@ class _BusTimingState extends State<BusTimingRow>
               } else {
                 await pinBusService(widget.busStop, widget.busService, route);
               }
-              HomePage.of(context)?.refresh();
+              // TODO: Refresh home page using riverpod
               setState(() {});
             }
           : () => _pushBusServiceRoute(widget.busService.number),
@@ -126,7 +125,7 @@ class _BusTimingState extends State<BusTimingRow>
                                   await unpinBusService(
                                       widget.busStop, widget.busService, route);
                                 }
-                                HomePage.of(context)?.refresh();
+                                // TODO: Refresh home page using riverpod
                                 setState(() {});
                               });
                           if (widget.isEditing) return checkbox;
@@ -143,7 +142,8 @@ class _BusTimingState extends State<BusTimingRow>
                           widget.busService.number.padAsServiceNumber(),
                           style: GoogleFonts.getFont(
                             StopsApp.monospacedFont,
-                            textStyle: Theme.of(context).textTheme.headlineSmall,
+                            textStyle:
+                                Theme.of(context).textTheme.headlineSmall,
                             color: widget.hasArrivals
                                 ? Theme.of(context).textTheme.titleLarge!.color
                                 : Theme.of(context).hintColor,
@@ -197,8 +197,7 @@ class _BusTimingState extends State<BusTimingRow>
                       arrivalTime: estimatedArrivalTime);
                 }
 
-                // Refresh home page to show followed buses
-                HomePage.of(context)?.refresh();
+                // TODO: Refresh home page to show followed buses
               }
             : null,
       ),
@@ -288,8 +287,8 @@ class _BusTimingItemState extends State<_BusTimingItem>
       _controller.stop();
       _controller.reset();
     }
-    final busLoadColor = getBusLoadColor(
-        widget.busArrival?.load, Theme.of(context));
+    final busLoadColor =
+        getBusLoadColor(widget.busArrival?.load, Theme.of(context));
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
