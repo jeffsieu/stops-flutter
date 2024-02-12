@@ -41,36 +41,7 @@ import 'bottom_sheet_page.dart';
 import 'fade_page_route.dart';
 import 'search_page.dart';
 
-part 'home_page.g.dart';
-
 const Duration _minimumRefreshDuration = Duration(milliseconds: 300);
-
-@riverpod
-Future<List<BusStopWithDistance>?> nearestBusStops(
-    NearestBusStopsRef ref, String busServiceFilter) async {
-  // Wait at least 300ms before refreshing
-  final stopwatch = Stopwatch()..start();
-
-  final locationData = await ref
-      .watch(userLocationProvider.selectAsync((snapshot) => snapshot.data));
-
-  if (locationData == null) {
-    stopwatch.stop();
-    return null;
-  } else {
-    final result = await getNearestBusStops(
-        locationData.latitude!, locationData.longitude!, busServiceFilter);
-
-    // Wait at least 300ms before refreshing
-    if (stopwatch.elapsed < _minimumRefreshDuration) {
-      await Future.delayed(_minimumRefreshDuration - stopwatch.elapsed);
-    }
-
-    stopwatch.stop();
-
-    return result;
-  }
-}
 
 class HomePage extends BottomSheetPage {
   const HomePage({super.key});
@@ -103,7 +74,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   LocationData? get locationData => ref
       .watch(userLocationProvider.select((value) => value.valueOrNull?.data));
   AsyncValue<List<BusStopWithDistance>?> get _nearestBusStops =>
-      ref.watch(nearestBusStopsProvider(_busServiceFilterText));
+      ref.watch(nearestBusStopsProvider(
+          busServiceFilter: _busServiceFilterText,
+          minimumRefreshDuration: _minimumRefreshDuration));
 
   @override
   void initState() {
@@ -493,147 +466,141 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Widget _buildNearbyStops() {
-    return FutureBuilder<StoredUserRoute>(
-        future: getRouteWithId(kDefaultRouteId),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+    final homeRoute =
+        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).valueOrNull;
+
+    if (homeRoute == null) {
+      return Container();
+    }
+
+    return Provider<StoredUserRoute>(
+      create: (context) => homeRoute,
+      child: Builder(
+        builder: (BuildContext context) {
+          if (!hasLocationPermissions) {
             return Container();
           }
 
-          return Provider<StoredUserRoute>(
-            create: (context) => snapshot.data!,
-            child: Builder(
-              builder: (BuildContext context) {
-                if (!hasLocationPermissions) {
-                  return Container();
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16.0),
-                      Container(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                            'Nearby stops${_busServiceFilterText.isEmpty ? '' : ' (with bus $_busServiceFilterText)'}',
-                            style: Theme.of(context).textTheme.headlineMedium),
-                      ),
-                      TextField(
-                        autofocus: false,
-                        decoration: InputDecoration(
-                          hintText: 'Filter by bus service',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              setState(() {
-                                _busServiceTextController.clear();
-                              });
-                            },
-                          ),
-                        ),
-                        controller: _busServiceTextController,
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 16.0),
-                      AnimatedSize(
-                        alignment: Alignment.topCenter,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
-                        child: (_nearestBusStops.valueOrNull?.isNotEmpty ??
-                                true)
-                            ? ListView.separated(
-                                physics: const NeverScrollableScrollPhysics(),
-                                scrollDirection: Axis.vertical,
-                                shrinkWrap: true,
-                                itemCount: min(
-                                    _suggestionsCount,
-                                    _nearestBusStops.valueOrNull?.length ??
-                                        _suggestionsCount),
-                                separatorBuilder:
-                                    (BuildContext context, int position) =>
-                                        const SizedBox(height: 8.0),
-                                itemBuilder:
-                                    (BuildContext context, int position) {
-                                  return switch (_nearestBusStops) {
-                                    AsyncData(:final value) =>
-                                      _buildSuggestionItem(value?[position]),
-                                    _ => _buildSuggestionItem(null),
-                                  };
-                                },
-                              )
-                            : OutlineTitledContainer(
-                                topOffset: 0,
-                                body: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Row(
-                                    children: [
-                                      CrossedIcon(
-                                        icon: Icon(
-                                          Icons.directions_bus_rounded,
-                                          color: Theme.of(context).hintColor,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8.0),
-                                      Text(
-                                        'Nothing found',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium!
-                                            .copyWith(
-                                                color: Theme.of(context)
-                                                    .hintColor),
-                                      )
-                                    ],
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16.0),
+                Container(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                      'Nearby stops${_busServiceFilterText.isEmpty ? '' : ' (with bus $_busServiceFilterText)'}',
+                      style: Theme.of(context).textTheme.headlineMedium),
+                ),
+                TextField(
+                  autofocus: false,
+                  decoration: InputDecoration(
+                    hintText: 'Filter by bus service',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _busServiceTextController.clear();
+                        });
+                      },
+                    ),
+                  ),
+                  controller: _busServiceTextController,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16.0),
+                AnimatedSize(
+                  alignment: Alignment.topCenter,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  child: (_nearestBusStops.valueOrNull?.isNotEmpty ?? true)
+                      ? ListView.separated(
+                          physics: const NeverScrollableScrollPhysics(),
+                          scrollDirection: Axis.vertical,
+                          shrinkWrap: true,
+                          itemCount: min(
+                              _suggestionsCount,
+                              _nearestBusStops.valueOrNull?.length ??
+                                  _suggestionsCount),
+                          separatorBuilder:
+                              (BuildContext context, int position) =>
+                                  const SizedBox(height: 8.0),
+                          itemBuilder: (BuildContext context, int position) {
+                            return switch (_nearestBusStops) {
+                              AsyncData(:final value) =>
+                                _buildSuggestionItem(value?[position]),
+                              _ => _buildSuggestionItem(null),
+                            };
+                          },
+                        )
+                      : OutlineTitledContainer(
+                          topOffset: 0,
+                          body: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                CrossedIcon(
+                                  icon: Icon(
+                                    Icons.directions_bus_rounded,
+                                    color: Theme.of(context).hintColor,
                                   ),
                                 ),
-                              ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      IntrinsicHeight(
-                        child: Row(
-                          children: [
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              child: TextButton.icon(
-                                icon: _suggestionsCount <= 4
-                                    ? const Icon(
-                                        Icons.keyboard_arrow_down_rounded)
-                                    : const Icon(
-                                        Icons.keyboard_arrow_up_rounded),
-                                label: _suggestionsCount <= 4
-                                    ? const Text('Show more')
-                                    : const Text('Collapse'),
-                                onPressed: () {
-                                  setState(() {
-                                    if (_suggestionsCount <= 4) {
-                                      _suggestionsCount += 2;
-                                    } else {
-                                      _suggestionsCount = 1;
-                                    }
-                                  });
-                                },
-                              ),
+                                const SizedBox(width: 8.0),
+                                Text(
+                                  'Nothing found',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium!
+                                      .copyWith(
+                                          color: Theme.of(context).hintColor),
+                                )
+                              ],
                             ),
-                            const VerticalDivider(),
-                            TextButton.icon(
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Refresh'),
-                              onPressed: refreshLocation,
-                            ),
-                          ],
+                          ),
                         ),
+                ),
+                const SizedBox(height: 8.0),
+                IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: TextButton.icon(
+                          icon: _suggestionsCount <= 4
+                              ? const Icon(Icons.keyboard_arrow_down_rounded)
+                              : const Icon(Icons.keyboard_arrow_up_rounded),
+                          label: _suggestionsCount <= 4
+                              ? const Text('Show more')
+                              : const Text('Collapse'),
+                          onPressed: () {
+                            setState(() {
+                              if (_suggestionsCount <= 4) {
+                                _suggestionsCount += 2;
+                              } else {
+                                _suggestionsCount = 1;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const VerticalDivider(),
+                      TextButton.icon(
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Refresh'),
+                        onPressed: refreshLocation,
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+              ],
             ),
           );
-        });
+        },
+      ),
+    );
   }
 
   Widget _buildSuggestionItem(BusStopWithDistance? busStopWithDistance) {
@@ -709,7 +676,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
 
   Widget _buildContent() {
     if (_bottomNavIndex == 1 && _activeRoute != null) {
-      return RoutePage(_activeRoute!);
+      return RoutePage(route: _activeRoute!);
     } else {
       return MediaQuery.removePadding(
         key: ValueKey<int>(_bottomNavIndex),
@@ -835,7 +802,9 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
         FadePageRoute<UserRoute>(child: const AddRoutePage());
     final userRoute = await Navigator.push(context, route);
 
-    if (userRoute != null) storeUserRoute(userRoute);
+    if (userRoute != null) {
+      await ref.read(savedUserRoutesProvider.notifier).addRoute(userRoute);
+    }
   }
 
   void _pushRoutePageRoute(StoredUserRoute route) {
@@ -849,7 +818,7 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     final editedRoute = await Navigator.push(context,
         FadePageRoute<StoredUserRoute>(child: AddRoutePage.edit(route)));
     if (editedRoute != null) {
-      updateUserRoute(editedRoute);
+      await ref.read(savedUserRoutesProvider.notifier).updateRoute(editedRoute);
     }
   }
 
@@ -880,12 +849,5 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
     final Route<void> route =
         MaterialPageRoute<void>(builder: (BuildContext context) => page);
     Navigator.push(context, route);
-  }
-}
-
-extension<T> on Future<T> {
-  Future<T> withMinimumDuration(Duration duration) async {
-    await Future.wait(<Future<dynamic>>[this, Future<void>.delayed(duration)]);
-    return this;
   }
 }

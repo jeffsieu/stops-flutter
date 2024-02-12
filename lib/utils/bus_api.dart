@@ -71,49 +71,6 @@ Future<String> apiKey(ApiKeyRef ref) async {
   return json.decode(jsonString)['lta_api_key'] as String;
 }
 
-@riverpod
-class BusStopList extends _$BusStopList {
-  @override
-  Future<List<BusStop>> build() async {
-    return await getCachedBusStops();
-  }
-
-  Future<void> fetchFromApi() async {
-    final busStopList = await ref.read(_apiBusStopListProvider.future);
-    await cacheBusStops(busStopList);
-    ref.invalidateSelf();
-  }
-}
-
-@riverpod
-class BusServiceList extends _$BusServiceList {
-  @override
-  Future<List<BusService>> build() async {
-    return await getCachedBusServices();
-  }
-
-  Future<void> fetchFromApi() async {
-    final busServiceList = await ref.read(_apiBusServiceListProvider.future);
-    await cacheBusServices(busServiceList);
-    ref.invalidateSelf();
-  }
-}
-
-@riverpod
-class BusServiceRouteList extends _$BusServiceRouteList {
-  @override
-  Future<List<BusServiceRoute>> build(BusService busService) async {
-    return await getCachedBusRoutes(busService);
-  }
-
-  Future<void> fetchFromApi() async {
-    final busServiceRouteList =
-        await ref.read(_apiBusServiceRouteListProvider.future);
-    await cacheBusServiceRoutes(busServiceRouteList);
-    ref.invalidateSelf();
-  }
-}
-
 Future<bool> hasInternetConnection() async {
   try {
     final result = await InternetAddress.lookup('example.com');
@@ -148,8 +105,8 @@ Future<String> busApiStringResponse(BusApiStringResponseRef ref,
 }
 
 @riverpod
-Future<List<T>> _busApiListResponse<T>(_BusApiListResponseRef ref, String url,
-    T Function(dynamic json) function) async {
+Future<List<T>> _busApiListResponse<T>(_BusApiListResponseRef<T> ref,
+    String url, T Function(dynamic json) function) async {
   var skip = 0;
   const concurrentCount = 6;
   final resultList = <T>[];
@@ -201,21 +158,21 @@ Future<List<BusServiceArrivalResult>> busStopArrivals(
 }
 
 @riverpod
-Future<List<BusStop>> _apiBusStopList(_ApiBusStopListRef ref) async {
+Future<List<BusStop>> apiBusStopList(ApiBusStopListRef ref) async {
   return await ref.watch(
       _busApiListResponseProvider(_kGetBusStopsUrl, BusStop.fromJson).future);
 }
 
 @riverpod
-Future<List<BusService>> _apiBusServiceList(_ApiBusServiceListRef ref) async {
+Future<List<BusService>> apiBusServiceList(ApiBusServiceListRef ref) async {
   return await ref.watch(
       _busApiListResponseProvider(_kGetBusServicesUrl, BusService.fromJson)
           .future);
 }
 
 @riverpod
-Future<List<Map<String, dynamic>>> _apiBusServiceRouteList(
-    _ApiBusServiceRouteListRef ref) async {
+Future<List<Map<String, dynamic>>> apiBusServiceRouteList(
+    ApiBusServiceRouteListRef ref) async {
   return await ref.watch(
       _busApiListResponseProvider(_kGetBusRoutesUrl, busServiceRouteStopToJson)
           .future);

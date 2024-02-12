@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../utils/database_utils.dart';
 import '../bloc/bus_stop_sheet_bloc.dart';
 
-class BusStopSheetHeaderDropdown extends StatelessWidget {
+class BusStopSheetHeaderDropdown extends ConsumerWidget {
   const BusStopSheetHeaderDropdown({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isEditing =
         context.select((BusStopSheetBloc bloc) => bloc.state.isEditing);
-    final isInRoute =
-        context.select((BusStopSheetBloc bloc) => bloc.state.isInRoute);
     final busStop =
         context.select((BusStopSheetBloc bloc) => bloc.state.busStop)!;
     final routeId =
         context.select((BusStopSheetBloc bloc) => bloc.state.routeId)!;
 
+    final isInRoute = ref
+            .watch(isBusStopInRouteProvider(busStop: busStop, routeId: routeId))
+            .valueOrNull ??
+        false;
     if (isEditing) {
       return IconButton(
         tooltip: 'Save',
@@ -41,9 +44,13 @@ class BusStopSheetHeaderDropdown extends StatelessWidget {
             break;
           case _MenuOption.favorite:
             if (!isInRoute) {
-              addBusStopToRouteWithId(busStop, routeId, context);
+              ref
+                  .read(savedUserRouteProvider(id: routeId).notifier)
+                  .addBusStop(busStop);
             } else {
-              removeBusStopFromRoute(busStop, routeId, context);
+              ref
+                  .read(savedUserRouteProvider(id: routeId).notifier)
+                  .removeBusStop(busStop);
             }
             break;
           case _MenuOption.googleMaps:
@@ -69,7 +76,9 @@ class BusStopSheetHeaderDropdown extends StatelessWidget {
               ? routeId == kDefaultRouteId
                   ? 'Unpin from home'
                   : 'Remove from route'
-              : 'Pin to home'),
+              : routeId == kDefaultRouteId
+                  ? 'Pin to home'
+                  : 'Add to route'),
         ),
         const PopupMenuDivider(),
         const PopupMenuItem<_MenuOption>(

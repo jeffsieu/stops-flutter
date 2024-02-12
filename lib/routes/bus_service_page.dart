@@ -13,8 +13,7 @@ import '../widgets/highlighted_icon.dart';
 import 'bottom_sheet_page.dart';
 
 class BusServicePage extends BottomSheetPage {
-  const BusServicePage(this.serviceNumber, {super.key})
-      : focusedBusStop = null;
+  const BusServicePage(this.serviceNumber, {super.key}) : focusedBusStop = null;
   const BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
       {super.key});
 

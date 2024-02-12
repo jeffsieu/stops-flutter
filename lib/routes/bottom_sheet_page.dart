@@ -34,7 +34,7 @@ abstract class BottomSheetPageState<T extends BottomSheetPage>
 
   Widget bottomSheet({required Widget child}) {
     return BlocProvider(
-      create: (context) => BusStopSheetBloc(),
+      create: (context) => BusStopSheetBloc(ref: ref),
       child: RubberBottomSheet(
         scrollController: sheetScrollController,
         animationController: rubberAnimationController,

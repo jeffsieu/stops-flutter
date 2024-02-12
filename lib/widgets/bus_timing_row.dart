@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -16,7 +17,7 @@ import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/time_utils.dart';
 
-class BusTimingRow extends StatefulWidget {
+class BusTimingRow extends ConsumerStatefulWidget {
   const BusTimingRow(
       this.busStop, this.busService, this.arrivalResult, this.isEditing,
       {super.key})
@@ -42,7 +43,7 @@ class BusTimingRow extends StatefulWidget {
   }
 }
 
-class _BusTimingState extends State<BusTimingRow>
+class _BusTimingState extends ConsumerState<BusTimingRow>
     with TickerProviderStateMixin {
   bool _isBusFollowed = false;
 
@@ -78,19 +79,28 @@ class _BusTimingState extends State<BusTimingRow>
   @override
   Widget build(BuildContext context) {
     final route = context.watch<StoredUserRoute>();
+    final isPinned = ref
+            .watch(isBusServicePinnedProvider(
+                busStop: widget.busStop,
+                busService: widget.busService,
+                routeId: route.id))
+            .valueOrNull ??
+        false;
+
     final Widget item = InkWell(
       onTap: widget.isEditing
           ? () async {
-              final isPinned = await isBusServicePinned(
-                  widget.busStop, widget.busService, route);
-
               if (isPinned) {
-                await unpinBusService(widget.busStop, widget.busService, route);
+                await ref
+                    .read(savedUserRouteProvider(id: route.id).notifier)
+                    .unpinBusService(
+                        busStop: widget.busStop, busService: widget.busService);
               } else {
-                await pinBusService(widget.busStop, widget.busService, route);
+                await ref
+                    .read(savedUserRouteProvider(id: route.id).notifier)
+                    .pinBusService(
+                        busStop: widget.busStop, busService: widget.busService);
               }
-              // TODO: Refresh home page using riverpod
-              setState(() {});
             }
           : () => _pushBusServiceRoute(widget.busService.number),
       child: Stack(
@@ -108,25 +118,26 @@ class _BusTimingState extends State<BusTimingRow>
                     AnimatedSize(
                       duration: kSheetEditDuration * 2,
                       curve: Curves.easeInOutCirc,
-                      child: FutureBuilder<bool>(
-                        initialData: false,
-                        future: isBusServicePinned(
-                            widget.busStop, widget.busService, route),
-                        builder: (BuildContext context,
-                            AsyncSnapshot<bool> snapshot) {
-                          final isChecked = snapshot.data!;
+                      child: Builder(
+                        builder: (BuildContext context) {
                           final checkbox = Checkbox(
-                              value: isChecked,
+                              value: isPinned,
                               onChanged: (bool? checked) async {
                                 if (checked ?? false) {
-                                  await pinBusService(
-                                      widget.busStop, widget.busService, route);
+                                  await ref
+                                      .read(savedUserRouteProvider(id: route.id)
+                                          .notifier)
+                                      .pinBusService(
+                                          busStop: widget.busStop,
+                                          busService: widget.busService);
                                 } else {
-                                  await unpinBusService(
-                                      widget.busStop, widget.busService, route);
+                                  await ref
+                                      .read(savedUserRouteProvider(id: route.id)
+                                          .notifier)
+                                      .unpinBusService(
+                                          busStop: widget.busStop,
+                                          busService: widget.busService);
                                 }
-                                // TODO: Refresh home page using riverpod
-                                setState(() {});
                               });
                           if (widget.isEditing) return checkbox;
                           return Container();

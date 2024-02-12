@@ -1,8 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/bus_service.dart';
 import '../../models/bus_stop.dart';
 import '../../utils/bus_api.dart';
 import '../../utils/bus_service_arrival_result.dart';
@@ -53,27 +53,25 @@ class BusStopSheetServiceList extends ConsumerWidget {
                   ))
               : Container(),
         ),
-        FutureBuilder<List<BusService>>(
-          initialData: const <BusService>[],
-          future: getServicesIn(busStop),
-          builder:
-              (BuildContext context, AsyncSnapshot<List<BusService>> snapshot) {
-            return _buildTimingList(
-                context, ref, busStop, isEditing, snapshot.data!);
-          },
-        ),
+        _buildTimingList(context, ref, busStop, isEditing),
       ],
     );
   }
 
-  Widget _buildTimingList(BuildContext context, WidgetRef ref, BusStop busStop,
-      bool isEditing, List<BusService> allServices) {
+  Widget _buildTimingList(
+      BuildContext context, WidgetRef ref, BusStop busStop, bool isEditing) {
+    final busStopServices = ref.watch(busStopServicesProvider(busStop));
     final busStopArrivals = ref.watch(busStopArrivalsProvider(busStop));
 
     switch (busStopArrivals) {
       case AsyncData(:final value):
         {
           final buses = value;
+          final fallbackServices = buses
+              .map((e) => e.busService)
+              .toSet()
+              .sortedBy((element) => element.number);
+          final allServices = busStopServices.value ?? fallbackServices;
           buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
               compareBusNumber(a.busService.number, b.busService.number));
 

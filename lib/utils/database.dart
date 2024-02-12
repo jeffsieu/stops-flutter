@@ -1,5 +1,3 @@
-// ignore_for_file: always_specify_types
-
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -287,7 +285,7 @@ class StopsDatabase extends _$StopsDatabase {
     return await query.getSingleOrNull() != null;
   }
 
-  Future<void> storeUserRoute(UserRoute route) async {
+  Future<void> addUserRoute(UserRoute route) async {
     // Select number of rows from user route
     final newRoutePositionQuery = selectOnly(userRoutes)
       ..addColumns([userRoutes.id.count()]);
@@ -335,20 +333,17 @@ class StopsDatabase extends _$StopsDatabase {
     });
   }
 
-  Future<void> deleteUserRoute(StoredUserRoute route) async {
-    final position = (await (select(userRoutes)
-              ..where((u) => u.id.equals(route.id)))
-            .getSingle())
-        .position;
+  Future<void> deleteUserRoute({required int id}) async {
+    final position =
+        (await (select(userRoutes)..where((u) => u.id.equals(id))).getSingle())
+            .position;
 
     await transaction(() async {
-      await (delete(pinnedBusServices)
-            ..where((p) => p.routeId.equals(route.id)))
+      await (delete(pinnedBusServices)..where((p) => p.routeId.equals(id)))
           .go();
-      await (delete(userRouteBusStops)
-            ..where((u) => u.routeId.equals(route.id)))
+      await (delete(userRouteBusStops)..where((u) => u.routeId.equals(id)))
           .go();
-      await (delete(userRoutes)..where((u) => u.id.equals(route.id))).go();
+      await (delete(userRoutes)..where((u) => u.id.equals(id))).go();
 
       // Shift all positions down by 1
       final decrementPosition = UserRoutesCompanion.custom(
@@ -364,10 +359,8 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<List<UserRouteEntry>> getStoredUserRoutes() async {
     final query = select(userRoutes)
-      ..where((ur) => ur.id.equals(kDefaultRouteId).not())
       ..orderBy([(ur) => OrderingTerm(expression: ur.position)]);
     final results = await query.get();
-    // final List<UserRoute> routes = results.map((e) => e.toModel()).toList();
     return results;
   }
 
@@ -395,12 +388,12 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> moveBusStopPositionInRoute(
-      int from, int to, StoredUserRoute route) async {
+      {required int from, required int to, required int routeId}) async {
     final direction = (to - from).sign;
     await transaction(() async {
       // Change from's position to -2
       await (update(userRouteBusStops)
-            ..where((u) => u.routeId.equals(route.id))
+            ..where((u) => u.routeId.equals(routeId))
             ..where((u) => u.position.equals(from)))
           .write(
               UserRouteBusStopsCompanion.custom(position: const Constant(-2)));
@@ -414,14 +407,14 @@ class StopsDatabase extends _$StopsDatabase {
 
       for (var i = from; i != to; i += direction) {
         await (update(userRouteBusStops)
-              ..where((u) => u.routeId.equals(route.id))
+              ..where((u) => u.routeId.equals(routeId))
               ..where((u) => u.position.equals(i)))
             .write(shiftPosition);
       }
 
       // Change from's position ot to
       await (update(userRouteBusStops)
-            ..where((u) => u.routeId.equals(route.id))
+            ..where((u) => u.routeId.equals(routeId))
             ..where((u) => u.position.equals(-2)))
           .write(UserRouteBusStopsCompanion.custom(position: Variable(to)));
     });
@@ -510,33 +503,26 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<void> pinBusService(
-      BusStop busStop, BusService busService, StoredUserRoute route) async {
+      {required BusStop busStop,
+      required BusService busService,
+      required int routeId}) async {
     await into(pinnedBusServices).insert(
       PinnedBusServiceEntry(
-          routeId: route.id,
+          routeId: routeId,
           busStopCode: busStop.code,
           busServiceNumber: busService.number),
     );
   }
 
   Future<void> unpinBusService(
-      BusStop busStop, BusService busService, StoredUserRoute route) async {
+      {required BusStop busStop,
+      required BusService busService,
+      required int routeId}) async {
     await (delete(pinnedBusServices)
-          ..where((p) => p.routeId.equals(route.id))
+          ..where((p) => p.routeId.equals(routeId))
           ..where((p) => p.busStopCode.equals(busStop.code))
           ..where((p) => p.busServiceNumber.equals(busService.number)))
         .go();
-  }
-
-  Future<bool> isBusServicePinned(
-      BusStop busStop, BusService busService, StoredUserRoute route) async {
-    final result = await (select(pinnedBusServices)
-          ..where((p) => p.routeId.equals(route.id))
-          ..where((p) => p.busStopCode.equals(busStop.code))
-          ..where((p) => p.busServiceNumber.equals(busService.number))
-          ..limit(1))
-        .getSingleOrNull();
-    return result != null;
   }
 
   Future<List<BusService>> getPinnedServicesInRouteWithId(
@@ -556,12 +542,6 @@ class StopsDatabase extends _$StopsDatabase {
   }
 
   Future<List<BusService>> getServicesIn(BusStop busStop) async {
-    //   final List<Map<String, dynamic>> result = await database.rawQuery(
-    //   'SELECT * FROM (SELECT DISTINCT(serviceNumber) FROM bus_route WHERE busStopCode = ?) INNER JOIN bus_service '
-    //   'ON serviceNumber = bus_service.number',
-    //   <String>[busStop.code],
-    // );
-
     final result = await (select(busServices)
           ..where((bs) => bs.number.isInQuery(selectOnly(busRoutes)
             ..where(busRoutes.busStopCode.equals(busStop.code))

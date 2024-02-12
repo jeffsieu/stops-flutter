@@ -126,6 +126,8 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
         context.select((BusStopSheetBloc bloc) => bloc.state.routeId);
     if (busStop == null || routeId == null) return Container();
 
+    final route = ref.watch(savedUserRouteProvider(id: routeId)).valueOrNull;
+
     final Widget scrollView = ListView(
       padding: const EdgeInsets.all(0),
       physics: const NeverScrollableScrollPhysics(),
@@ -191,18 +193,12 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
             topRight: Radius.circular(16.0),
           ),
           elevation: 16.0,
-          child: FutureBuilder<StoredUserRoute>(
-              future: getRouteWithId(routeId),
-              builder: (context, snapshot) {
-                if (snapshot.data != null) {
-                  return Provider<StoredUserRoute>(
-                    create: (_) => snapshot.data!,
-                    child: scrollView,
-                  );
-                } else {
-                  return Container();
-                }
-              }),
+          child: (route != null)
+              ? Provider<StoredUserRoute>(
+                  create: (_) => route,
+                  child: scrollView,
+                )
+              : Container(),
         ),
       ),
     );
