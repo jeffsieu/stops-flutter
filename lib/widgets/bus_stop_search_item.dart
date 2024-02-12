@@ -2,7 +2,6 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
 
 import '../models/bus_stop.dart';
 import '../utils/database_utils.dart';
@@ -60,7 +59,8 @@ class BusStopSearchItem extends ConsumerWidget {
                 'assets/images/bus-stop.svg',
                 width: 24.0,
                 height: 24.0,
-                color: Theme.of(context).colorScheme.primary,
+                colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.primary, BlendMode.srcIn),
               ),
             ),
             if (distance.isNotEmpty)

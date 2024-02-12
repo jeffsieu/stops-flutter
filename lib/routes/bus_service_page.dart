@@ -229,9 +229,11 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                                             'assets/images/bus-stop.svg',
                                             width: 24.0,
                                             height: 24.0,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
+                                            colorFilter: ColorFilter.mode(
+                                                Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
+                                                BlendMode.srcIn),
                                           ),
                                         ),
                                         Flexible(

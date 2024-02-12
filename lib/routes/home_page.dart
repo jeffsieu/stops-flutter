@@ -10,7 +10,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:location/location.dart';
 import 'package:provider/provider.dart' hide Consumer;
 import 'package:quick_actions/quick_actions.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart' hide Provider;
 import 'package:shimmer/shimmer.dart';
 
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';

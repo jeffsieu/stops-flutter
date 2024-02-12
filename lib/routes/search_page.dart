@@ -19,7 +19,6 @@ import '../main.dart';
 import '../models/bus_service.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_stop_with_distance.dart';
-import '../utils/bus_api.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/user_location.dart';
