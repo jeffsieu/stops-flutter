@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/bus.dart';
 import '../models/bus_service.dart';
 import '../models/bus_service_route.dart';
 import '../models/bus_service_with_routes.dart';
@@ -15,14 +14,10 @@ import '../models/bus_stop_with_pinned_services.dart';
 import '../models/user_route.dart';
 import 'bus_api.dart';
 import 'database.dart';
-import 'notification_utils.dart';
 import 'user_location.dart';
 
 part 'database_utils.g.dart';
 
-/* Called when bus is followed/un-followed */
-typedef BusFollowStatusListener = void Function(
-    String stop, String bus, bool isFollowed);
 /* Called when bus service is pinned/unpinned for a bus stop*/
 typedef BusPinStatusListener = void Function(
     String stop, String bus, bool isPinned);
@@ -30,18 +25,11 @@ typedef BusPinStatusListener = void Function(
 const int kDefaultRouteId = -1;
 const String defaultRouteName = 'Home';
 const String _themeModeKey = 'THEME_OPTION';
-const String _isBusFollowedKey = 'BUS_FOLLOW';
-const String _busTimingsKey = 'BUS_TIMINGS';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
 const String _searchHistoryKey = 'SEARCH_HISTORY';
 const String kAreBusStopsCachedKey = 'BUS_STOP_CACHE';
 const String kAreBusServicesCachedKey = 'BUS_SERVICE_CACHE';
 const String _areBusServiceRoutesCachedKey = 'BUS_ROUTE_CACHE';
-
-final Map<String, List<BusFollowStatusListener>> _busFollowStatusListeners =
-    <String, List<BusFollowStatusListener>>{};
-final StreamController<List<Bus>> _followedBusesController =
-    StreamController<List<Bus>>.broadcast(onListen: updateFollowedBusesStream);
 
 final StopsDatabase _database = StopsDatabase();
 
@@ -291,224 +279,6 @@ Future<bool> isBusStopInRoute(IsBusStopInRouteRef ref,
     {required BusStop busStop, required int routeId}) async {
   return await ref.watch(savedUserRouteProvider(id: routeId).selectAsync(
       (data) => (data?.busStops ?? []).any((b) => b.code == busStop.code)));
-}
-
-Future<void> followBus(
-    {required String stop,
-    required String bus,
-    required DateTime arrivalTime}) async {
-  final prefs = await SharedPreferences.getInstance();
-  if (!prefs.containsKey(_isBusFollowedKey)) {
-    prefs.setStringList(_isBusFollowedKey, <String>[]);
-  }
-  if (!prefs.containsKey(_busTimingsKey)) {
-    prefs.setStringList(_busTimingsKey, <String>[]);
-  }
-
-  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
-
-  assert(followedBuses.length == followedBusTimings.length);
-
-  final key = _followerKey(stop, bus);
-  followedBuses.add(key);
-  followedBusTimings.add(arrivalTime.toIso8601String());
-
-  prefs.setStringList(_isBusFollowedKey, followedBuses);
-  prefs.setStringList(_busTimingsKey, followedBusTimings);
-
-  // Update followed buses stream
-  updateFollowedBusesStream();
-  updateNotifications();
-
-  // To allow removal of listener while in iteration
-  // (as it is common behaviour for a listener to
-  // detach itself after a certain call)
-  if (_busFollowStatusListeners[key] == null) return;
-  final listeners =
-      List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]!);
-
-  for (var listener in listeners) {
-    listener(stop, bus, true);
-  }
-}
-
-Future<void> updateFollowedBusesStream() async {
-  _followedBusesController.add(await getFollowedBuses());
-}
-
-Future<List<Bus>> getFollowedBuses() async {
-  final prefs = await SharedPreferences.getInstance();
-  if (!prefs.containsKey(_isBusFollowedKey) ||
-      !prefs.containsKey(_busTimingsKey)) {
-    return <Bus>[];
-  }
-  final followedBuses = <Bus>[];
-  final followedBusesRaw = prefs.getStringList(_isBusFollowedKey)!;
-  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
-
-  assert(followedBusesRaw.length == followedBusTimings.length);
-
-  final now = DateTime.now();
-
-  for (var i = followedBusesRaw.length - 1; i >= 0; i--) {
-    final arrivalTime = DateTime.parse(followedBusTimings[i]);
-    if (arrivalTime.isBefore(now)) {
-      followedBusesRaw.removeAt(i);
-      followedBusTimings.removeAt(i);
-    }
-  }
-
-  for (var i = 0; i < followedBusesRaw.length; i++) {
-    final tokens = followedBusesRaw[i].split(' ');
-    final busStop = await _database.getCachedBusStopWithCode(tokens[0]);
-    final busService = await _database.getCachedBusService(tokens[1]);
-    followedBuses.add(Bus(busStop: busStop, busService: busService));
-  }
-
-  prefs.setStringList(_isBusFollowedKey, followedBusesRaw);
-  prefs.setStringList(_busTimingsKey, followedBusTimings);
-
-  return followedBuses;
-}
-
-Future<void> unfollowBus({required String stop, required String bus}) async {
-  final prefs = await SharedPreferences.getInstance();
-  if (!prefs.containsKey(_isBusFollowedKey)) {
-    prefs.setStringList(_isBusFollowedKey, <String>[]);
-  }
-  if (!prefs.containsKey(_busTimingsKey)) {
-    prefs.setStringList(_busTimingsKey, <String>[]);
-  }
-
-  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
-
-  assert(followedBuses.length == followedBusTimings.length);
-
-  final key = _followerKey(stop, bus);
-  final index = followedBuses.indexOf(key);
-
-  if (index != -1) {
-    // If bus is not already un-followed (by cancelling)
-    followedBuses.remove(key);
-    followedBusTimings.removeAt(index);
-  }
-
-  prefs.setStringList(_isBusFollowedKey, followedBuses);
-  prefs.setStringList(_busTimingsKey, followedBusTimings);
-
-  // Update followed buses stream
-  updateFollowedBusesStream();
-  updateNotifications();
-
-  // To allow removal of listener while in iteration
-  // (as it is common behaviour for a listener to
-  // detach itself after a certain call)
-  if (_busFollowStatusListeners[key] == null) return;
-  final listeners =
-      List<BusFollowStatusListener>.from(_busFollowStatusListeners[key]!);
-
-  for (var listener in listeners) {
-    listener(stop, bus, false);
-  }
-}
-
-Future<List<Map<String, dynamic>>> unfollowAllBuses() async {
-  final prefs = await SharedPreferences.getInstance();
-
-  final result = <Map<String, dynamic>>[];
-  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
-
-  for (var i = 0; i < followedBuses.length; i++) {
-    final tokens = followedBuses[i].split(' ');
-    final stop = tokens[0];
-    final bus = tokens[1];
-    result.add(<String, dynamic>{
-      'stop': stop,
-      'bus': bus,
-      'arrivalTime': DateTime.parse(followedBusTimings[i]),
-    });
-  }
-
-  prefs.setStringList(_isBusFollowedKey, <String>[]);
-  prefs.setStringList(_busTimingsKey, <String>[]);
-
-  // Update followed buses stream
-  updateFollowedBusesStream();
-  updateNotifications();
-
-  for (var entry in _busFollowStatusListeners.entries) {
-    final tokens = entry.key.split(' ');
-    final stop = tokens[0];
-    final bus = tokens[1];
-
-    for (var listener in entry.value) {
-      listener(stop, bus, false);
-    }
-  }
-
-  return result;
-}
-
-Future<bool> isBusFollowed({required String stop, required String bus}) async {
-  final prefs = await SharedPreferences.getInstance();
-  if (!prefs.containsKey(_isBusFollowedKey)) {
-    return false;
-  }
-  if (!prefs.containsKey(_busTimingsKey)) {
-    return false;
-  }
-  final followedBuses = prefs.getStringList(_isBusFollowedKey)!;
-  final followedBusTimings = prefs.getStringList(_busTimingsKey)!;
-
-  if (followedBuses.length != followedBusTimings.length) {
-    followedBuses.clear();
-    followedBusTimings.clear();
-
-    prefs.setStringList(_isBusFollowedKey, followedBuses);
-    prefs.setStringList(_busTimingsKey, followedBusTimings);
-  }
-
-  assert(followedBuses.length == followedBusTimings.length);
-
-  final key = _followerKey(stop, bus);
-  if (followedBuses.contains(key)) {
-    final index = followedBuses.indexOf(key);
-    final arrivalTime = DateTime.parse(followedBusTimings[index]);
-    if (arrivalTime.isAfter(DateTime.now())) {
-      return true;
-    } else {
-      followedBuses.remove(key);
-      followedBusTimings.removeAt(index);
-      prefs.setStringList(_isBusFollowedKey, followedBuses);
-      prefs.setStringList(_busTimingsKey, followedBusTimings);
-      return false;
-    }
-  }
-  return false;
-}
-
-Stream<List<Bus>> followedBusesStream() {
-  return _followedBusesController.stream;
-}
-
-String _followerKey(String stop, String bus) => '$stop $bus';
-
-void addBusFollowStatusListener(
-    String stop, String bus, BusFollowStatusListener listener) {
-  final key = _followerKey(stop, bus);
-  _busFollowStatusListeners.putIfAbsent(key, () => <BusFollowStatusListener>[]);
-  _busFollowStatusListeners[key]!.add(listener);
-}
-
-void removeBusFollowStatusListener(
-    String stop, String bus, BusFollowStatusListener listener) {
-  final key = _followerKey(stop, bus);
-  if (_busFollowStatusListeners.containsKey(key)) {
-    _busFollowStatusListeners[key]!.remove(listener);
-  }
 }
 
 Future<void> pushHistory(String query) async {

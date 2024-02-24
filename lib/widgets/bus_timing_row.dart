@@ -14,6 +14,7 @@ import '../models/user_route.dart';
 import '../routes/bus_service_page.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
+import '../utils/database/followed_buses.dart';
 import '../utils/database_utils.dart';
 import '../utils/time_utils.dart';
 
@@ -45,36 +46,13 @@ class BusTimingRow extends ConsumerStatefulWidget {
 
 class _BusTimingState extends ConsumerState<BusTimingRow>
     with TickerProviderStateMixin {
-  bool _isBusFollowed = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    addBusFollowStatusListener(widget.busStop.code, widget.busService.number,
-        onBusFollowStatusChanged);
-
-    isBusFollowed(stop: widget.busStop.code, bus: widget.busService.number)
-        .then((bool isFollowed) {
-      setState(() {
-        _isBusFollowed = isFollowed;
-      });
-    });
-  }
-
-  void onBusFollowStatusChanged(
-      String busStopCode, String busServiceNumber, bool isFollowed) {
-    setState(() {
-      _isBusFollowed = isFollowed;
-    });
-  }
-
-  @override
-  void dispose() {
-    removeBusFollowStatusListener(widget.busStop.code, widget.busService.number,
-        onBusFollowStatusChanged);
-    super.dispose();
-  }
+  bool get _isBusFollowed =>
+      ref
+          .watch(isBusFollowedProvider(
+              busStopCode: widget.busStop.code,
+              busServiceNumber: widget.busService.number))
+          .valueOrNull ??
+      false;
 
   @override
   Widget build(BuildContext context) {
@@ -191,8 +169,9 @@ class _BusTimingState extends ConsumerState<BusTimingRow>
         onPressed: widget.arrivalResult?.buses.firstOrNull != null
             ? () {
                 if (_isBusFollowed) {
-                  unfollowBus(
-                      stop: widget.busStop.code, bus: widget.busService.number);
+                  ref.read(followedBusesProvider.notifier).unfollowBus(
+                      busStopCode: widget.busStop.code,
+                      busServiceNumber: widget.busService.number);
                 } else {
                   final snackBar = SnackBar(
                       content: Text(
@@ -200,12 +179,9 @@ class _BusTimingState extends ConsumerState<BusTimingRow>
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                  final estimatedArrivalTime =
-                      widget.arrivalResult!.buses.first!.arrivalTime;
-                  followBus(
-                      stop: widget.busStop.code,
-                      bus: widget.busService.number,
-                      arrivalTime: estimatedArrivalTime);
+                  ref.read(followedBusesProvider.notifier).followBus(
+                      busStopCode: widget.busStop.code,
+                      busServiceNumber: widget.busService.number);
                 }
 
                 // TODO: Refresh home page to show followed buses

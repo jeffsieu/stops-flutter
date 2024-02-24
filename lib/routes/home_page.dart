@@ -23,6 +23,7 @@ import '../routes/route_page.dart';
 import '../routes/scan_card_page.dart';
 import '../routes/settings_page.dart';
 import '../utils/bus_api.dart';
+import '../utils/database/followed_buses.dart';
 import '../utils/database_utils.dart';
 import '../utils/reorder_status_notification.dart';
 import '../utils/time_utils.dart';
@@ -58,7 +59,8 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   int _bottomNavIndex = 0;
   int _suggestionsCount = 1;
   bool _isEditing = false;
-  List<Bus>? _followedBuses;
+  List<Bus> get _followedBuses =>
+      ref.watch(followedBusesProvider).valueOrNull ?? [];
   final ScrollController _scrollController = ScrollController();
   bool canScroll = true;
   late final AnimationController _fabScaleAnimationController =
@@ -333,133 +335,122 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Widget _buildTrackedBuses() {
+    final hasTrackedBuses = _followedBuses.isNotEmpty;
+
     return AnimatedSize(
       alignment: Alignment.topCenter,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOutCubic,
-      child: StreamBuilder<List<Bus>>(
-        initialData: _followedBuses,
-        stream: followedBusesStream(),
-        builder: (BuildContext context, AsyncSnapshot<List<Bus>> snapshot) {
-          if (snapshot.hasData &&
-              snapshot.connectionState != ConnectionState.waiting) {
-            _followedBuses = snapshot.data!;
-          }
-          final hasTrackedBuses = snapshot.hasData && snapshot.data!.isNotEmpty;
-          return AnimatedOpacity(
-            opacity: hasTrackedBuses ? 1 : 0,
-            duration: hasTrackedBuses
-                ? const Duration(milliseconds: 650)
-                : Duration.zero,
-            curve: const Interval(0.66, 1),
-            child: hasTrackedBuses
-                ? Card(
-                    margin: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 16.0),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Text('Tracked buses',
-                                style: Theme.of(context).textTheme.titleLarge),
-                          ),
-                          AnimatedSize(
-                            alignment: Alignment.topCenter,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOutCubic,
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemBuilder:
-                                  (BuildContext context, int position) {
-                                final bus = snapshot.data![position];
-                                return ListTile(
-                                  onTap: () {
-                                    context.read<BusStopSheetBloc>().add(
-                                        SheetRequested(
-                                            bus.busStop, kDefaultRouteId));
-                                  },
-                                  title: Consumer(
-                                    builder: (context, ref, child) {
-                                      final arrivalTime = ref
-                                          .watch(firstArrivalTimeProvider(
-                                              busStop: bus.busStop,
-                                              busServiceNumber:
-                                                  bus.busService.number))
-                                          .value;
-
-                                      return Text(
-                                        arrivalTime != null
-                                            ? '${bus.busService.number} - ${arrivalTime.getMinutesFromNow()} min'
-                                            : '',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      );
-                                    },
-                                  ),
-                                  subtitle: Text(bus.busStop.displayName),
-                                );
+      child: AnimatedOpacity(
+        opacity: hasTrackedBuses ? 1 : 0,
+        duration:
+            hasTrackedBuses ? const Duration(milliseconds: 650) : Duration.zero,
+        curve: const Interval(0.66, 1),
+        child: hasTrackedBuses
+            ? Card(
+                margin:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('Tracked buses',
+                            style: Theme.of(context).textTheme.titleLarge),
+                      ),
+                      AnimatedSize(
+                        alignment: Alignment.topCenter,
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeInOutCubic,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemBuilder: (BuildContext context, int position) {
+                            final bus = _followedBuses[position];
+                            return ListTile(
+                              onTap: () {
+                                context.read<BusStopSheetBloc>().add(
+                                    SheetRequested(
+                                        bus.busStop, kDefaultRouteId));
                               },
-                              itemCount: snapshot.data?.length ?? 0,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              TextButton.icon(
-                                icon:
-                                    const Icon(Icons.notifications_off_rounded),
-                                label: Text(
-                                  'STOP TRACKING ALL BUSES',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  final trackedBuses = await unfollowAllBuses();
-                                  ScaffoldMessenger.of(context)
-                                      .hideCurrentSnackBar();
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(
-                                    content: const Text(
-                                        'Stopped tracking all buses'),
-                                    action: SnackBarAction(
-                                      label: 'Undo',
-                                      onPressed: () async {
-                                        for (var trackedBus in trackedBuses) {
-                                          await followBus(
-                                              stop:
-                                                  trackedBus['stop'] as String,
-                                              bus: trackedBus['bus'] as String,
-                                              arrivalTime:
-                                                  trackedBus['arrivalTime']
-                                                      as DateTime);
-                                        }
+                              title: Consumer(
+                                builder: (context, ref, child) {
+                                  final arrivalTime = ref
+                                      .watch(firstArrivalTimeProvider(
+                                          busStop: bus.busStop,
+                                          busServiceNumber:
+                                              bus.busService.number))
+                                      .value;
 
-                                        // Update the bus stop detail sheet to reflect change in bus stop follow status
-                                        // TODO - This is a hack, find a better way to do this
-                                        // widget.bottomSheetKey.currentState!
-                                        //     .setState(() {});
-                                      },
-                                    ),
-                                  ));
+                                  return Text(
+                                    arrivalTime != null
+                                        ? '${bus.busService.number} - ${arrivalTime.getMinutesFromNow()} min'
+                                        : '',
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  );
                                 },
                               ),
-                            ],
+                              subtitle: Text(bus.busStop.displayName),
+                            );
+                          },
+                          itemCount: _followedBuses.length,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            icon: const Icon(Icons.notifications_off_rounded),
+                            label: Text(
+                              'STOP TRACKING ALL BUSES',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ),
+                            onPressed: () async {
+                              final trackedBuses =
+                                  await ref.read(followedBusesProvider.future);
+                              await ref
+                                  .read(followedBusesProvider.notifier)
+                                  .unfollowAllBuses();
+                              ScaffoldMessenger.of(context)
+                                  .hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(
+                                content:
+                                    const Text('Stopped tracking all buses'),
+                                action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () async {
+                                    for (var trackedBus in trackedBuses) {
+                                      await ref
+                                          .read(followedBusesProvider.notifier)
+                                          .followBus(
+                                              busStopCode:
+                                                  trackedBus.busStop.code,
+                                              busServiceNumber:
+                                                  trackedBus.busService.number);
+                                    }
+
+                                    // Update the bus stop detail sheet to reflect change in bus stop follow status
+                                    // TODO - This is a hack, find a better way to do this
+                                    // widget.bottomSheetKey.currentState!
+                                    //     .setState(() {});
+                                  },
+                                ),
+                              ));
+                            },
                           ),
                         ],
                       ),
-                    ),
-                  )
-                : Container(),
-          );
-        },
+                    ],
+                  ),
+                ),
+              )
+            : Container(),
       ),
     );
   }

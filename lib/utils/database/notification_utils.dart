@@ -2,11 +2,13 @@ import 'dart:typed_data';
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/bus.dart';
-import 'bus_utils.dart';
-import 'database_utils.dart';
-import 'time_utils.dart';
+import '../bus_utils.dart';
+import '../time_utils.dart';
+import 'followed_buses.dart';
+
+part 'notification_utils.g.dart';
 
 FlutterLocalNotificationsPlugin notifications =
     FlutterLocalNotificationsPlugin();
@@ -59,13 +61,14 @@ bool _isInitialized = false;
  * tracked bus has arrived. Then, it will cancel the live notification
  * and stop calling itself.
  */
-Future<void> updateNotifications() async {
+@riverpod
+Future<void> followedBusNotifications(FollowedBusNotificationsRef ref) async {
   if (!_isInitialized) {
     notifications.initialize(initializationSettings);
     _isInitialized = true;
   }
+  final followedBuses = await ref.watch(followedBusesProvider.future);
   final arrivalTimes = <DateTime>[];
-  final followedBuses = List<Bus>.from(await getFollowedBuses());
   final shortMessageParts = <String>[];
   final longMessageParts = <String>[];
 
@@ -112,7 +115,9 @@ Future<void> updateNotifications() async {
         'This notification will auto-dismiss in 1 min',
         notificationDetails,
       );
-      unfollowBus(stop: stopCode, bus: busNumber);
+      ref
+          .read(followedBusesProvider.notifier)
+          .unfollowBus(busStopCode: stopCode, busServiceNumber: busNumber);
     }
   }
 
@@ -156,6 +161,8 @@ Future<void> updateNotifications() async {
 
   // Cancel any scheduled notification update
   await AndroidAlarmManager.cancel(alarmManagerTaskId);
-  await AndroidAlarmManager.oneShotAt(
-      DateTime.now(), alarmManagerTaskId, updateNotifications);
+
+  // TODO: Reenable this
+  // await AndroidAlarmManager.oneShotAt(
+  // DateTime.now(), alarmManagerTaskId, updateNotifications);
 }
