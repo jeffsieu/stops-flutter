@@ -10,18 +10,11 @@ import 'utils/database_utils.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final themeMode = await getThemeMode();
-  runApp(ProviderScope(child: StopsApp(themeMode)));
+  runApp(ProviderScope(child: StopsApp()));
 }
 
-class StopsApp extends StatefulWidget {
-  const StopsApp(this._themeMode, {super.key});
-  final ThemeMode _themeMode;
-
-  @override
-  State createState() {
-    return StopsAppState();
-  }
+class StopsApp extends ConsumerWidget {
+  const StopsApp({super.key});
 
   static String monospacedFont = 'Cousine';
 
@@ -42,15 +35,9 @@ class StopsApp extends StatefulWidget {
     );
   }
 
-  static StopsAppState? of(BuildContext context) =>
-      context.findAncestorStateOfType<StopsAppState>();
-}
-
-class StopsAppState extends State<StopsApp> {
-  late ThemeMode themeMode = widget._themeMode;
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(selectedThemeModeProvider);
     final headerTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
     final mainTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
 
@@ -169,7 +156,7 @@ class StopsAppState extends State<StopsApp> {
 
         return MaterialApp(
           title: 'Stops',
-          themeMode: themeMode,
+          themeMode: themeMode.value ?? ThemeMode.system,
           home: const HomePage(),
           theme: lightThemeWithBoldText,
           darkTheme: darkThemeWithBoldText,

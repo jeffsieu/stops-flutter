@@ -63,8 +63,15 @@ class FetchDataPage1 extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(isSetup ? 'Welcome to Stops' : 'Re-fetching cached data',
+            Text(isSetup ? 'Welcome to Stops' : 'Re-fetch cached data',
                 style: Theme.of(context).textTheme.displaySmall),
+            Text(
+                isSetup
+                    ? 'Let\'s get started'
+                    : 'Press next to re-fetch all latest bus stops and services',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.secondary,
+                    )),
             const Spacer(),
             Align(
               alignment: Alignment.centerRight,

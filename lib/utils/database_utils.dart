@@ -33,15 +33,28 @@ const String _areBusServiceRoutesCachedKey = 'BUS_ROUTE_CACHE';
 
 final StopsDatabase _database = StopsDatabase();
 
-Future<ThemeMode> getThemeMode() async {
+Future<ThemeMode> _getThemeMode() async {
   final prefs = await SharedPreferences.getInstance();
   final themeModeIndex = prefs.getInt(_themeModeKey) ?? ThemeMode.system.index;
   return ThemeMode.values[themeModeIndex];
 }
 
-Future<void> setThemeMode(ThemeMode themeMode) async {
+Future<void> _setThemeMode(ThemeMode themeMode) async {
   final prefs = await SharedPreferences.getInstance();
   prefs.setInt(_themeModeKey, themeMode.index);
+}
+
+@riverpod
+class SelectedThemeMode extends _$SelectedThemeMode {
+  @override
+  Future<ThemeMode> build() async {
+    return await _getThemeMode();
+  }
+
+  Future<void> setThemeMode(ThemeMode themeMode) async {
+    await _setThemeMode(themeMode);
+    ref.invalidateSelf();
+  }
 }
 
 @Riverpod(keepAlive: true)
@@ -65,6 +78,7 @@ class CachedDataProgress extends _$CachedDataProgress {
     return progress;
   }
 
+  // TODO: Show 0% progress when re-fetching
   Future<void> fetchDataFromApi() async {
     await ref.read(busStopListProvider.notifier).fetchFromApi();
 
@@ -74,10 +88,10 @@ class CachedDataProgress extends _$CachedDataProgress {
 
     ref.invalidateSelf();
 
-    final routeListProvider =
-        busServiceRouteListProvider(BusService(number: '', operator: ''));
-
-    await ref.read(routeListProvider.notifier).fetchFromApi();
+    await ref
+        .read(busServiceRouteListProvider(BusService(number: '', operator: ''))
+            .notifier)
+        .fetchFromApi();
 
     ref.invalidateSelf();
   }

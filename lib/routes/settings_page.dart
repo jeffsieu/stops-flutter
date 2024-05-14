@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info/package_info.dart';
 
 import 'package:url_launcher/url_launcher_string.dart';
@@ -8,7 +9,7 @@ import '../main.dart';
 import '../utils/database_utils.dart';
 import 'fetch_data_dialog.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   static const String _kThemeLabelSystem = 'System';
   static const String _kThemeLabelLight = 'Light';
   static const String _kThemeLabelDark = 'Dark';
@@ -16,33 +17,23 @@ class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State createState() {
+  ConsumerState<SettingsPage> createState() {
     return SettingsPageState();
   }
 }
 
-class SettingsPageState extends State<SettingsPage> {
-  ThemeMode? _themeMode;
-
-  @override
-  void initState() {
-    super.initState();
-    getThemeMode().then((ThemeMode themeMode) {
-      setState(() {
-        _themeMode = themeMode;
-      });
-    });
-  }
-
+class SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(selectedThemeModeProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
       ),
       body: ListView(
         children: [
-          _buildThemeTile(),
+          _buildThemeTile(themeMode.value),
           _buildRefreshDataTile(),
           _buildAboutTile(),
         ],
@@ -50,10 +41,10 @@ class SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildThemeTile() {
+  Widget _buildThemeTile(ThemeMode? themeMode) {
     return ListTile(
       title: const Text('Theme'),
-      subtitle: Text(_getThemeLabel(_themeMode)),
+      subtitle: Text(_getThemeLabel(themeMode)),
       leading: const Icon(Icons.brush_rounded),
       onTap: () {
         showDialog<ThemeMode>(
@@ -68,19 +59,19 @@ class SettingsPageState extends State<SettingsPage> {
                     RadioListTile<ThemeMode>(
                       title: Text(_getThemeLabel(ThemeMode.system)),
                       value: ThemeMode.system,
-                      groupValue: _themeMode,
+                      groupValue: themeMode,
                       onChanged: _onThemeModeChanged,
                     ),
                     RadioListTile<ThemeMode>(
                       title: const Text(SettingsPage._kThemeLabelLight),
                       value: ThemeMode.light,
-                      groupValue: _themeMode,
+                      groupValue: themeMode,
                       onChanged: _onThemeModeChanged,
                     ),
                     RadioListTile<ThemeMode>(
                       title: const Text(SettingsPage._kThemeLabelDark),
                       value: ThemeMode.dark,
-                      groupValue: _themeMode,
+                      groupValue: themeMode,
                       onChanged: _onThemeModeChanged,
                     ),
                   ],
@@ -99,6 +90,11 @@ class SettingsPageState extends State<SettingsPage> {
         final packageInfo = await PackageInfo.fromPlatform();
         final appName = packageInfo.appName;
         final appVersion = packageInfo.version;
+
+        if (!context.mounted) {
+          return;
+        }
+
         showAboutDialog(
           context: context,
           applicationIcon: Image.asset(
@@ -172,14 +168,14 @@ class SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _onThemeModeChanged(ThemeMode? themeMode) async {
-    await setThemeMode(themeMode!);
-    Navigator.pop(context);
-    final appState = StopsApp.of(context)!;
-    appState.setState(() {
-      appState.themeMode = themeMode;
-    });
-    setState(() {
-      _themeMode = themeMode;
-    });
+    if (themeMode == null) {
+      return;
+    }
+
+    await ref.read(selectedThemeModeProvider.notifier).setThemeMode(themeMode);
+
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
   }
 }
