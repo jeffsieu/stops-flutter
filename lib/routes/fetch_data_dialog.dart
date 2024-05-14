@@ -1,60 +1,135 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/bus_service.dart';
 import '../utils/database_utils.dart';
+import 'home_page.dart';
 
-class FetchDataDialog extends ConsumerStatefulWidget {
-  const FetchDataDialog({super.key, required this.isSetup});
+class FetchDataPage extends ConsumerStatefulWidget {
+  const FetchDataPage({super.key, required this.isSetup});
   final bool isSetup;
 
   @override
-  ConsumerState<FetchDataDialog> createState() {
-    return _FetchDataDialogState();
-  }
+  ConsumerState<FetchDataPage> createState() => _FetchDataPageState();
 }
 
-class _FetchDataDialogState extends ConsumerState<FetchDataDialog> {
-  double progress = 0.25;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-  }
+class _FetchDataPageState extends ConsumerState<FetchDataPage> {
+  int page = 0;
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.isSetup
-          ? 'Performing first time setup'
-          : 'Re-fetching cached data'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          LinearProgressIndicator(value: progress),
-          Text('${(progress * 100).toInt()}%'),
-        ],
+    if (page == 0) {
+      return FetchDataPage1(
+        isSetup: widget.isSetup,
+        onNext: () {
+          ref.read(cachedDataProgressProvider.notifier).fetchDataFromApi();
+          setState(() {
+            page = 1;
+          });
+        },
+      );
+    } else {
+      return FetchDataPage2(
+          isSetup: widget.isSetup,
+          onFinish: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (context) => const HomePage()));
+            }
+          });
+    }
+  }
+}
+
+class FetchDataPage1 extends StatelessWidget {
+  const FetchDataPage1(
+      {super.key, required this.isSetup, required this.onNext});
+
+  final bool isSetup;
+  final Function() onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(isSetup ? 'Welcome to Stops' : 'Re-fetching cached data',
+                style: Theme.of(context).textTheme.displaySmall),
+            const Spacer(),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                  onPressed: onNext,
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Next')),
+            )
+          ],
+        ),
       ),
     );
   }
+}
 
-  Future<void> _fetchData() async {
-    await ref.read(busStopListProvider.notifier).fetchFromApi();
-    setState(() {
-      progress += 0.25;
-    });
-    await ref.read(busServiceListProvider.notifier).fetchFromApi();
-    setState(() {
-      progress += 0.40;
-    });
-    await ref
-        .read(busServiceRouteListProvider(BusService(number: '', operator: ''))
-            .notifier)
-        .fetchFromApi();
-    setState(() {
-      progress += 0.10;
-    });
-    Navigator.pop(context);
+class FetchDataPage2 extends ConsumerWidget {
+  const FetchDataPage2(
+      {super.key, required this.isSetup, required this.onFinish});
+
+  final bool isSetup;
+  final Function() onFinish;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = ref.watch(cachedDataProgressProvider).value ?? 0;
+    ref.watch(busStopListProvider);
+    ref.watch(busServiceListProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                isSetup
+                    ? (progress < 1 ? 'Setting up' : 'Set-up finished')
+                    : (progress < 1
+                        ? 'Re-fetching data'
+                        : 'Re-fetching finished'),
+                style: Theme.of(context).textTheme.displaySmall),
+            Spacer(),
+            LinearProgressIndicator(
+              value: progress,
+              minHeight: 16.0,
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            Text('${(progress * 100).toInt()}%'),
+            Spacer(),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                  onPressed: progress == 1 ? onFinish : null,
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Finish')),
+            )
+          ],
+        ),
+      ),
+    );
   }
 }

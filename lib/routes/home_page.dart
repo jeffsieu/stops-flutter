@@ -106,18 +106,15 @@ class _HomePageState extends BottomSheetPageState<HomePage> {
   }
 
   Future<void> showSetupDialog() async {
-    final cachedBusStops = await areBusStopsCached();
-    final cachedBusServices = await areBusServicesCached();
-    final cachedBusServiceRoutes = await areBusServiceRoutesCached();
-    final isFullyCached =
-        cachedBusStops && cachedBusServices && cachedBusServiceRoutes;
-    if (!isFullyCached) {
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return const FetchDataDialog(isSetup: true);
-        },
+    final cacheProgress = await ref.read(cachedDataProgressProvider.future);
+    final isFullyCached = cacheProgress == 1.0;
+
+    if (!isFullyCached && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => const FetchDataPage(isSetup: true),
+        ),
       );
     }
   }

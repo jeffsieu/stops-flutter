@@ -84,6 +84,7 @@ Future<String> busApiStringResponse(BusApiStringResponseRef ref,
     {required String url, required int skip, String? extraParams = ''}) async {
   final apiKey = await ref.watch(apiKeyProvider.future);
   try {
+    print("Fetching data from $_kRootUrl$url?skip=$skip$extraParams");
     final response = await http.get(
         Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'),
         headers: <String, String>{
@@ -97,6 +98,7 @@ Future<String> busApiStringResponse(BusApiStringResponseRef ref,
     if (!hasInternet) {
       return Future<String>.error(BusApiError.noInternet, StackTrace.current);
     } else {
+      print('Cannot reach server');
       return Future<String>.error(
           BusApiError.cannotReachServer, StackTrace.current);
     }

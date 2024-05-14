@@ -44,6 +44,45 @@ Future<void> setThemeMode(ThemeMode themeMode) async {
   prefs.setInt(_themeModeKey, themeMode.index);
 }
 
+@Riverpod(keepAlive: true)
+class CachedDataProgress extends _$CachedDataProgress {
+  @override
+  Future<double> build() async {
+    var progress = 0.0;
+    final cachedBusStops = await areBusStopsCached();
+    final cachedBusServices = await areBusServicesCached();
+    final cachedBusServiceRoutes = await areBusServiceRoutesCached();
+
+    if (cachedBusStops) {
+      progress += 0.25;
+    }
+    if (cachedBusServices) {
+      progress += 0.25;
+    }
+    if (cachedBusServiceRoutes) {
+      progress += 0.5;
+    }
+    return progress;
+  }
+
+  Future<void> fetchDataFromApi() async {
+    await ref.read(busStopListProvider.notifier).fetchFromApi();
+
+    ref.invalidateSelf();
+
+    await ref.read(busServiceListProvider.notifier).fetchFromApi();
+
+    ref.invalidateSelf();
+
+    final routeListProvider =
+        busServiceRouteListProvider(BusService(number: '', operator: ''));
+
+    await ref.read(routeListProvider.notifier).fetchFromApi();
+
+    ref.invalidateSelf();
+  }
+}
+
 @riverpod
 class BusStopList extends _$BusStopList {
   @override
@@ -53,13 +92,19 @@ class BusStopList extends _$BusStopList {
 
   Future<void> fetchFromApi() async {
     final busStopList = await ref.read(apiBusStopListProvider.future);
+
     await _cacheBusStops(busStopList);
-    ref.invalidateSelf();
+
+    // TODO: Figure out why the following line breaks fetching
+    // ref.invalidateSelf();
+    // await future;
   }
 
   Future<void> updateBusStop(BusStop newBusStop) async {
     await _database.updateBusStop(newBusStop);
+
     ref.invalidateSelf();
+    await future;
   }
 }
 
@@ -73,7 +118,9 @@ class BusServiceList extends _$BusServiceList {
   Future<void> fetchFromApi() async {
     final busServiceList = await ref.read(apiBusServiceListProvider.future);
     await cacheBusServices(busServiceList);
-    ref.invalidateSelf();
+
+    // TODO: Figure out why the following line breaks fetching
+    // ref.invalidateSelf();
   }
 }
 
@@ -88,8 +135,9 @@ class BusServiceRouteList extends _$BusServiceRouteList {
     final busServiceRouteList =
         await ref.read(apiBusServiceRouteListProvider.future);
     await cacheBusServiceRoutes(busServiceRouteList);
-    ref.invalidateSelf();
-    ref.invalidate(busStopServicesProvider);
+
+    // TODO: Figure out why the following line breaks fetching
+    // ref.invalidateSelf();
   }
 }
 

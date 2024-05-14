@@ -147,7 +147,7 @@ class SettingsPageState extends State<SettingsPage> {
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
-            return const FetchDataDialog(isSetup: false);
+            return const FetchDataPage(isSetup: false);
           },
         );
       },
