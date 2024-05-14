@@ -1,7 +1,7 @@
 name: stops_sg
 description: A Flutter application that displays live bus timings for bus stops in Singapore
 
-version: 0.8.0+19
+version: 0.9.0+20
 
 environment:
   sdk: ">=3.2.3 <4.0.0"
@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
   after_layout: ^1.1.0
   animations: ^2.0.2
-  android_alarm_manager_plus: ^3.0.4
+  android_alarm_manager_plus: ^4.0.3
   auto_size_text: ^3.0.0
   cupertino_icons: ^1.0.4
   drift: ^2.15.0
@@ -20,14 +20,14 @@ dependencies:
   flutter_bloc: ^8.0.1
   flutter_keyboard_visibility: ^6.0.0
   flutter_launcher_icons: ^0.13.1
-  flutter_local_notifications: ^16.3.2
-  flutter_nfc_kit: ^3.3.0 # ^3.2.0 causes release build to fail
+  flutter_local_notifications: ^17.1.2
+  flutter_nfc_kit: ^3.4.2 # ^3.2.0 causes release build to fail
   flutter_svg: ^2.0.9
   flex_color_scheme: ^7.3.1
   google_fonts: ^6.1.0
-  google_maps_flutter: ^2.1.1
+  google_maps_flutter: ^2.6.1
   latlong2: ^0.9.0
-  location: ^5.0.3
+  location: ^6.0.2
   package_info: ^2.0.2
   path: ^1.8.0
   path_provider: ^2.0.0
