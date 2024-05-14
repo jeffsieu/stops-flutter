@@ -63,7 +63,7 @@ unlinked_spec.ds
 **/android/app/local.properties
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
-**/android/secret.properties
+**/android/secrets.properties
 *.jks
 
 # iOS/XCode related

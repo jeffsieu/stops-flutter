@@ -1,3 +1,7 @@
+plugins {
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
+}
+
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -27,8 +31,6 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-def MAPS_API_KEY = localProperties['MAPS_API_KEY']
-
 apply plugin: 'com.android.application'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
@@ -44,13 +46,12 @@ android {
 
     defaultConfig {
         applicationId "com.jeffsieu.stops"
-        minSdkVersion Math.max(flutter.minSdkVersion, 20)
+        minSdkVersion Math.max(flutter.minSdkVersion, 21)
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
-        manifestPlaceholders["MAPS_API_KEY"] = MAPS_API_KEY
     }
 
     signingConfigs {
@@ -80,6 +81,21 @@ android {
         }
     }
 }
+
+secrets {
+    // Optionally specify a different file name containing your secrets.
+    // The plugin defaults to "local.properties"
+    propertiesFileName = "secrets.properties"
+
+    // A properties file containing default secret values. This file can be
+    // checked in version control.
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    // Configure which keys should be ignored by the plugin by providing regular expressions.
+    // "sdk.dir" is ignored by default.
+    ignoreList.add("sdk.*")       // Ignore all keys matching the regexp "sdk.*"
+}
+        
 
 flutter {
     source '../..'
