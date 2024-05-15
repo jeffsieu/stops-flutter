@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../utils/database_utils.dart';
+import '../../utils/database_utils.dart';
 import 'bus_stop_with_pinned_services.dart';
 
 class StoredUserRoute extends UserRoute {

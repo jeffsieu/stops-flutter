@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
 
-import '../../models/bus_stop.dart';
-import '../../models/user_route.dart';
+import '../../api/bus_api.dart';
+import '../../api/models/bus_stop.dart';
+import '../../api/models/user_route.dart';
 import '../../routes/settings_page.dart';
-import '../../utils/bus_api.dart';
 import '../../utils/database_utils.dart';
 import '../../widgets/bus_stop_legend_card.dart';
 import '../bloc/bus_stop_sheet_bloc.dart';

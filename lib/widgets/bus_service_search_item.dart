@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/bus_service.dart';
+import '../api/models/bus_service.dart';
 import '../widgets/highlighted_icon.dart';
 
 class BusServiceSearchItem extends StatelessWidget {

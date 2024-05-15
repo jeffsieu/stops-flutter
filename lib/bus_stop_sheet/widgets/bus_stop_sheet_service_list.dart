@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/bus_stop.dart';
-import '../../utils/bus_api.dart';
+import '../../api/bus_api.dart';
+import '../../api/models/bus_stop.dart';
 import '../../utils/bus_service_arrival_result.dart';
 import '../../utils/bus_utils.dart';
 import '../../utils/database_utils.dart';

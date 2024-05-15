@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
 
-import '../models/user_route.dart';
+import '../api/models/user_route.dart';
 import '../utils/database_utils.dart';
 import '../utils/reorder_status_notification.dart';
 import '../widgets/bus_stop_overview_item.dart';

@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import '../models/bus_service_route.dart';
-import '../models/bus_service_with_routes.dart';
-import '../models/bus_stop.dart';
-import '../models/bus_stop_with_distance.dart';
+import '../api/models/bus_service_route.dart';
+import '../api/models/bus_service_with_routes.dart';
+import '../api/models/bus_stop.dart';
+import '../api/models/bus_stop_with_distance.dart';
 import '../utils/database_utils.dart';
 import '../widgets/highlighted_icon.dart';
 import 'bottom_sheet_page.dart';

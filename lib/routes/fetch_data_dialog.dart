@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/bus_service.dart';
+import '../api/models/bus_service.dart';
 import '../utils/database_utils.dart';
 
 class FetchDataDialog extends ConsumerStatefulWidget {

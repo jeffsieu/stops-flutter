@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/bus_stop.dart';
-import '../models/user_route.dart';
+import '../api/models/bus_stop.dart';
+import '../api/models/user_route.dart';
 
 class RouteListItem extends StatelessWidget {
   const RouteListItem({super.key, required this.route, required this.index});

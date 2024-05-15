@@ -1,5 +1,5 @@
-import '../models/bus_service.dart';
-import 'bus_api.dart';
+import '../api/bus_api.dart';
+import '../api/models/bus_service.dart';
 
 class BusServiceArrivalResult {
   BusServiceArrivalResult._({

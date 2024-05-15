@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/bus_api.dart';
+import '../bus_api.dart';
 
 class BusService {
   @protected

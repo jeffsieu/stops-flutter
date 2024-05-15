@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/user_route.dart';
+import '../api/models/user_route.dart';
 import '../utils/database_utils.dart';
 import '../utils/reorder_status_notification.dart';
 import 'route_list_item.dart';

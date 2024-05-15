@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' hide Consumer;
 
+import '../api/bus_api.dart';
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import '../models/bus_service.dart';
-import '../models/bus_stop_with_pinned_services.dart';
-import '../models/user_route.dart';
-import '../utils/bus_api.dart';
+import '../api/models/bus_service.dart';
+import '../api/models/bus_stop_with_pinned_services.dart';
+import '../api/models/user_route.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';
 import '../widgets/bus_timing_row.dart';

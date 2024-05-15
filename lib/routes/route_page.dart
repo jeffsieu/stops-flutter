@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
 
-import '../models/user_route.dart';
+import '../api/models/user_route.dart';
 import '../routes/add_route_page.dart';
 import '../routes/fade_page_route.dart';
 import '../utils/database_utils.dart';
