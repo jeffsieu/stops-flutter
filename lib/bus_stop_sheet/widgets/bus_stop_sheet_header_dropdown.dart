@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/database/database.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-
-import '../../utils/database_utils.dart';
-import '../bloc/bus_stop_sheet_bloc.dart';
 
 class BusStopSheetHeaderDropdown extends ConsumerWidget {
   const BusStopSheetHeaderDropdown({super.key});

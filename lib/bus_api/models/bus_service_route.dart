@@ -1,6 +1,6 @@
-import 'bus_service.dart';
-import 'bus_stop.dart';
-import 'bus_stop_with_distance.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
 
 class BusServiceRoute {
   BusServiceRoute({
@@ -18,7 +18,7 @@ class BusServiceRoute {
   String get number => service.number;
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other.runtimeType != runtimeType) return false;
     final otherBusServiceRoute = other as BusServiceRoute;
     return otherBusServiceRoute.number == number &&

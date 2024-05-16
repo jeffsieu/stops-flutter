@@ -4,19 +4,18 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_service_route.dart';
+import 'package:stops_sg/bus_api/models/bus_service_with_routes.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/database/stops_database.dart';
+import 'package:stops_sg/location/location.dart';
 
-import '../api/bus_api.dart';
-import '../api/models/bus_service.dart';
-import '../api/models/bus_service_route.dart';
-import '../api/models/bus_service_with_routes.dart';
-import '../api/models/bus_stop.dart';
-import '../api/models/bus_stop_with_distance.dart';
-import '../api/models/bus_stop_with_pinned_services.dart';
-import '../api/models/user_route.dart';
-import 'database.dart';
-import 'user_location.dart';
-
-part 'database_utils.g.dart';
+part 'database.g.dart';
 
 /* Called when bus service is pinned/unpinned for a bus stop*/
 typedef BusPinStatusListener = void Function(

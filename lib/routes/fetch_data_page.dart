@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../utils/database_utils.dart';
-import 'home_page.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/routes/home_page.dart';
 
 class FetchDataPage extends ConsumerStatefulWidget {
   const FetchDataPage({super.key, required this.isSetup});
@@ -119,14 +119,14 @@ class FetchDataPage2 extends ConsumerWidget {
                         ? 'Re-fetching data'
                         : 'Re-fetching finished'),
                 style: Theme.of(context).textTheme.displaySmall),
-            Spacer(),
+            const Spacer(),
             LinearProgressIndicator(
               value: progress,
               minHeight: 16.0,
               borderRadius: BorderRadius.circular(16.0),
             ),
             Text('${(progress * 100).toInt()}%'),
-            Spacer(),
+            const Spacer(),
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton.icon(

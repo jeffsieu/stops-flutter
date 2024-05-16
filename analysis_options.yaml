@@ -17,13 +17,12 @@ linter:
   rules:
     - always_declare_return_types
     - omit_local_variable_types
-    - avoid_returning_null_for_future
     - await_only_futures
     - prefer_null_aware_operators
     - cancel_subscriptions
     - directives_ordering
     - prefer_single_quotes
-    - prefer_relative_imports
+    - always_use_package_imports
     - prefer_typing_uninitialized_variables
     - prefer_final_locals
     - prefer_final_fields

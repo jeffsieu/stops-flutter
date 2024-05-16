@@ -2,16 +2,15 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../api/bus_api.dart';
-import '../../api/models/bus_stop.dart';
-import '../../utils/bus_service_arrival_result.dart';
-import '../../utils/bus_utils.dart';
-import '../../utils/database_utils.dart';
-import '../../widgets/bus_timing_row.dart';
-import '../../widgets/info_card.dart';
-import '../bloc/bus_stop_sheet_bloc.dart';
-import 'bus_stop_sheet.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/widgets/bus_timing_row.dart';
+import 'package:stops_sg/widgets/info_card.dart';
 
 class BusStopSheetServiceList extends ConsumerWidget {
   const BusStopSheetServiceList({super.key, required this.timingListAnimation});

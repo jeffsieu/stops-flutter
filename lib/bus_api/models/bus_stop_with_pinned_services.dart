@@ -1,5 +1,5 @@
-import 'bus_service.dart';
-import 'bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
 
 class BusStopWithPinnedServices extends BusStop {
   BusStopWithPinnedServices._({
@@ -33,7 +33,7 @@ class BusStopWithPinnedServices extends BusStop {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     // If other is instance of BusStop
     if (other is BusStopWithPinnedServices) {
       return other.code == code && pinnedServices == other.pinnedServices;

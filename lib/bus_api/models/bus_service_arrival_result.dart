@@ -1,5 +1,5 @@
-import '../api/bus_api.dart';
-import '../api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
 
 class BusServiceArrivalResult {
   BusServiceArrivalResult._({

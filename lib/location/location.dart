@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:location/location.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'user_location.g.dart';
+part 'location.g.dart';
 
 final Location location = Location();
 

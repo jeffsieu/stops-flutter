@@ -13,22 +13,21 @@ import 'package:latlong2/latlong.dart' as latlong;
 import 'package:provider/provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rubber/rubber.dart';
-import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-
-import '../main.dart';
-import '../api/models/bus_service.dart';
-import '../api/models/bus_stop.dart';
-import '../api/models/bus_stop_with_distance.dart';
-import '../utils/bus_utils.dart';
-import '../utils/database_utils.dart';
-import '../utils/user_location.dart';
-import '../widgets/bus_service_search_item.dart';
-import '../widgets/bus_stop_search_item.dart';
-import '../widgets/card_app_bar.dart';
-import '../widgets/custom_rubber_bottom_sheet.dart';
-import '../widgets/highlighted_icon.dart';
-import 'bottom_sheet_page.dart';
-import 'bus_service_page.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/location/location.dart';
+import 'package:stops_sg/main.dart';
+import 'package:stops_sg/routes/bottom_sheet_page.dart';
+import 'package:stops_sg/routes/bus_service_page.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/widgets/bus_service_search_item.dart';
+import 'package:stops_sg/widgets/bus_stop_search_item.dart';
+import 'package:stops_sg/widgets/card_app_bar.dart';
+import 'package:stops_sg/widgets/custom_rubber_bottom_sheet.dart';
+import 'package:stops_sg/widgets/highlighted_icon.dart';
 
 part 'search_page.g.dart';
 
@@ -703,6 +702,9 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
   Widget _buildMapWidget(BuildContext context) {
     /* Initialize google map */
     final initialCameraPosition = _getCameraPositionFromLocation();
+    final googleMapStyle = Theme.of(context).brightness == Brightness.dark
+        ? _googleMapDarkStyle
+        : null;
 
     _googleMap = GoogleMap(
       padding: EdgeInsets.only(
@@ -718,6 +720,7 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
       myLocationButtonEnabled: false,
       mapType: MapType.normal,
       initialCameraPosition: initialCameraPosition,
+      style: googleMapStyle,
       onMapCreated: (GoogleMapController controller) {
         if (!_googleMapController.isCompleted) {
           _googleMapController.complete(controller);
@@ -725,10 +728,6 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
         if (_isDistanceLoaded) {
           controller.moveCamera(
               CameraUpdate.newCameraPosition(_getCameraPositionFromLocation()));
-        }
-        if (Theme.of(context).brightness == Brightness.dark &&
-            _googleMapDarkStyle != null) {
-          controller.setMapStyle(_googleMapDarkStyle);
         }
       },
       onCameraMove: (CameraPosition position) {

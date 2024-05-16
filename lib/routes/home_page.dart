@@ -11,35 +11,34 @@ import 'package:location/location.dart';
 import 'package:provider/provider.dart' hide Consumer;
 import 'package:quick_actions/quick_actions.dart';
 import 'package:shimmer/shimmer.dart';
-
-import '../api/bus_api.dart';
-import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import '../main.dart';
-import '../api/models/bus.dart';
-import '../api/models/bus_stop_with_distance.dart';
-import '../api/models/user_route.dart';
-import '../routes/add_route_page.dart';
-import '../routes/fetch_data_dialog.dart';
-import '../routes/route_page.dart';
-import '../routes/scan_card_page.dart';
-import '../routes/settings_page.dart';
-import '../utils/database/followed_buses.dart';
-import '../utils/database_utils.dart';
-import '../utils/reorder_status_notification.dart';
-import '../utils/time_utils.dart';
-import '../utils/user_location.dart';
-import '../widgets/bus_stop_overview_list.dart';
-import '../widgets/card_app_bar.dart';
-import '../widgets/crossed_icon.dart';
-import '../widgets/edit_model.dart';
-import '../widgets/home_page_content_switcher.dart';
-import '../widgets/never_focus_node.dart';
-import '../widgets/outline_titled_container.dart';
-import '../widgets/route_list.dart';
-import '../widgets/route_list_item.dart';
-import 'bottom_sheet_page.dart';
-import 'fade_page_route.dart';
-import 'search_page.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
+import 'package:stops_sg/bus_api/models/bus.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/location/location.dart';
+import 'package:stops_sg/main.dart';
+import 'package:stops_sg/routes/add_route_page.dart';
+import 'package:stops_sg/routes/bottom_sheet_page.dart';
+import 'package:stops_sg/routes/fade_page_route.dart';
+import 'package:stops_sg/routes/fetch_data_page.dart';
+import 'package:stops_sg/routes/route_page.dart';
+import 'package:stops_sg/routes/scan_card_page.dart';
+import 'package:stops_sg/routes/search_page.dart';
+import 'package:stops_sg/routes/settings_page.dart';
+import 'package:stops_sg/utils/database/followed_buses.dart';
+import 'package:stops_sg/utils/reorder_status_notification.dart';
+import 'package:stops_sg/utils/time_utils.dart';
+import 'package:stops_sg/widgets/bus_stop_overview_list.dart';
+import 'package:stops_sg/widgets/card_app_bar.dart';
+import 'package:stops_sg/widgets/crossed_icon.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
+import 'package:stops_sg/widgets/home_page_content_switcher.dart';
+import 'package:stops_sg/widgets/never_focus_node.dart';
+import 'package:stops_sg/widgets/outline_titled_container.dart';
+import 'package:stops_sg/widgets/route_list.dart';
+import 'package:stops_sg/widgets/route_list_item.dart';
 
 const Duration _minimumRefreshDuration = Duration(milliseconds: 300);
 
@@ -47,14 +46,14 @@ class HomePage extends BottomSheetPage {
   const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  HomePageState createState() => HomePageState();
 
-  static _HomePageState? of(BuildContext context) =>
-      context.findAncestorStateOfType<_HomePageState>();
+  static HomePageState? of(BuildContext context) =>
+      context.findAncestorStateOfType<HomePageState>();
 }
 
-class _HomePageState extends BottomSheetPageState<HomePage> {
-  _HomePageState() : super(hasAppBar: false);
+class HomePageState extends BottomSheetPageState<HomePage> {
+  HomePageState() : super(hasAppBar: false);
 
   int _bottomNavIndex = 0;
   int _suggestionsCount = 1;

@@ -5,10 +5,10 @@ import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../main.dart';
-import '../routes/bus_service_page.dart';
-import '../utils/cepas/cepas_card.dart';
-import '../utils/cepas/nfc_commands.dart';
+import 'package:stops_sg/main.dart';
+import 'package:stops_sg/routes/bus_service_page.dart';
+import 'package:stops_sg/utils/cepas/cepas_card.dart';
+import 'package:stops_sg/utils/cepas/nfc_commands.dart';
 
 class ScanCardPage extends StatefulWidget {
   static DateFormat dateFormat = DateFormat('dd MMMM yyyy');

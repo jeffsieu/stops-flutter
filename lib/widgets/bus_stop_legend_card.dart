@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_utils.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
 
 class BusStopLegendCard extends StatelessWidget {
   const BusStopLegendCard({super.key});

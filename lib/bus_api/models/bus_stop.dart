@@ -1,4 +1,4 @@
-import '../bus_api.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
 
 class BusStop {
   const BusStop({
@@ -80,7 +80,7 @@ class BusStop {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other is BusStop) {
       return other.code == code;
     }

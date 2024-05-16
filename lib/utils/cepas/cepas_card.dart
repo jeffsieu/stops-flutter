@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'cepas_card_transaction.dart';
-import 'nfc_commands.dart';
+import 'package:stops_sg/utils/cepas/cepas_card_transaction.dart';
+import 'package:stops_sg/utils/cepas/nfc_commands.dart';
 
 class CEPASCard {
   CEPASCard(this.purseId, Uint8List data) {

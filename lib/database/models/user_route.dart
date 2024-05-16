@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
-import '../../utils/database_utils.dart';
-import 'bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/database/database.dart';
 
 class StoredUserRoute extends UserRoute {
   const StoredUserRoute({
@@ -23,7 +22,7 @@ class StoredUserRoute extends UserRoute {
   bool get isHome => id == kDefaultRouteId;
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other.runtimeType != runtimeType) return false;
     final otherRoute = other as StoredUserRoute;
     return id == otherRoute.id &&

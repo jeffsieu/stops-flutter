@@ -4,13 +4,13 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../api/models/bus_service.dart';
-import '../api/models/bus_stop.dart';
-import '../utils/bus_service_arrival_result.dart';
-import '../utils/database_utils.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/database.dart';
 
 part 'bus_api.g.dart';
 
@@ -48,7 +48,6 @@ const String kBusServiceArrivalTimeKey = 'EstimatedArrival';
 
 const String kBusServiceRouteStopSequenceKey = 'StopSequence';
 
-// TODO: Actually refresh data
 const int _kRefreshInterval = 30;
 
 enum BusApiError {
@@ -84,7 +83,6 @@ Future<String> busApiStringResponse(BusApiStringResponseRef ref,
     {required String url, required int skip, String? extraParams = ''}) async {
   final apiKey = await ref.watch(apiKeyProvider.future);
   try {
-    print("Fetching data from $_kRootUrl$url?skip=$skip$extraParams");
     final response = await http.get(
         Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'),
         headers: <String, String>{
@@ -98,7 +96,6 @@ Future<String> busApiStringResponse(BusApiStringResponseRef ref,
     if (!hasInternet) {
       return Future<String>.error(BusApiError.noInternet, StackTrace.current);
     } else {
-      print('Cannot reach server');
       return Future<String>.error(
           BusApiError.cannotReachServer, StackTrace.current);
     }
@@ -152,10 +149,19 @@ Future<String> _busStopArrivalList(
 @riverpod
 Future<List<BusServiceArrivalResult>> busStopArrivals(
     BusStopArrivalsRef ref, BusStop busStop) async {
+  ref.refreshIn(const Duration(seconds: _kRefreshInterval));
   final result =
       await ref.watch(_busStopArrivalListProvider(busStop.code).future);
   final services = jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
   return services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
+}
+
+extension RefreshRef<T> on Ref<T> {
+  void refreshIn(Duration duration) {
+    Timer.periodic(duration, (timer) {
+      invalidateSelf();
+    });
+  }
 }
 
 @riverpod

@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
-import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import '../api/models/bus_service_route.dart';
-import '../api/models/bus_service_with_routes.dart';
-import '../api/models/bus_stop.dart';
-import '../api/models/bus_stop_with_distance.dart';
-import '../utils/database_utils.dart';
-import '../widgets/highlighted_icon.dart';
-import 'bottom_sheet_page.dart';
+import 'package:stops_sg/bus_api/models/bus_service_route.dart';
+import 'package:stops_sg/bus_api/models/bus_service_with_routes.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/routes/bottom_sheet_page.dart';
+import 'package:stops_sg/widgets/highlighted_icon.dart';
 
 class BusServicePage extends BottomSheetPage {
   const BusServicePage(this.serviceNumber, {super.key}) : focusedBusStop = null;

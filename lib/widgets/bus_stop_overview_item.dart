@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' hide Consumer;
-
-import '../api/bus_api.dart';
-import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import '../api/models/bus_service.dart';
-import '../api/models/bus_stop_with_pinned_services.dart';
-import '../api/models/user_route.dart';
-import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_utils.dart';
-import '../widgets/bus_timing_row.dart';
-import 'edit_model.dart';
-import 'outline_titled_container.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/widgets/bus_timing_row.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
+import 'package:stops_sg/widgets/outline_titled_container.dart';
 
 class BusStopOverviewItem extends ConsumerWidget {
   const BusStopOverviewItem(this.busStop, {super.key});

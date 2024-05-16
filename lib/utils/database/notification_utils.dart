@@ -3,10 +3,9 @@ import 'dart:typed_data';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../bus_utils.dart';
-import '../time_utils.dart';
-import 'followed_buses.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/utils/database/followed_buses.dart';
+import 'package:stops_sg/utils/time_utils.dart';
 
 part 'notification_utils.g.dart';
 

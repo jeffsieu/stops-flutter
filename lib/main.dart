@@ -4,13 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import 'routes/home_page.dart';
-import 'utils/database_utils.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/routes/home_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(ProviderScope(child: StopsApp()));
+  runApp(const ProviderScope(child: StopsApp()));
 }
 
 class StopsApp extends ConsumerWidget {

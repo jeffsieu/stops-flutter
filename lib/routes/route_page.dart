@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
-
-import '../api/models/user_route.dart';
-import '../routes/add_route_page.dart';
-import '../routes/fade_page_route.dart';
-import '../utils/database_utils.dart';
-import '../widgets/bus_stop_overview_list.dart';
-import '../widgets/edit_model.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/routes/add_route_page.dart';
+import 'package:stops_sg/routes/fade_page_route.dart';
+import 'package:stops_sg/widgets/bus_stop_overview_list.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
 
 class RoutePage extends ConsumerWidget {
   const RoutePage({super.key, required this.route});

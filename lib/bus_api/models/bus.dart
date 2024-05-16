@@ -1,6 +1,6 @@
 
-import 'bus_service.dart';
-import 'bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
 
 class Bus {
   Bus({

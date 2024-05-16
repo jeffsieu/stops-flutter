@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../api/models/bus_service.dart';
-import '../widgets/highlighted_icon.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/widgets/highlighted_icon.dart';
 
 class BusServiceSearchItem extends StatelessWidget {
   const BusServiceSearchItem({super.key, required this.busService, this.onTap});

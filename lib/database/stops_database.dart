@@ -8,17 +8,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_service_route.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/utils/distance_utils.dart';
 
-import '../api/models/bus_service.dart';
-import '../api/models/bus_service_route.dart';
-import '../api/models/bus_stop.dart';
-import '../api/models/bus_stop_with_distance.dart';
-import '../api/models/bus_stop_with_pinned_services.dart';
-import '../api/models/user_route.dart';
-import 'database_utils.dart';
-import 'distance_utils.dart';
-
-part 'database.g.dart';
+part 'stops_database.g.dart';
 
 @DataClassName('BusStopEntry')
 class BusStops extends Table {

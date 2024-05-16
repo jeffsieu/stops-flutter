@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rubber/rubber.dart';
 
-import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import '../bus_stop_sheet/widgets/bus_stop_sheet.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
 
 abstract class BottomSheetPage extends ConsumerStatefulWidget {
   const BottomSheetPage({super.key});

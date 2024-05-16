@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
-import '../main.dart';
-import '../api/models/bus_service.dart';
-import '../api/models/bus_stop.dart';
-import '../api/models/bus_stop_with_pinned_services.dart';
-import '../api/models/user_route.dart';
-import '../routes/fade_page_route.dart';
-import '../routes/search_page.dart';
-import '../widgets/bus_stop_overview_item.dart';
-import '../widgets/card_app_bar.dart';
-import '../widgets/color_picker.dart';
-import '../widgets/edit_model.dart';
-import '../widgets/never_focus_node.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/main.dart';
+import 'package:stops_sg/routes/fade_page_route.dart';
+import 'package:stops_sg/routes/search_page.dart';
+import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
+import 'package:stops_sg/widgets/card_app_bar.dart';
+import 'package:stops_sg/widgets/color_picker.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
+import 'package:stops_sg/widgets/never_focus_node.dart';
 
 class AddRoutePage extends StatefulWidget {
   const AddRoutePage({super.key})

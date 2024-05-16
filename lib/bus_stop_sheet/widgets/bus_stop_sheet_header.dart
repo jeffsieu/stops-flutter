@@ -2,9 +2,9 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rubber/rubber.dart';
-import '../bloc/bus_stop_sheet_bloc.dart';
-import 'bus_stop_sheet.dart';
-import 'bus_stop_sheet_header_dropdown.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet_header_dropdown.dart';
 
 class BusStopSheetHeader extends StatelessWidget {
   const BusStopSheetHeader({

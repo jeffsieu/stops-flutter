@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../api/models/bus_stop.dart';
-import '../../utils/database_utils.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/database.dart';
 
 part 'bus_stop_sheet_event.dart';
 

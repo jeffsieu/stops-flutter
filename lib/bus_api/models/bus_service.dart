@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../bus_api.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
 
 class BusService {
   @protected
@@ -38,7 +38,7 @@ class BusService {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other.runtimeType != runtimeType) return false;
     final otherBusService = other as BusService;
     return number == otherBusService.number &&

@@ -2,10 +2,9 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../api/models/bus.dart';
-import '../database.dart';
+import 'package:stops_sg/bus_api/models/bus.dart';
+import 'package:stops_sg/database/stops_database.dart';
 
-import 'notification_utils.dart';
 
 part 'followed_buses.g.dart';
 

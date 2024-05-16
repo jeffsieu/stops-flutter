@@ -5,18 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-
-import '../bus_stop_sheet/widgets/bus_stop_sheet.dart';
-import '../main.dart';
-import '../api/models/bus_service.dart';
-import '../api/models/bus_stop.dart';
-import '../api/models/user_route.dart';
-import '../routes/bus_service_page.dart';
-import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_utils.dart';
-import '../utils/database/followed_buses.dart';
-import '../utils/database_utils.dart';
-import '../utils/time_utils.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/main.dart';
+import 'package:stops_sg/routes/bus_service_page.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/utils/database/followed_buses.dart';
+import 'package:stops_sg/utils/time_utils.dart';
 
 class BusTimingRow extends ConsumerStatefulWidget {
   const BusTimingRow(
@@ -39,12 +38,12 @@ class BusTimingRow extends ConsumerStatefulWidget {
   bool get hasArrivals => arrivalResult != null;
 
   @override
-  _BusTimingState createState() {
-    return _BusTimingState();
+  BusTimingState createState() {
+    return BusTimingState();
   }
 }
 
-class _BusTimingState extends ConsumerState<BusTimingRow>
+class BusTimingState extends ConsumerState<BusTimingRow>
     with TickerProviderStateMixin {
   bool get _isBusFollowed =>
       ref
@@ -184,7 +183,7 @@ class _BusTimingState extends ConsumerState<BusTimingRow>
                       busServiceNumber: widget.busService.number);
                 }
 
-                // TODO: Refresh home page to show followed buses
+                // TODO: Verify that  home page shows followed buses
               }
             : null,
       ),
