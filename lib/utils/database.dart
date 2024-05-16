@@ -9,12 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
-import '../models/bus_service.dart';
-import '../models/bus_service_route.dart';
-import '../models/bus_stop.dart';
-import '../models/bus_stop_with_distance.dart';
-import '../models/bus_stop_with_pinned_services.dart';
-import '../models/user_route.dart';
+import '../api/models/bus_service.dart';
+import '../api/models/bus_service_route.dart';
+import '../api/models/bus_stop.dart';
+import '../api/models/bus_stop_with_distance.dart';
+import '../api/models/bus_stop_with_pinned_services.dart';
+import '../api/models/user_route.dart';
 import 'database_utils.dart';
 import 'distance_utils.dart';
 

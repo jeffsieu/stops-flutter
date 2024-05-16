@@ -1,4 +1,4 @@
-import '../utils/bus_api.dart';
+import '../bus_api.dart';
 
 class BusStop {
   const BusStop({

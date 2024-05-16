@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
-import '../models/bus_service.dart';
-import '../models/bus_stop.dart';
-import '../models/bus_stop_with_pinned_services.dart';
-import '../models/user_route.dart';
+import '../api/models/bus_service.dart';
+import '../api/models/bus_stop.dart';
+import '../api/models/bus_stop_with_pinned_services.dart';
+import '../api/models/user_route.dart';
 import '../routes/fade_page_route.dart';
 import '../routes/search_page.dart';
 import '../widgets/bus_stop_overview_item.dart';

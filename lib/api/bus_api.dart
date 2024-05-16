@@ -7,8 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/bus_service.dart';
-import '../models/bus_stop.dart';
+import '../api/models/bus_service.dart';
+import '../api/models/bus_stop.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/database_utils.dart';
 

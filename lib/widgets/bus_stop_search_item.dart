@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../models/bus_stop.dart';
+import '../api/models/bus_stop.dart';
 import '../utils/database_utils.dart';
 import '../widgets/highlighted_icon.dart';
 

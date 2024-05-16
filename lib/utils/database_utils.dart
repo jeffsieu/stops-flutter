@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/bus_service.dart';
-import '../models/bus_service_route.dart';
-import '../models/bus_service_with_routes.dart';
-import '../models/bus_stop.dart';
-import '../models/bus_stop_with_distance.dart';
-import '../models/bus_stop_with_pinned_services.dart';
-import '../models/user_route.dart';
-import 'bus_api.dart';
+import '../api/bus_api.dart';
+import '../api/models/bus_service.dart';
+import '../api/models/bus_service_route.dart';
+import '../api/models/bus_service_with_routes.dart';
+import '../api/models/bus_stop.dart';
+import '../api/models/bus_stop_with_distance.dart';
+import '../api/models/bus_stop_with_pinned_services.dart';
+import '../api/models/user_route.dart';
 import 'database.dart';
 import 'user_location.dart';
 

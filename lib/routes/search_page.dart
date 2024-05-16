@@ -16,9 +16,9 @@ import 'package:rubber/rubber.dart';
 import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 
 import '../main.dart';
-import '../models/bus_service.dart';
-import '../models/bus_stop.dart';
-import '../models/bus_stop_with_distance.dart';
+import '../api/models/bus_service.dart';
+import '../api/models/bus_stop.dart';
+import '../api/models/bus_stop_with_distance.dart';
 import '../utils/bus_utils.dart';
 import '../utils/database_utils.dart';
 import '../utils/user_location.dart';

@@ -8,9 +8,9 @@ import 'package:provider/provider.dart';
 
 import '../bus_stop_sheet/widgets/bus_stop_sheet.dart';
 import '../main.dart';
-import '../models/bus_service.dart';
-import '../models/bus_stop.dart';
-import '../models/user_route.dart';
+import '../api/models/bus_service.dart';
+import '../api/models/bus_stop.dart';
+import '../api/models/user_route.dart';
 import '../routes/bus_service_page.dart';
 import '../utils/bus_service_arrival_result.dart';
 import '../utils/bus_utils.dart';

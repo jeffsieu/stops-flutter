@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/bus.dart';
+import '../../api/models/bus.dart';
 import '../database.dart';
 
 import 'notification_utils.dart';
