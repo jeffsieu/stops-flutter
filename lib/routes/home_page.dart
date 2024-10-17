@@ -598,8 +598,9 @@ class HomePageState extends BottomSheetPageState<HomePage> {
         ? '${busStop.code} · ${busStop.road}'
         : '${Random().nextInt(90000) + 10000} · ${Random().nextInt(99) + 1} Street';
 
-    final showShimmer =
-        _nearestBusStops.isRefreshing || _nearestBusStops.isReloading;
+    final showShimmer = _nearestBusStops.isRefreshing ||
+        _nearestBusStops.isReloading ||
+        _nearestBusStops.isLoading;
 
     Widget buildChild(bool showShimmer) => Builder(builder: (context) {
           return Padding(
@@ -707,7 +708,6 @@ class HomePageState extends BottomSheetPageState<HomePage> {
           routeId: kDefaultRouteId,
         ),
       ),
-      // _busStopOverviewList,
       const SizedBox(height: 64.0),
     ];
   }
@@ -779,8 +779,9 @@ class HomePageState extends BottomSheetPageState<HomePage> {
     ];
   }
 
-  Future<void> refreshLocation() async {
+  void refreshLocation() {
     ref.invalidate(userLocationProvider);
+    ref.invalidate(nearestBusStopsProvider);
   }
 
   Future<void> _pushAddRouteRoute() async {
