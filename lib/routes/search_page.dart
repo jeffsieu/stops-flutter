@@ -268,7 +268,7 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
     return true;
   }
 
-  void _onPopInvoked(bool didPop) {
+  void _onPopInvokedWithResult<T>(bool didPop, T? result) {
     if (didPop) {
       return;
     }
@@ -317,7 +317,7 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
 
     return PopScope(
       canPop: _canPop,
-      onPopInvoked: _onPopInvoked,
+      onPopInvokedWithResult: _onPopInvokedWithResult,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         body: Material(child: bottomSheetContainer),

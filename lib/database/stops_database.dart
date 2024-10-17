@@ -8,10 +8,10 @@ import 'package:stops_sg/bus_api/models/bus_service_route.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
 import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/database/connection/connection.dart' as impl;
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/utils/distance_utils.dart';
-import 'package:stops_sg/database/connection/connection.dart' as impl;
 
 part 'stops_database.g.dart';
 

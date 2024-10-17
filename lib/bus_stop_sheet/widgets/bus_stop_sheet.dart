@@ -184,7 +184,7 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
       ],
       child: PopScope(
         canPop: _canPop,
-        onPopInvoked: _onPopInvoked,
+        onPopInvokedWithResult: _onPopInvokedWithResult,
         child: Material(
           type: MaterialType.card,
           borderRadius: const BorderRadius.only(
@@ -222,7 +222,7 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
     return true;
   }
 
-  void _onPopInvoked(bool didPop) {
+  void _onPopInvokedWithResult<T>(bool didPop, T? result) {
     if (didPop) {
       return;
     }
