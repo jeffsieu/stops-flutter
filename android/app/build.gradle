@@ -41,14 +41,10 @@ android {
     compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
-    lintOptions {
-        disable 'InvalidPackage'
-        checkReleaseBuilds false
-    }
 
     defaultConfig {
         applicationId "com.jeffsieu.stops"
-        minSdkVersion Math.max(flutter.minSdkVersion, 21)
+        minSdkVersion Math.max(flutter.minSdkVersion, 26)
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -76,11 +72,39 @@ android {
             shrinkResources false
         }
     }
+    lint {
+        checkReleaseBuilds false
+        disable 'InvalidPackage'
+    }
 
     configurations.all {
         resolutionStrategy {
             force 'androidx.core:core-ktx:1.6.0'
         }
+    }
+
+    compileOptions {
+        // Flag to enable support for the new language APIs
+        coreLibraryDesugaringEnabled true
+
+        // START: Workaround for plus_plugins:
+        // Context: The JDK version has to be set to 17 for the plugins to work
+        // https://github.com/fluttercommunity/plus_plugins/issues/3303
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+    }
+
+    kotlin {
+        jvmToolchain(17)
+    }
+
+    // END: End of workaround
+    dependencies {
+        coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.2.2'
     }
 }
 

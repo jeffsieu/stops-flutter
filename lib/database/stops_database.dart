@@ -1,13 +1,8 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Color;
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqlite3/sqlite3.dart';
-import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_service_route.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
@@ -16,6 +11,7 @@ import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/utils/distance_utils.dart';
+import 'package:stops_sg/database/connection/connection.dart' as impl;
 
 part 'stops_database.g.dart';
 
@@ -116,30 +112,6 @@ class PinnedBusServices extends Table {
       ];
 }
 
-LazyDatabase _openConnection() {
-  // the LazyDatabase util lets us find the right location for the file async.
-  return LazyDatabase(() async {
-    // put the database file, called db.sqlite here, into the documents folder
-    // for your app.
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'busstop_database.db'));
-
-    // Also work around limitations on old Android versions
-    if (Platform.isAndroid) {
-      await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
-    }
-
-    // Make sqlite3 pick a more suitable location for temporary files - the
-    // one from the system may be inaccessible due to sandboxing.
-    final cachebase = (await getTemporaryDirectory()).path;
-    // We can't access /tmp on Android, which sqlite3 would try by default.
-    // Explicitly tell it about the correct temporary directory.
-    sqlite3.tempDirectory = cachebase;
-
-    return NativeDatabase.createInBackground(file);
-  });
-}
-
 @DriftDatabase(
   tables: [
     BusStops,
@@ -155,6 +127,22 @@ class StopsDatabase extends _$StopsDatabase {
 
   @override
   int get schemaVersion => 2;
+
+  static QueryExecutor _openConnection() {
+    return driftDatabase(
+      name: 'busstop_database',
+      web: DriftWebOptions(
+          sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+          driftWorker: Uri.parse('drift_worker.js'),
+          onResult: (result) {
+            if (result.missingFeatures.isNotEmpty) {
+              debugPrint(
+                  'Using ${result.chosenImplementation} due to unsupported '
+                  'browser features: ${result.missingFeatures}');
+            }
+          }),
+    );
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -182,6 +170,8 @@ class StopsDatabase extends _$StopsDatabase {
         },
         beforeOpen: (OpeningDetails details) async {
           await customStatement('PRAGMA foreign_keys = ON');
+
+          await impl.validateDatabaseSchema(this);
         },
       );
 
