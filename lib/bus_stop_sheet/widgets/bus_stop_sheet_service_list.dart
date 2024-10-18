@@ -65,28 +65,30 @@ class BusStopSheetServiceList extends ConsumerWidget {
     switch (busStopArrivals) {
       case AsyncData(:final value):
         {
-          final buses = value;
+          final buses = value.sorted(
+              (BusServiceArrivalResult a, BusServiceArrivalResult b) =>
+                  compareBusNumber(a.busService.number, b.busService.number));
           final fallbackServices = buses
               .map((e) => e.busService)
               .toSet()
               .sortedBy((element) => element.number);
-          final allServices = busStopServices.value ?? fallbackServices;
-          buses.sort((BusServiceArrivalResult a, BusServiceArrivalResult b) =>
-              compareBusNumber(a.busService.number, b.busService.number));
+          final allServices = (busStopServices.value ?? fallbackServices)
+              .sorted((a, b) => compareBusNumber(a.number, b.number));
 
           // Calculate the positions that the bus services will be displayed at
           // If the bus service has no arrival timings, it will not show and
           // will have a position of -1
-          final displayedPositions =
-              List<int>.generate(allServices.length, (int i) => -1);
-          for (var i = 0, j = 0;
-              i < allServices.length && j < buses.length;
-              i++) {
-            if (allServices[i] == buses[j].busService) {
-              displayedPositions[i] = j;
-              j++;
-            }
-          }
+          final allBusArrivalResults = allServices
+              .sorted((a, b) => compareBusNumber(a.number, b.number))
+              .map((service) => buses.firstWhereOrNull(
+                    (bus) => bus.busService == service,
+                  ))
+              .toList();
+
+          final displayedBusServices = allBusArrivalResults
+              .where((element) => element != null)
+              .map((e) => e!.busService)
+              .toList();
 
           return Stack(
             children: [
@@ -118,11 +120,7 @@ class BusStopSheetServiceList extends ConsumerWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemBuilder: (BuildContext context, int position) {
-                    final displayedPosition = displayedPositions[position];
-                    final isDisplayed = displayedPosition != -1;
-
-                    BusServiceArrivalResult? arrivalResult;
-                    if (isDisplayed) arrivalResult = buses[displayedPosition];
+                    final arrivalResult = allBusArrivalResults[position];
 
                     final Widget item = BusTimingRow(
                       busStop,
@@ -131,6 +129,10 @@ class BusStopSheetServiceList extends ConsumerWidget {
                       isEditing,
                       key: Key(busStop.code + allServices[position].number),
                     );
+
+                    final isDisplayed = arrivalResult != null;
+                    final displayedPosition =
+                        displayedBusServices.indexOf(allServices[position]);
 
                     // Animate if displayed
                     if (isDisplayed) {
@@ -145,15 +147,18 @@ class BusStopSheetServiceList extends ConsumerWidget {
                   separatorBuilder: (BuildContext context, int position) {
                     // Checks if the item below the divider is shown, and not the first item
                     // If it is, then show the divider
-                    final displayedPositionBottom =
-                        displayedPositions[position + 1];
-                    final isBottomDisplayed = displayedPositionBottom > 0;
-                    final isDisplayed = isEditing || isBottomDisplayed;
-                    return isDisplayed
+                    final isDisplayed =
+                        allBusArrivalResults.elementAtOrNull(position) != null;
+                    final isBottomDisplayed =
+                        allBusArrivalResults.elementAtOrNull(position + 1) !=
+                            null;
+                    final showDivider =
+                        isEditing || (isDisplayed && isBottomDisplayed);
+                    return showDivider
                         ? const Divider(height: 4.0)
                         : Container();
                   },
-                  itemCount: allServices.length,
+                  itemCount: allBusArrivalResults.length,
                 ),
               ),
             ],
