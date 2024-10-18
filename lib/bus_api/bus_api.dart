@@ -55,8 +55,7 @@ enum BusApiError {
   noPinnedBusesInService(message: 'No pinned buses in service'),
   noPinnedBuses(message: 'Pin a service'),
   noInternet(message: 'No internet connection'),
-  cannotReachServer(message: 'Unable to reach data server'),
-  loading(message: 'Loading buses...');
+  cannotReachServer(message: 'Unable to reach data server');
 
   const BusApiError({required this.message});
 
