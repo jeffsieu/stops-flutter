@@ -250,7 +250,11 @@ class CustomRubberBottomSheetState extends State<CustomRubberBottomSheet>
           friction = widget.dragFriction * pow(1 - diff, 2);
         }
 
-        controller.value -= details.primaryDelta! / _screenHeight * friction;
+        final primaryDelta = details.primaryDelta;
+
+        // if (primaryDelta != null) {
+        //   controller.value -= primaryDelta / _screenHeight * friction;
+        // }
         if (_shouldScroll &&
             controller.value >= controller.upperBound! &&
             !_draggingPeak(_lastPosition)) {

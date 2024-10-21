@@ -7,3 +7,11 @@ double metersBetween(
       latlong.LatLng(latitude1, longitude1),
       latlong.LatLng(latitude2, longitude2));
 }
+
+String formatDistance(double distanceMeters) {
+  if (distanceMeters < 1000) {
+    return '${distanceMeters.toStringAsFixed(0)}m';
+  } else {
+    return '${(distanceMeters / 1000).toStringAsFixed(1)}km';
+  }
+}

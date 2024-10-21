@@ -5,7 +5,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:stops_sg/bus_api/models/bus_service_route.dart';
 import 'package:stops_sg/bus_api/models/bus_service_with_routes.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
 import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/routes/bottom_sheet_page.dart';
@@ -39,10 +38,11 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
   }
 
   Future<void> initService() async {
-    final service = await getCachedBusServiceWithRoutes(widget.serviceNumber);
+    final service = await ref
+        .watch(cachedBusServiceWithRoutesProvider(widget.serviceNumber).future);
     if (widget.focusedBusStop != null) {
       final focusedRoute = service.routes[0].busStops
-              .map((BusStopWithDistance b) => b.busStop)
+              .map((b) => b.busStop)
               .contains(widget.focusedBusStop)
           ? service.routes[0]
           : service.routes[1];
@@ -141,9 +141,9 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int position) {
-                    final busStopWithDistance = route.busStops[position];
-                    final busStop = busStopWithDistance.busStop;
-                    final distance = busStopWithDistance.distance;
+                    final routeBusStop = route.busStops[position];
+                    final busStop = routeBusStop.busStop;
+                    final distance = routeBusStop.distance;
                     final previousRoad = position > 0
                         ? route.busStops[position - 1].busStop.road
                         : '';

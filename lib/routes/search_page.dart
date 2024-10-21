@@ -10,23 +10,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' as latlong;
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rubber/rubber.dart';
 import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
-import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/location/location.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/routes/bottom_sheet_page.dart';
 import 'package:stops_sg/routes/bus_service_page.dart';
+import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/widgets/bus_service_search_item.dart';
 import 'package:stops_sg/widgets/bus_stop_search_item.dart';
 import 'package:stops_sg/widgets/card_app_bar.dart';
-import 'package:stops_sg/widgets/custom_rubber_bottom_sheet.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/highlighted_icon.dart';
 
 part 'search_page.g.dart';
@@ -62,7 +61,9 @@ Future<List<BusStop>> busStopsByDistance(BusStopsByDistanceRef ref) async {
   });
 }
 
-class SearchPage extends BottomSheetPage {
+enum BusStopSearchFilter { all, withService }
+
+class SearchPage extends ConsumerStatefulWidget {
   SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
   SearchPage.onlyBusStops({super.key})
       : showMap = false,
@@ -77,7 +78,7 @@ class SearchPage extends BottomSheetPage {
   final GlobalKey _resultsSheetKey = GlobalKey();
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() {
+  ConsumerState<SearchPage> createState() {
     return SearchPageState();
   }
 
@@ -85,20 +86,48 @@ class SearchPage extends BottomSheetPage {
       context.findAncestorStateOfType<SearchPageState>();
 }
 
-class SearchPageState extends BottomSheetPageState<SearchPage> {
-  SearchPageState() : super(hasAppBar: false);
+@riverpod
+Future<List<BusStop>> busStopsInServices(
+    BusStopsInServicesRef ref, List<BusService> busServices) async {
+  final allBusServiceRoutes = await Future.wait(
+    busServices.map((busService) async {
+      final service = await ref
+          .watch(cachedBusServiceWithRoutesProvider(busService.number).future);
+      return service.routes;
+    }),
+  );
 
+  final allBusServiceStops = allBusServiceRoutes
+      .expand((routes) {
+        return routes.expand((route) => route.busStops);
+      })
+      .map(
+        (busStopWithDistance) => busStopWithDistance.busStop,
+      )
+      .toSet()
+      .toList();
+
+  return allBusServiceStops;
+}
+
+class SearchPageState extends ConsumerState<SearchPage>
+    with TickerProviderStateMixin {
   // The number of pixels to offset the FAB by animates out
   // via a fade down
   final double _resultsSheetCollapsedHeight = 124;
   final LatLng _defaultCameraPosition = const LatLng(1.3521, 103.8198);
 
   List<BusStop> get _busStops =>
-      ref.watch(busStopListProvider).valueOrNull ?? [];
+      ref.watch(busStopsByDistanceProvider).valueOrNull ?? [];
   List<BusService> get _busServices =>
       ref.watch(busServiceListProvider).valueOrNull ?? [];
   late List<BusService> _filteredBusServices;
   late List<BusStop> _filteredBusStops;
+  BusStopSearchFilter _searchFilter = BusStopSearchFilter.all;
+  List<BusService> _busStopServicesFilter = [];
+  TextEditingController _busStopServicesFilterQueryController =
+      TextEditingController();
+
   JaroWinkler jw = JaroWinkler();
 
   String _queryString = '';
@@ -120,7 +149,19 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
   final bool _showServicesOnly = false;
   late bool _isMapVisible = widget.showMap;
   bool _isRefocusButtonVisible = true;
-  BusStop? _focusedBusStop;
+
+  BusStop? __focusedBusStop;
+
+  BusStop? get _focusedBusStop {
+    return __focusedBusStop;
+  }
+
+  set _focusedBusStop(BusStop? busStop) {
+    __focusedBusStop = busStop;
+    _isFocusedBusStopExpanded = false;
+  }
+
+  bool _isFocusedBusStopExpanded = false;
   LatLng? _focusedLocation;
 
   BusStop? get _displayedBusStop =>
@@ -224,16 +265,6 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
       };
 
       _resultsSheetAnimationController.addStatusListener(statusListener);
-
-      // Hide bottom sheet the moment we start to transition to the other layout
-      const threshold = 0.05;
-
-      if (_resultsSheetAnimationController.value > threshold &&
-          _resultsSheetAnimationController.value < 1.0 - threshold) {
-        hideBusStopDetailSheet();
-      }
-      // if (!_resultsSheetAnimationController.isAnimating) {
-      // }
     });
 
     // If normal mode, perform bus service and map-related functions
@@ -313,14 +344,23 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
     } else {
       _mapClipperAnimationController.reverse();
     }
-    final bottomSheetContainer = bottomSheet(child: _buildBody());
 
-    return PopScope(
-      canPop: _canPop,
-      onPopInvokedWithResult: _onPopInvokedWithResult,
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        body: Material(child: bottomSheetContainer),
+    final homeRoute =
+        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).valueOrNull;
+
+    return provider.MultiProvider(
+      providers: [
+        provider.Provider(
+          create: (_) => const EditModel(isEditing: false),
+        ),
+        provider.Provider<StoredUserRoute?>(
+          create: (_) => homeRoute,
+        ),
+      ],
+      child: PopScope(
+        canPop: _canPop,
+        onPopInvokedWithResult: _onPopInvokedWithResult,
+        child: _buildBody(),
       ),
     );
   }
@@ -336,7 +376,6 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
         _scrollController.jumpTo(0);
       },
       onTap: () {
-        hideBusStopDetailSheet();
         if (_isMapVisible) {
           setState(() {
             _isMapVisible = false;
@@ -357,14 +396,13 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
     return Hero(
       tag: 'searchField',
       child: CardAppBar(
-        elevation: 2.0,
-        leading: IconButton(
-          color: Theme.of(context).hintColor,
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        // leading: IconButton(
+        //   color: Theme.of(context).hintColor,
+        //   icon: const Icon(Icons.arrow_back_rounded),
+        //   onPressed: () {
+        //     Navigator.pop(context);
+        //   },
+        // ),
         title: searchField,
         bottom: TabBar(
           controller: _tabController,
@@ -409,6 +447,22 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
     );
   }
 
+  TickerFuture _collapseSheet() {
+    return _resultsSheetAnimationController.fling(
+      _resultsSheetAnimationController.value,
+      _resultsSheetAnimationController.lowerBound,
+      velocity: SearchPage._launchVelocity,
+    );
+  }
+
+  TickerFuture _expandSheet() {
+    return _resultsSheetAnimationController.launchTo(
+      _resultsSheetAnimationController.value,
+      _resultsSheetAnimationController.upperBound,
+      velocity: SearchPage._launchVelocity,
+    );
+  }
+
   // Returns a TickerFuture that resolves when the animation is complete
   TickerFuture _onTabTap(int index) {
     final shouldMapBeVisible = _tabController.index == 1;
@@ -422,23 +476,15 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
     });
 
     if (index == 0) {
-      return _resultsSheetAnimationController.launchTo(
-        _resultsSheetAnimationController.value,
-        _resultsSheetAnimationController.upperBound,
-        velocity: SearchPage._launchVelocity,
-      );
+      return _expandSheet();
     } else {
       _hideKeyboard();
       _scrollController.jumpTo(0);
       // ignore: avoid_as
-      (widget._resultsSheetKey.currentState as CustomRubberBottomSheetState)
-          .setScrolling(false);
+      // (widget._resultsSheetKey.currentState as RubberBottomSheetState)
+      //     .setScrolling(false);
 
-      return _resultsSheetAnimationController.fling(
-        _resultsSheetAnimationController.value,
-        _resultsSheetAnimationController.lowerBound,
-        velocity: SearchPage._launchVelocity,
-      );
+      return _collapseSheet();
     }
   }
 
@@ -524,7 +570,7 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
 
     final Widget body = Stack(
       children: [
-        CustomRubberBottomSheet(
+        RubberBottomSheet(
           key: widget._resultsSheetKey,
           animationController: _resultsSheetAnimationController,
           scrollController: _scrollController,
@@ -784,8 +830,7 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
         infoWindow:
             InfoWindow(title: busStop.displayName, snippet: busStop.road),
         onTap: () {
-          if (_focusedBusStop == busStop || super.isBusDetailSheetVisible()) {
-            showBusStopDetailSheet(busStop, context);
+          if (_focusedBusStop == busStop) {
           } else {
             focusBusStopOnMap(busStop);
           }
@@ -861,16 +906,12 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
 
       final busStopsWithDistance = _busStops
           .map((BusStop busStop) =>
-              BusStopWithDistance(busStop, distanceFunction(busStop)))
-          .where((BusStopWithDistance busStop) =>
+              ((busStop: busStop, distance: distanceFunction(busStop))))
+          .where((busStop) =>
               busStop.distance < SearchPage._searchDifferenceThreshold)
           .toList();
-      busStopsWithDistance.sort(
-          (BusStopWithDistance b1, BusStopWithDistance b2) =>
-              b1.distance.compareTo(b2.distance));
-      _filteredBusStops = busStopsWithDistance
-          .map((BusStopWithDistance b) => b.busStop)
-          .toList();
+      busStopsWithDistance.sort((b1, b2) => b1.distance.compareTo(b2.distance));
+      _filteredBusStops = busStopsWithDistance.map((b) => b.busStop).toList();
     } else {
       _filteredBusStops = _busStops;
     }
@@ -928,7 +969,8 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
 
   Widget _buildBusServicesSliverHeader() {
     return Padding(
-      padding: const EdgeInsets.only(top: 24.0, left: 80.0, bottom: 8.0),
+      padding:
+          const EdgeInsetsDirectional.only(top: 24.0, start: 16.0, bottom: 8.0),
       child: Text(
         'Services',
         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -943,64 +985,185 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
         ? DateFormat('HH:mm')
         : DateFormat('hh:mm a');
     return SliverToBoxAdapter(
-      child: AnimatedBuilder(
-        animation: _resultsSheetAnimationController,
-        builder: (BuildContext context, Widget? child) {
-          return _buildVerticalSwitcher(
-            expandedChild: ClipRect(
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                heightFactor:
-                    (_filteredBusServices.isNotEmpty || _query.isEmpty) ? 1 : 0,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                      top: 24.0,
-                      left: 80.0,
-                      bottom: _resultsSheetExpandedPercentage * 8.0),
-                  child: RichText(
-                      text: TextSpan(children: <InlineSpan>[
-                    TextSpan(
-                        text: 'Bus stops',
-                        style: Theme.of(context).textTheme.headlineMedium),
-                    if (userLocation.data != null)
-                      TextSpan(
-                        text:
-                            ' • as of ${dateFormat.format(userLocation.timestamp)}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(
-                              color: Theme.of(context).hintColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnimatedBuilder(
+            animation: _resultsSheetAnimationController,
+            builder: (BuildContext context, Widget? child) {
+              return _buildVerticalSwitcher(
+                expandedChild: ClipRect(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    heightFactor:
+                        (_filteredBusServices.isNotEmpty || _query.isEmpty)
+                            ? 1
+                            : 0,
+                    child: Padding(
+                      padding: EdgeInsetsDirectional.only(
+                          top: 24.0,
+                          start: 16.0,
+                          bottom: _resultsSheetExpandedPercentage * 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          RichText(
+                              text: TextSpan(children: <InlineSpan>[
+                            TextSpan(
+                                text: 'Bus stops',
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium),
+                            if (userLocation.data != null)
+                              TextSpan(
+                                text:
+                                    ' • as of ${dateFormat.format(userLocation.timestamp)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context).hintColor,
+                                    ),
+                              ),
+                          ])),
+                          Align(
+                            alignment: AlignmentDirectional.bottomStart,
+                            heightFactor: _resultsSheetExpandedPercentage,
+                            child: FractionalTranslation(
+                              translation: Offset(
+                                  0, (1 - _resultsSheetExpandedPercentage)),
+                              child: Wrap(
+                                spacing: 8.0,
+                                children: [
+                                  ChoiceChip(
+                                    label: const Text('All'),
+                                    selected: _searchFilter ==
+                                        BusStopSearchFilter.all,
+                                    onSelected: (value) {
+                                      setState(() {
+                                        _searchFilter = BusStopSearchFilter.all;
+                                      });
+                                    },
+                                  ),
+                                  ChoiceChip(
+                                    label: Text(_busStopServicesFilter.isEmpty
+                                        ? 'With bus services...'
+                                        : 'With ${_busStopServicesFilter.map((e) => e.number).join(', ')}'),
+                                    selected: _searchFilter ==
+                                        BusStopSearchFilter.withService,
+                                    onSelected: (value) async {
+                                      final selectedBusServices =
+                                          await _showBusServiceFilterBottomSheet();
+
+                                      if (selectedBusServices == null ||
+                                          selectedBusServices.isEmpty) {
+                                        return;
+                                      }
+
+                                      setState(() {
+                                        _searchFilter =
+                                            BusStopSearchFilter.withService;
+                                        _busStopServicesFilter =
+                                            selectedBusServices;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
+                          ),
+                        ],
                       ),
-                  ])),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            collapsedChild: Align(
-              alignment: Alignment.bottomLeft,
-              heightFactor: (_filteredBusServices.isNotEmpty || _query.isEmpty)
-                  ? 1
-                  : 1 - _resultsSheetExpandedPercentage,
-              child: Padding(
-                padding: EdgeInsets.only(
-                    top: 24.0,
-                    left: 80.0,
-                    bottom: _resultsSheetExpandedPercentage * 8.0),
-                child: Text(
-                    _focusedBusStop != null
-                        ? 'Selected stop'
-                        : (_query.isEmpty
-                            ? 'Nearest stop'
-                            : 'Nearest matching stop'),
-                    style: Theme.of(context).textTheme.headlineMedium),
-              ),
-            ),
-            expandedPercentage: _resultsSheetExpandedPercentage,
-          );
-        },
+                collapsedChild: Align(
+                  alignment: Alignment.bottomLeft,
+                  heightFactor:
+                      (_filteredBusServices.isNotEmpty || _query.isEmpty)
+                          ? 1
+                          : 1 - _resultsSheetExpandedPercentage,
+                  child: Padding(
+                    padding: EdgeInsetsDirectional.only(
+                        top: 24.0,
+                        start: 16.0,
+                        bottom: _resultsSheetExpandedPercentage * 8.0),
+                    child: Text(
+                        _focusedBusStop != null
+                            ? 'Selected stop'
+                            : (_query.isEmpty
+                                ? 'Nearest stop'
+                                : 'Nearest matching stop'),
+                        style: Theme.of(context).textTheme.headlineMedium),
+                  ),
+                ),
+                expandedPercentage: _resultsSheetExpandedPercentage,
+              );
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  Future<List<BusService>?> _showBusServiceFilterBottomSheet() async {
+    return await showModalBottomSheet<List<BusService>?>(
+        isScrollControlled: true,
+        context: context,
+        builder: (context) {
+          return Consumer(
+            builder: (context, ref, child) {
+              final busServices =
+                  ref.watch(busServiceListProvider).valueOrNull ?? [];
+
+              final matchingBusServices = _filterBusServices(
+                      busServices, _busStopServicesFilterQueryController.text)
+                  .toList();
+
+              return DraggableScrollableSheet(
+                maxChildSize: 1,
+                initialChildSize: .5,
+                expand: false,
+                builder: (context, controller) => CustomScrollView(
+                  controller: controller,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: TextField(
+                          controller: _busStopServicesFilterQueryController,
+                          decoration: InputDecoration(
+                            hintText: 'Search for bus services',
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverList.builder(
+                      itemCount: matchingBusServices.length,
+                      itemBuilder: (context, position) {
+                        final busService = matchingBusServices[position];
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          child: BusServiceSearchItem(
+                            busService: busService,
+                            onTap: () {
+                              Navigator.of(context).pop([busService]);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        });
   }
 
   static Widget _buildVerticalSwitcher(
@@ -1046,25 +1209,51 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
     return MediaQuery.removePadding(
       context: context,
       removeTop: true,
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemBuilder: (BuildContext context, int position) {
-          final busService = _filteredBusServices[position];
-          return BusServiceSearchItem(
-            onTap: () => _pushBusServiceRoute(busService),
-            busService: busService,
-          );
-        },
-        itemCount: _showServicesOnly
-            ? _filteredBusServices.length
-            : min(_filteredBusServices.length, 3),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          children: [
+            for (var i = 0; i < 3; i++) ...{
+              if (i < _filteredBusServices.length) ...{
+                Expanded(
+                  child: BusServiceSearchItem(
+                    onTap: () => _pushBusServiceRoute(_filteredBusServices[i]),
+                    busService: _filteredBusServices[i],
+                  ),
+                ),
+              } else ...{
+                Expanded(
+                  child: Container(),
+                ),
+              },
+              if (i < 2) const SizedBox(width: 8.0),
+            },
+          ],
+          // shrinkWrap: true,
+          // scrollDirection: Axis.horizontal,
+          // physics: const NeverScrollableScrollPhysics(),
+          // itemBuilder: (BuildContext context, int position) {
+          //   final busService = _filteredBusServices[position];
+          //   return BusServiceSearchItem(
+          //     onTap: () => _pushBusServiceRoute(busService),
+          //     busService: busService,
+          //   );
+          // },
+          // separatorBuilder: (context, index) {
+          //   return const SizedBox(width: 8.0);
+          // },
+          // itemCount: _showServicesOnly
+          //     ? _filteredBusServices.length
+          //     : min(_filteredBusServices.length, 3),
+        ),
       ),
     );
   }
 
   Widget _buildBusStopSearchItem(BusStop busStop, BuildContext context,
-      {bool isFocusedBusStopItem = false}) {
+      {bool showMapButton = false,
+      bool? isExpanded,
+      required void Function() onTap}) {
     final metadata = _queryMetadata[busStop]!;
 
     final distance = _distanceMetadata.containsKey(busStop)
@@ -1085,6 +1274,7 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
         metadata.busStopCodeStart, metadata.busStopCodeEnd);
     final busStopCodeEnd =
         busStopCode.substring(metadata.busStopCodeEnd, busStopCode.length);
+
     return BusStopSearchItem(
       key: Key(busStopCode),
       // necessary to let Flutter rebuild component when search is performed
@@ -1096,7 +1286,8 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
       nameBold: nameBold,
       nameEnd: nameEnd,
       distance: distance,
-      isMapEnabled: isFocusedBusStopItem,
+      isMapEnabled: showMapButton,
+      isExpanded: isExpanded,
       onShowOnMapTap: () {
         void focusOnBusStop() async {
           final controller = await _googleMapController.future;
@@ -1117,24 +1308,51 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
         animation.whenCompleteOrCancel(focusOnBusStop);
       },
       busStop: busStop,
-      onTap: () => _onBusStopSearchItemTapped(busStop, context),
+      onTap: onTap,
     );
   }
 
   Widget _buildBusStopList() {
+    final busStopsInSelectedBusService = _busStopServicesFilter.isEmpty
+        ? []
+        : ref
+                .watch(busStopsInServicesProvider(_busStopServicesFilter))
+                .valueOrNull ??
+            [];
+
+    final orderedBusStops = (() {
+      if (_focusedBusStop == null) {
+        return _filteredBusStops
+            .where((busStop) =>
+                _busStopServicesFilter.isEmpty ||
+                busStopsInSelectedBusService.contains(busStop))
+            .toList();
+      }
+
+      return [
+        _focusedBusStop!,
+        ..._filteredBusStops.where((busStop) => busStop != _focusedBusStop)
+      ];
+    })();
+
     return SliverList(
         delegate: SliverChildBuilderDelegate(
       (BuildContext context, int position) {
-        final busStop = _filteredBusStops[position];
+        final busStop = orderedBusStops[position];
 
-        final item = _buildBusStopSearchItem(busStop, context);
-        return position == 0 ? _buildClosestBusStopItem(context) : item;
+        final item = _buildBusStopSearchItem(busStop, context, onTap: () {
+          if (widget.isSimpleMode) {
+            // Return result
+            Navigator.pop(context, busStop);
+          }
+        });
+        return position == 0 ? _buildFirstBusStopItem(context, busStop) : item;
       },
-      childCount: _showServicesOnly ? 0 : _filteredBusStops.length,
+      childCount: _showServicesOnly ? 0 : orderedBusStops.length,
     ));
   }
 
-  Widget _buildClosestBusStopItem(BuildContext context) {
+  Widget _buildFirstBusStopItem(BuildContext context, BusStop busStop) {
     return AnimatedBuilder(
       animation: _resultsSheetAnimationController,
       builder: (BuildContext context, Widget? child) {
@@ -1143,44 +1361,40 @@ class SearchPageState extends BottomSheetPageState<SearchPage> {
           collapsedChild: _buildBusStopSearchItem(
             _displayedBusStop!,
             context,
-            isFocusedBusStopItem: true,
+            showMapButton: true,
+            onTap: () {
+              _expandSheet();
+              setState(() {
+                _isFocusedBusStopExpanded = true;
+              });
+            },
+            isExpanded: false,
           ),
           expandedPercentage: _resultsSheetExpandedPercentage,
           offset: false,
         );
       },
       child: _buildBusStopSearchItem(
-        _filteredBusStops[0],
+        busStop,
         context,
-        isFocusedBusStopItem: false,
+        showMapButton: false,
+        isExpanded: _isFocusedBusStopExpanded,
+        onTap: () {
+          if (widget.isSimpleMode) {
+            // Return result
+            Navigator.pop(context, busStop);
+          } else {
+            setState(() {
+              _isFocusedBusStopExpanded = !_isFocusedBusStopExpanded;
+            });
+          }
+        },
       ),
     );
   }
 
   void _hideKeyboard() {
     FocusScope.of(context).unfocus();
-  }
-
-  void _onBusStopSearchItemTapped(BusStop busStop, BuildContext context) {
-    if (widget.isSimpleMode) {
-      // Return result
-      Navigator.pop(context, busStop);
-    } else {
-      // Show bus detail sheet
-      FocusScope.of(context).unfocus();
-      Future<void>.delayed(const Duration(milliseconds: 100), () {
-        showBusStopDetailSheet(busStop, context);
-      });
-    }
-  }
-
-  // @override
-  Future<void> showBusStopDetailSheet(
-      BusStop busStop, BuildContext context) async {
-    context
-        .read<BusStopSheetBloc>()
-        .add(SheetRequested(busStop, kDefaultRouteId));
-    pushHistory(_query.trim());
   }
 
   static Iterable<BusService> _filterBusServices(
@@ -1250,20 +1464,4 @@ class _QueryMetadata {
     required this.descriptionStart,
     required this.descriptionEnd,
   });
-}
-
-extension BusStopDistance on BusStop {
-  double getMetersFromLocation(LatLng coordinates) {
-    return const latlong.Distance().as(
-        latlong.LengthUnit.Meter,
-        latlong.LatLng(latitude, longitude),
-        latlong.LatLng(coordinates.latitude, coordinates.longitude));
-  }
-
-  double getMetersFromBusStop(BusStop busStop) {
-    return const latlong.Distance().as(
-        latlong.LengthUnit.Meter,
-        latlong.LatLng(latitude, longitude),
-        latlong.LatLng(busStop.latitude, busStop.longitude));
-  }
 }

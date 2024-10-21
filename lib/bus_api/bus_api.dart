@@ -53,7 +53,6 @@ const int _kRefreshInterval = 30;
 enum BusApiError {
   noBusesInService(message: 'No buses in service'),
   noPinnedBusesInService(message: 'No pinned buses in service'),
-  noPinnedBuses(message: 'Pin a service'),
   noInternet(message: 'No internet connection'),
   cannotReachServer(message: 'Unable to reach data server');
 

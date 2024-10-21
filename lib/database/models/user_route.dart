@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/database/database.dart';
 
 class StoredUserRoute extends UserRoute {
@@ -45,7 +45,7 @@ class UserRoute {
 
   final String name;
   final Color color;
-  final List<BusStopWithPinnedServices> busStops;
+  final List<BusStop> busStops;
 
   StoredUserRoute storeWithId(int id) {
     return StoredUserRoute(

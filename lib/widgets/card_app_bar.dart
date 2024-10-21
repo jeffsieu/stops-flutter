@@ -8,7 +8,6 @@ class CardAppBar extends StatelessWidget {
     this.title,
     this.bottom,
     this.actions,
-    this.elevation,
   });
 
   final Widget? leading;
@@ -16,13 +15,13 @@ class CardAppBar extends StatelessWidget {
   final Widget? bottom;
   final void Function()? onTap;
   final List<Widget>? actions;
-  final double? elevation;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceBright,
       clipBehavior: Clip.antiAlias,
-      elevation: elevation ?? 0,
       shape: Theme.of(context).cardTheme.shape,
       child: InkWell(
         customBorder: Theme.of(context).cardTheme.shape,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/routes/fetch_data_page.dart';
+import 'package:stops_sg/routes/scan_card_page.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -26,11 +27,18 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
       ),
       body: ListView(
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text('Settings',
+                style: Theme.of(context).textTheme.displaySmall),
+          ),
           _buildThemeTile(themeMode.value),
+          _buildScanCardTile(),
           _buildRefreshDataTile(),
           _buildAboutTile(),
         ],
@@ -75,6 +83,19 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
               );
             });
+      },
+    );
+  }
+
+  Widget _buildScanCardTile() {
+    return ListTile(
+      title: const Text('Scan card value'),
+      leading: const Icon(Icons.credit_card_rounded),
+      onTap: () {
+        const Widget page = ScanCardPage();
+        final Route<void> route =
+            MaterialPageRoute<void>(builder: (BuildContext context) => page);
+        Navigator.push(context, route);
       },
     );
   }

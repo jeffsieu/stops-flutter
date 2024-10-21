@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
@@ -6,12 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_service_route.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
 import 'package:stops_sg/database/connection/connection.dart' as impl;
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
-import 'package:stops_sg/utils/distance_utils.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
 
 part 'stops_database.g.dart';
 
@@ -175,13 +174,17 @@ class StopsDatabase extends _$StopsDatabase {
         },
       );
 
-  Future<List<BusStopWithDistance>> getNearestBusStops(
-      double latitude, double longitude, String busServiceFilter) async {
+  Future<List<BusStop>> getNearestBusStops(
+      ({double latitude, double longitude}) location,
+      String busServiceFilter) async {
+    final latitude = location.latitude;
+    final longitude = location.longitude;
+
     if (busServiceFilter.isNotEmpty) {
       // Make sure that bus service is an integer
       final busService = int.tryParse(busServiceFilter);
       if (busService == null && busServiceFilter.isNotEmpty) {
-        return <BusStopWithDistance>[];
+        return [];
       }
     }
 
@@ -200,12 +203,12 @@ class StopsDatabase extends _$StopsDatabase {
 
     final result = await query.get();
 
-    return result.map((TypedResult row) {
+    return Future.wait(result.map((TypedResult row) async {
       final busStopEntry = row.readTable(busStops);
-      final distanceMeters = metersBetween(
-          latitude, longitude, busStopEntry.latitude, busStopEntry.longitude);
-      return BusStopWithDistance(busStopEntry.toModel(), distanceMeters);
-    }).toList();
+      final busStop = busStopEntry.toModel();
+
+      return busStop;
+    }));
   }
 
   Future<void> updateBusStop(BusStop busStop) async {
@@ -288,7 +291,7 @@ class StopsDatabase extends _$StopsDatabase {
 
     // Insert new bus stops
     for (var position = 0; position < route.busStops.length; position++) {
-      final BusStop busStop = route.busStops[position];
+      final busStop = route.busStops[position];
       await into(userRouteBusStops).insert(UserRouteBusStopEntry(
         routeId: newRouteId,
         busStopCode: busStop.code,
@@ -312,7 +315,7 @@ class StopsDatabase extends _$StopsDatabase {
 
       // Insert new bus stops
       for (var position = 0; position < route.busStops.length; position++) {
-        final BusStop busStop = route.busStops[position];
+        final busStop = route.busStops[position];
         await into(userRouteBusStops).insert(UserRouteBusStopEntry(
           routeId: route.id,
           busStopCode: busStop.code,
@@ -441,7 +444,10 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<List<BusService>> getCachedBusServices() async {
     final result = await (select(busServices)).get();
-    return result.map((e) => e.toModel()).toList();
+    return result
+        .map((e) => e.toModel())
+        .sorted((a, b) => compareBusNumber(a.number, b.number))
+        .toList();
   }
 
   Future<BusService> getCachedBusService(String serviceNumber) async {
@@ -471,14 +477,14 @@ class StopsDatabase extends _$StopsDatabase {
             (busRoute) => OrderingTerm(expression: busRoute.distance),
           ]))
         .get();
-    final routeBusStops = <int, List<BusStopWithDistance>>{};
+    final routeBusStops = <int, List<({BusStop busStop, double distance})>>{};
 
     for (var entry in result) {
       final direction = entry.direction;
       final busStop = await getCachedBusStopWithCode(entry.busStopCode);
-      final busStopWithDistance = BusStopWithDistance(busStop, entry.distance);
+      final busStopWithDistance = (busStop: busStop, distance: entry.distance);
 
-      routeBusStops.putIfAbsent(direction, () => <BusStopWithDistance>[]);
+      routeBusStops.putIfAbsent(direction, () => []);
       routeBusStops[direction]!.add(busStopWithDistance);
     }
 
@@ -608,7 +614,7 @@ extension on BusServiceEntry {
 }
 
 extension on UserRouteEntry {
-  StoredUserRoute toModel(List<BusStopWithPinnedServices> busStops) {
+  StoredUserRoute toModel(List<BusStop> busStops) {
     return StoredUserRoute(
       id: id,
       name: name,

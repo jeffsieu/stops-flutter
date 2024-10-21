@@ -63,8 +63,7 @@ class BusStopOverviewList extends ConsumerWidget {
                   final busStop = busStops[position];
                   final Widget busStopItem = BusStopOverviewItem(
                     busStop,
-                    key: Key(busStop.code +
-                        Object.hashAll(busStop.pinnedServices).toString()),
+                    key: Key(busStop.code),
                   );
 
                   return Stack(

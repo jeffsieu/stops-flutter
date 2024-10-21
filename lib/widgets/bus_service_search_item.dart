@@ -11,16 +11,27 @@ class BusServiceSearchItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
-      leading: HighlightedIcon(
-        iconColor: BusService.listColor(context),
-        child: Icon(Icons.directions_bus_rounded,
-            color: BusService.listColor(context)),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
+        borderRadius: const BorderRadius.all(
+          Radius.circular(8.0),
+        ),
       ),
-      title: Text(busService.number,
-          style: Theme.of(context).textTheme.titleMedium),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
+        horizontalTitleGap: 8.0,
+        leading: HighlightedIcon(
+          iconColor: BusService.listColor(context),
+          child: Icon(Icons.directions_bus_rounded,
+              color: BusService.listColor(context)),
+        ),
+        title: Text(busService.number,
+            style: Theme.of(context).textTheme.titleMedium),
+      ),
     );
   }
 }

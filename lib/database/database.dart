@@ -9,8 +9,6 @@ import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_service_route.dart';
 import 'package:stops_sg/bus_api/models/bus_service_with_routes.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_distance.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/database/stops_database.dart';
 import 'package:stops_sg/location/location.dart';
@@ -158,28 +156,19 @@ Future<List<StoredUserRoute>> _getUserRoutes() async {
   final routeEntries = await _database.getStoredUserRoutes();
   final routes = <StoredUserRoute>[];
   for (var routeEntry in routeEntries) {
-    final List<BusStop> busStops =
-        await _getBusStopsInRouteWithId(routeEntry.id);
-    final routeBusStops = <BusStopWithPinnedServices>[];
-    for (var busStop in busStops) {
-      final pinnedServices =
-          await getPinnedServicesInRouteWithId(busStop, routeEntry.id);
-      final busStopWithPinnedServices =
-          BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices);
-      routeBusStops.add(busStopWithPinnedServices);
-    }
+    final busStops = await _getBusStopsInRouteWithId(routeEntry.id);
 
     routes.add(StoredUserRoute(
         id: routeEntry.id,
         name: routeEntry.name,
         color: Color(routeEntry.color),
-        busStops: routeBusStops));
+        busStops: busStops));
   }
   return routes;
 }
 
 @riverpod
-Future<List<BusStopWithDistance>?> nearestBusStops(NearestBusStopsRef ref,
+Future<List<BusStop>?> nearestBusStops(NearestBusStopsRef ref,
     {required String busServiceFilter,
     required Duration minimumRefreshDuration}) async {
   // Wait at least 300ms before refreshing
@@ -192,8 +181,10 @@ Future<List<BusStopWithDistance>?> nearestBusStops(NearestBusStopsRef ref,
     stopwatch.stop();
     return null;
   } else {
-    final result = await _database.getNearestBusStops(
-        locationData.latitude!, locationData.longitude!, busServiceFilter);
+    final result = await _database.getNearestBusStops((
+      latitude: locationData.latitude!,
+      longitude: locationData.longitude!,
+    ), busServiceFilter);
 
     // Wait at least 300ms before refreshing
     if (stopwatch.elapsed < minimumRefreshDuration) {
@@ -206,19 +197,15 @@ Future<List<BusStopWithDistance>?> nearestBusStops(NearestBusStopsRef ref,
   }
 }
 
-Future<List<BusStopWithPinnedServices>> _getBusStopsInRouteWithId(
-    int routeId) async {
-  final busStops = await _database.getBusStopsInRouteWithId(routeId);
-  final busStopsWithPinnedServices = <BusStopWithPinnedServices>[];
+Future<List<BusStop>> _getBusStopsInRouteWithId(int routeId) async {
+  return await _database.getBusStopsInRouteWithId(routeId);
+}
 
-  for (var busStop in busStops) {
-    final pinnedServices =
-        await getPinnedServicesInRouteWithId(busStop, routeId);
-    busStopsWithPinnedServices
-        .add(BusStopWithPinnedServices.fromBusStop(busStop, pinnedServices));
-  }
-
-  return busStopsWithPinnedServices;
+@riverpod
+Future<List<BusService>> pinnedServices(
+    PinnedServicesRef ref, BusStop busStop, int routeId) async {
+  final pinnedServices = await getPinnedServicesInRouteWithId(busStop, routeId);
+  return pinnedServices;
 }
 
 @riverpod
@@ -329,10 +316,9 @@ Future<bool> isBusServicePinned(IsBusServicePinnedRef ref,
     {required BusStop busStop,
     required BusService busService,
     required int routeId}) async {
-  return await ref.watch(savedUserRouteProvider(id: routeId).selectAsync(
-      (data) => (data?.busStops ?? [])
-          .where((b) => b.code == busStop.code)
-          .any((b) => b.pinnedServices.contains(busService))));
+  final pinnedServices =
+      await ref.watch(pinnedServicesProvider(busStop, routeId).future);
+  return pinnedServices.contains(busService);
 }
 
 @riverpod
@@ -396,8 +382,9 @@ Future<bool> areBusServicesCached() async {
   return prefs.containsKey(kAreBusServicesCachedKey);
 }
 
-Future<BusServiceWithRoutes> getCachedBusServiceWithRoutes(
-    String serviceNumber) async {
+@riverpod
+Future<BusServiceWithRoutes> cachedBusServiceWithRoutes(
+    CachedBusServiceWithRoutesRef ref, String serviceNumber) async {
   final service = await _database.getCachedBusService(serviceNumber);
   final routes = await getCachedBusRoutes(service);
 

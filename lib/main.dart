@@ -120,20 +120,27 @@ class StopsApp extends ConsumerWidget {
           ),
         );
 
-        final darkTheme = FlexThemeData.dark(
-          useMaterial3: true,
-          colorScheme: darkColorScheme,
-          fontFamily: GoogleFonts.nunitoSans().fontFamily,
-          blendLevel: 16,
-          subThemesData: const FlexSubThemesData(
-            inputDecoratorBorderType: FlexInputBorderType.underline,
-            inputDecoratorRadius: 8,
-            inputDecoratorIsFilled: false,
-          ),
-          appBarStyle: FlexAppBarStyle.surface,
-          tabBarStyle: FlexTabBarStyle.forBackground,
-          surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
-        );
+        // final darkTheme = FlexThemeData.dark(
+        //   useMaterial3: true,
+        //   colorScheme: darkColorScheme,
+        //   fontFamily: GoogleFonts.nunitoSans().fontFamily,
+        //   blendLevel: 16,
+        //   subThemesData: const FlexSubThemesData(
+        //     inputDecoratorBorderType: FlexInputBorderType.underline,
+        //     inputDecoratorRadius: 8,
+        //     inputDecoratorIsFilled: false,
+        //   ),
+        //   appBarStyle: FlexAppBarStyle.surface,
+        //   tabBarStyle: FlexTabBarStyle.forBackground,
+        //   surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+        // );
+        final darkTheme = ThemeData.dark().copyWith(
+            colorScheme: darkDynamic ??
+                ColorScheme.fromSeed(
+                  seedColor: Colors.orange,
+                  brightness: Brightness.dark,
+                  dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+                ));
 
         final darkThemeWithBoldText = darkTheme.copyWith(
           textTheme: darkTheme.textTheme.merge(darkTextTheme),

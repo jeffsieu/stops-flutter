@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
-import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/main.dart';
 import 'package:stops_sg/routes/fade_page_route.dart';
@@ -14,7 +13,7 @@ import 'package:stops_sg/widgets/color_picker.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/never_focus_node.dart';
 
-class AddRoutePage extends StatefulWidget {
+class AddRoutePage extends ConsumerStatefulWidget {
   const AddRoutePage({super.key})
       : route = null,
         routeId = null;
@@ -26,12 +25,12 @@ class AddRoutePage extends StatefulWidget {
   final int? routeId;
 
   @override
-  State createState() {
+  ConsumerState<AddRoutePage> createState() {
     return AddRoutePageState();
   }
 }
 
-class AddRoutePageState extends State<AddRoutePage> {
+class AddRoutePageState extends ConsumerState<AddRoutePage> {
   List<BusStop> busStops = <BusStop>[];
   bool _isReordering = false;
   Color? _colorPickerColor;
@@ -133,7 +132,6 @@ class AddRoutePageState extends State<AddRoutePage> {
     return Hero(
       tag: 'searchField',
       child: CardAppBar(
-        elevation: 2.0,
         onTap: _pushSearchRoute,
         leading: Container(
           padding: const EdgeInsets.only(
@@ -157,6 +155,7 @@ class AddRoutePageState extends State<AddRoutePage> {
 
   Widget _buildBusStops() {
     const isEditing = true;
+
     return Provider<EditModel>(
       create: (_) => const EditModel(isEditing: isEditing),
       child: ReorderableListView.builder(
@@ -182,7 +181,7 @@ class AddRoutePageState extends State<AddRoutePage> {
           final busStop = busStops[position];
 
           final Widget busStopItem = BusStopOverviewItem(
-            BusStopWithPinnedServices.fromBusStop(busStop, <BusService>[]),
+            busStop,
             key: Key(busStop.code),
           );
 
@@ -324,20 +323,12 @@ class AddRoutePageState extends State<AddRoutePage> {
               id: widget.routeId!,
               name: _nameController.text,
               color: _color,
-              busStops: busStops
-                  .map((BusStop busStop) =>
-                      BusStopWithPinnedServices.fromBusStop(
-                          busStop, <BusService>[]))
-                  .toList(),
+              busStops: busStops,
             )
           : UserRoute(
               name: _nameController.text,
               color: _color,
-              busStops: busStops
-                  .map((BusStop busStop) =>
-                      BusStopWithPinnedServices.fromBusStop(
-                          busStop, <BusService>[]))
-                  .toList(),
+              busStops: busStops,
             ),
     );
   }

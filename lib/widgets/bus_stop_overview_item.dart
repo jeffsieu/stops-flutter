@@ -4,21 +4,27 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart' hide Consumer;
 import 'package:shimmer/shimmer.dart';
 import 'package:stops_sg/bus_api/bus_api.dart';
-import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
-import 'package:stops_sg/bus_api/models/bus_stop_with_pinned_services.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/location/location.dart';
+import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/utils/distance_utils.dart';
 import 'package:stops_sg/widgets/bus_timing_row.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/highlighted_icon.dart';
 import 'package:stops_sg/widgets/outline_titled_container.dart';
 
 class BusStopOverviewItem extends ConsumerStatefulWidget {
-  const BusStopOverviewItem(this.busStop, {super.key});
+  const BusStopOverviewItem(this.busStop,
+      {super.key, this.onTap, this.isExpanded});
 
-  final BusStopWithPinnedServices busStop;
+  final BusStop busStop;
+  final void Function()? onTap;
+  final bool? isExpanded;
 
   @override
   ConsumerState<BusStopOverviewItem> createState() =>
@@ -26,12 +32,15 @@ class BusStopOverviewItem extends ConsumerStatefulWidget {
 }
 
 class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
-  BusStopWithPinnedServices get busStop => widget.busStop;
+  BusStop get busStop => widget.busStop;
 
-  bool isExpanded = false;
+  bool _isExpanded = false;
+  bool get isExpanded => widget.isExpanded ?? _isExpanded;
 
   @override
   Widget build(BuildContext context) {
+    final location =
+        ref.watch(userLocationProvider).valueOrNull?.data?.toLatLng();
     final name = busStop.displayName;
     final code = busStop.code;
     final road = busStop.road;
@@ -41,8 +50,9 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
         Radius.circular(8.0),
       ),
       onTap: () {
+        widget.onTap?.call();
         setState(() {
-          isExpanded = !isExpanded;
+          _isExpanded = !_isExpanded;
         });
       },
       child: isExpanded
@@ -53,7 +63,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildPinnedServices(context, ref, busStop.pinnedServices),
+                  _buildPinnedServices(context),
                 ],
               ),
             )
@@ -64,6 +74,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
 
     final showBusIcon = !isEditing && !isExpanded;
     final isTitleLarge = isExpanded && !isEditing;
+    final showDistance = !isEditing;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -118,41 +129,56 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                   ),
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Ink(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: AnimatedPadding(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Ink(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: AnimatedPadding(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        padding: isExpanded
+                            ? const EdgeInsets.symmetric(horizontal: 4)
+                            : EdgeInsets.zero,
+                        child: AnimatedDefaultTextStyle(
+                          style: isTitleLarge
+                              ? Theme.of(context).textTheme.titleLarge!
+                              : Theme.of(context).textTheme.titleMedium!,
+                          curve: Curves.easeOutCubic,
+                          duration: const Duration(milliseconds: 300),
+                          child: Text(name),
+                        ),
+                      ),
+                    ),
+                    AnimatedPadding(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
                       padding: isExpanded
                           ? const EdgeInsets.symmetric(horizontal: 4)
                           : EdgeInsets.zero,
-                      child: AnimatedDefaultTextStyle(
-                        style: isTitleLarge
-                            ? Theme.of(context).textTheme.titleLarge!
-                            : Theme.of(context).textTheme.titleMedium!,
-                        curve: Curves.easeOutCubic,
-                        duration: const Duration(milliseconds: 300),
-                        child: Text(name),
-                      ),
+                      child: Text('$code · $road',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall!
+                              .copyWith(color: Theme.of(context).hintColor)),
                     ),
-                  ),
-                  AnimatedPadding(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOutCubic,
-                    padding: isExpanded
-                        ? const EdgeInsets.symmetric(horizontal: 4)
-                        : EdgeInsets.zero,
-                    child: Text('$code · $road',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleSmall!
-                            .copyWith(color: Theme.of(context).hintColor)),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              if (location != null) ...{
+                AnimatedOpacity(
+                  opacity: showDistance ? 1 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  child: Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(formatDistance(
+                      busStop.getMetersFromLocation(location),
+                    )),
+                  ),
+                )
+              }
             ],
           ),
         ),
@@ -164,25 +190,23 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
     );
   }
 
-  Widget _buildPinnedServices(
-      BuildContext context, WidgetRef ref, List<BusService> pinnedServices) {
-    if (pinnedServices.isEmpty) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.add_rounded),
-            label: Text(BusApiError.noPinnedBuses.message,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium!
-                    .copyWith(color: Theme.of(context).hintColor)),
-            onPressed: () async {
-              context.read<BusStopSheetBloc>().add(SheetRequested.withEdit(
-                  busStop, context.read<StoredUserRoute>().id));
-            },
+  Widget _buildPinnedServices(BuildContext context) {
+    final routeId = context.read<StoredUserRoute>().id;
+    final pinnedServices =
+        ref.watch(pinnedServicesProvider(busStop, routeId)).valueOrNull;
+
+    if (pinnedServices == null) {
+      return Shimmer.fromColors(
+        baseColor: Color.lerp(
+            Theme.of(context).hintColor, Theme.of(context).canvasColor, 0.9)!,
+        highlightColor: Theme.of(context).canvasColor,
+        child: Container(
+          height: 36.0,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(8.0),
           ),
-        ],
+        ),
       );
     }
 
@@ -197,6 +221,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
               {
                 final busArrivals = value
                     .where((BusServiceArrivalResult result) =>
+                        pinnedServices.isEmpty ||
                         pinnedServices.contains(result.busService))
                     .toList(growable: false);
                 busArrivals.sort((BusServiceArrivalResult a,
