@@ -46,6 +46,8 @@ dependencies:
   http: ^1.2.0
   drift_flutter: ^0.2.1
   package_info_plus: ^8.1.0
+  flutter_hooks: ^0.20.5
+  hooks_riverpod: ^3.0.0-dev.3
 
 dev_dependencies:
   flutter_test:
