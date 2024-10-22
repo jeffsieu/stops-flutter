@@ -6,8 +6,9 @@ import 'package:collection/collection.dart';
 import 'package:edit_distance/edit_distance.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart' as latlong;
 import 'package:provider/provider.dart' as provider;
@@ -43,10 +44,8 @@ Future<List<BusStop>> busStopsByDistance(BusStopsByDistanceRef ref) async {
   final distanceMetadata = <BusStop, double>{};
 
   for (var busStop in busStops) {
-    final distanceMeters = const latlong.Distance().as(
-        latlong.LengthUnit.Meter,
-        latlong.LatLng(locationData.latitude!, locationData.longitude!),
-        latlong.LatLng(busStop.latitude, busStop.longitude));
+    final distanceMeters =
+        busStop.getMetersFromLocation(locationData.toLatLng()!);
     distanceMetadata[busStop] = distanceMeters;
   }
 
@@ -62,29 +61,6 @@ Future<List<BusStop>> busStopsByDistance(BusStopsByDistanceRef ref) async {
 }
 
 enum BusStopSearchFilter { all, withService }
-
-class SearchPage extends ConsumerStatefulWidget {
-  SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
-  SearchPage.onlyBusStops({super.key})
-      : showMap = false,
-        isSimpleMode = true;
-
-  static const int _furthestBusStopDistanceMeters = 3000;
-  static const double _searchDifferenceThreshold = 0.2;
-  static const double _launchVelocity = 0.5;
-
-  final bool showMap;
-  final bool isSimpleMode;
-  final GlobalKey _resultsSheetKey = GlobalKey();
-
-  @override
-  ConsumerState<SearchPage> createState() {
-    return SearchPageState();
-  }
-
-  static SearchPageState? of(BuildContext context) =>
-      context.findAncestorStateOfType<SearchPageState>();
-}
 
 @riverpod
 Future<List<BusStop>> busStopsInServices(
@@ -110,6 +86,34 @@ Future<List<BusStop>> busStopsInServices(
   return allBusServiceStops;
 }
 
+@riverpod
+Future<String> googleMapDarkStyle(GoogleMapDarkStyleRef ref) async {
+  return await rootBundle.loadString('assets/maps/map_style_dark.json');
+}
+
+class SearchPage extends StatefulHookConsumerWidget {
+  SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
+  SearchPage.onlyBusStops({super.key})
+      : showMap = false,
+        isSimpleMode = true;
+
+  static const int _furthestBusStopDistanceMeters = 3000;
+  static const double _searchDifferenceThreshold = 0.2;
+  static const double _launchVelocity = 0.5;
+
+  final bool showMap;
+  final bool isSimpleMode;
+  final GlobalKey _resultsSheetKey = GlobalKey();
+
+  @override
+  ConsumerState<SearchPage> createState() {
+    return SearchPageState();
+  }
+
+  static SearchPageState? of(BuildContext context) =>
+      context.findAncestorStateOfType<SearchPageState>();
+}
+
 class SearchPageState extends ConsumerState<SearchPage>
     with TickerProviderStateMixin {
   // The number of pixels to offset the FAB by animates out
@@ -125,10 +129,9 @@ class SearchPageState extends ConsumerState<SearchPage>
   late List<BusStop> _filteredBusStops;
   BusStopSearchFilter _searchFilter = BusStopSearchFilter.all;
   List<BusService> _busStopServicesFilter = [];
-  TextEditingController _busStopServicesFilterQueryController =
-      TextEditingController();
+  final _busStopServicesFilterQueryController = TextEditingController();
 
-  JaroWinkler jw = JaroWinkler();
+  static JaroWinkler jw = JaroWinkler();
 
   String _queryString = '';
   String get _query => _queryString;
@@ -175,25 +178,10 @@ class SearchPageState extends ConsumerState<SearchPage>
             : _defaultCameraPosition);
   }
 
-  late final AnimationController _clearIconAnimationController =
-      AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 300),
-  );
-  late final Animation<double> _clearIconAnimation = CurvedAnimation(
-      parent: _clearIconAnimationController,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic);
-
-  // Controlelrs
+  // Controllers
   final TextEditingController _textController = TextEditingController();
   late final TabController _tabController =
       TabController(length: 2, vsync: this);
-  late final AnimationController _mapClipperAnimationController =
-      AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 500),
-  );
   late final RubberAnimationController _resultsSheetAnimationController =
       RubberAnimationController(
     vsync: this,
@@ -213,7 +201,8 @@ class SearchPageState extends ConsumerState<SearchPage>
       Completer<GoogleMapController>();
 
   late GoogleMap _googleMap;
-  String? _googleMapDarkStyle;
+  String? get _googleMapDarkStyle =>
+      ref.watch(googleMapDarkStyleProvider).valueOrNull;
 
   double get sheetLowerBound =>
       _resultsSheetAnimationController.lowerBoundValue.pixel! /
@@ -253,6 +242,7 @@ class SearchPageState extends ConsumerState<SearchPage>
       // or when it has been fully closed.
       if (_resultsSheetAnimationController.value >=
           _resultsSheetAnimationController.upperBound!) {
+        // TODO: Fix map tab not updating when bottom sheet is fully expanded
         updateMapVisibility();
       }
 
@@ -269,21 +259,11 @@ class SearchPageState extends ConsumerState<SearchPage>
 
     // If normal mode, perform bus service and map-related functions
     if (widget.isSimpleMode) return;
-
-    rootBundle
-        .loadString('assets/maps/map_style_dark.json')
-        .then((String style) {
-      setState(() {
-        _googleMapDarkStyle = style;
-      });
-    });
   }
 
   @override
   void dispose() {
     _textController.dispose();
-    _clearIconAnimationController.dispose();
-    _mapClipperAnimationController.dispose();
     super.dispose();
   }
 
@@ -333,20 +313,26 @@ class SearchPageState extends ConsumerState<SearchPage>
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
-    if (_query.isEmpty) {
-      _clearIconAnimationController.reverse();
-    } else {
-      _clearIconAnimationController.forward();
-    }
-
-    if (_isMapVisible) {
-      _mapClipperAnimationController.forward();
-    } else {
-      _mapClipperAnimationController.reverse();
-    }
 
     final homeRoute =
         ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).valueOrNull;
+
+    useEffect(() {
+      _filteredBusServices =
+          _getFilteredBusServices(_busServices, _query, _showServicesOnly);
+    }, [_busServices, _query, _showServicesOnly]);
+
+    useEffect(() {
+      _filteredBusStops = _getFilteredBusStops(_busStops, _query);
+    }, [_busStops, _query]);
+
+    useEffect(() {
+      if (_focusedBusStop != null) {
+        if (!_filteredBusStops.contains(_focusedBusStop)) {
+          _focusedBusStop = null;
+        }
+      }
+    }, [_filteredBusStops]);
 
     return provider.MultiProvider(
       providers: [
@@ -396,13 +382,15 @@ class SearchPageState extends ConsumerState<SearchPage>
     return Hero(
       tag: 'searchField',
       child: CardAppBar(
-        // leading: IconButton(
-        //   color: Theme.of(context).hintColor,
-        //   icon: const Icon(Icons.arrow_back_rounded),
-        //   onPressed: () {
-        //     Navigator.pop(context);
-        //   },
-        // ),
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                color: Theme.of(context).hintColor,
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              )
+            : null,
         title: searchField,
         bottom: TabBar(
           controller: _tabController,
@@ -431,17 +419,20 @@ class SearchPageState extends ConsumerState<SearchPage>
           ],
         ),
         actions: [
-          ScaleTransition(
-              scale: _clearIconAnimation,
-              child: IconButton(
-                color: Theme.of(context).hintColor,
-                icon: const Icon(Icons.clear_rounded),
-                onPressed: () {
-                  setState(() {
-                    _query = '';
-                  });
-                },
-              )),
+          AnimatedScale(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            scale: _query.isEmpty ? 0.0 : 1.0,
+            child: IconButton(
+              color: Theme.of(context).hintColor,
+              icon: const Icon(Icons.clear_rounded),
+              onPressed: () {
+                setState(() {
+                  _query = '';
+                });
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -846,6 +837,70 @@ class SearchPageState extends ConsumerState<SearchPage>
       _focusedBusStop = busStop;
       _focusedLocation = LatLng(busStop.latitude, busStop.longitude);
     });
+  }
+
+  static List<BusService> _getFilteredBusServices(
+      List<BusService> services, String query, bool showServicesOnly) {
+    if (query.isEmpty && !showServicesOnly) {
+      return [];
+    }
+
+    return _filterBusServices(services, query)
+        .sorted((BusService a, BusService b) =>
+            compareBusNumber(a.number, b.number))
+        .toList(growable: false);
+  }
+
+  static List<BusStop> _getFilteredBusStops(
+      List<BusStop> busStops, String query) {
+    if (query.isEmpty) {
+      return busStops;
+    }
+
+    final isQueryAllNumbers = num.tryParse(query) != null;
+    double distanceFunction(BusStop busStop) {
+      final busStopName = busStop.displayName.toLowerCase();
+      final queryLengthBusStopName = busStopName.length > query.length
+          ? busStopName.substring(0, query.length)
+          : busStopName;
+      final busStopNameParts = busStopName.split(RegExp(r'( |/)'));
+      var minTokenDifference = double.maxFinite;
+
+      for (var part in busStopNameParts) {
+        if (part.isEmpty) continue;
+        if (query.length < part.length) {
+          part = part.substring(0, query.length);
+        }
+        minTokenDifference = min(minTokenDifference,
+            jw.normalizedDistance(part, query.toLowerCase()));
+      }
+
+      var distance =
+          jw.normalizedDistance(queryLengthBusStopName, query.toLowerCase()) -
+              0.01;
+
+      if (minTokenDifference < distance) {
+        distance =
+            minTokenDifference - 0.01 * (query.length / busStopName.length);
+      }
+
+      if (isQueryAllNumbers) {
+        final codeDistance = busStop.code.startsWith(query) ? -1.0 : 1.0;
+        distance = min(distance, codeDistance);
+      }
+
+      return distance;
+    }
+
+    final busStopsWithDistance = busStops
+        .map((BusStop busStop) =>
+            ((busStop: busStop, distance: distanceFunction(busStop))))
+        .where((busStop) =>
+            busStop.distance < SearchPage._searchDifferenceThreshold)
+        .toList();
+    mergeSort(busStopsWithDistance,
+        compare: (b1, b2) => b1.distance.compareTo(b2.distance));
+    return busStopsWithDistance.map((b) => b.busStop).toList();
   }
 
   void _generateQueryResults() {
@@ -1401,6 +1456,13 @@ class SearchPageState extends ConsumerState<SearchPage>
           List<BusService> list, String query) =>
       list.where((BusService busService) =>
           busService.number.toLowerCase().startsWith(query.toLowerCase()));
+
+  Map<BusStop, _QueryMetadata> useQueryMetadata() {
+    return <BusStop, _QueryMetadata>{
+      for (BusStop busStop in _filteredBusStops)
+        busStop: _calculateQueryMetadata(busStop, _query)
+    };
+  }
 
   static _QueryMetadata _calculateQueryMetadata(BusStop busStop, String query) {
     final queryLowercase = query.toLowerCase();
