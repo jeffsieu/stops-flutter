@@ -1,10 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/routes/fetch_data_page.dart';
 import 'package:stops_sg/routes/scan_card_page.dart';
+import 'package:stops_sg/utils/cepas/nfc_availability.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -24,6 +26,8 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(selectedThemeModeProvider);
+    final isNfcAvailable = ref.watch(nfcAvailabilityProvider).valueOrNull ==
+        NFCAvailability.available;
 
     return Scaffold(
       appBar: AppBar(
@@ -38,7 +42,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
                 style: Theme.of(context).textTheme.displaySmall),
           ),
           _buildThemeTile(themeMode.value),
-          _buildScanCardTile(),
+          if (isNfcAvailable) _buildScanCardTile(),
           _buildRefreshDataTile(),
           _buildAboutTile(),
         ],
