@@ -16,53 +16,48 @@ class RoutePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final latestRoute = ref.watch(savedUserRouteProvider(id: route.id));
 
-    return MediaQuery.removePadding(
-      context: context,
-      removeTop: true,
-      child: switch (latestRoute) {
-        AsyncData(:final value) => value != null
-            ? CustomScrollView(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                slivers: [
+    return switch (latestRoute) {
+      AsyncData(:final value) => value != null
+          ? CustomScrollView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _buildHeader(context, ref),
+                ),
+                if (value.busStops.isEmpty)
                   SliverToBoxAdapter(
-                    child: _buildHeader(context, ref),
-                  ),
-                  if (value.busStops.isEmpty)
-                    SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Center(
-                          child: Text(
-                              'This route has no stops.\n\nTap the edit icon to add stops to this route.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineMedium!
-                                  .copyWith(
-                                      color: Theme.of(context).hintColor)),
-                        ),
-                      ),
-                    ),
-                  SliverToBoxAdapter(
-                    child: Provider<EditModel>(
-                      create: (_) => const EditModel(isEditing: false),
-                      child: Provider<StoredUserRoute>(
-                        create: (_) => value,
-                        child: BusStopOverviewList(
-                          routeId: value.id,
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                        child: Text(
+                            'This route has no stops.\n\nTap the edit icon to add stops to this route.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium!
+                                .copyWith(color: Theme.of(context).hintColor)),
                       ),
                     ),
                   ),
-                ],
-              )
-            : const Center(child: Text('Error: route missing')),
-        AsyncError(:final error) => Center(
-            child: Text('Error in fetching route: $error'),
-          ),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
-    );
+                SliverToBoxAdapter(
+                  child: Provider<EditModel>(
+                    create: (_) => const EditModel(isEditing: false),
+                    child: Provider<StoredUserRoute>(
+                      create: (_) => value,
+                      child: BusStopOverviewList(
+                        routeId: value.id,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : const Center(child: Text('Error: route missing')),
+      AsyncError(:final error) => Center(
+          child: Text('Error in fetching route: $error'),
+        ),
+      _ => const Center(child: CircularProgressIndicator()),
+    };
   }
 
   Widget _buildHeader(BuildContext context, WidgetRef ref) {

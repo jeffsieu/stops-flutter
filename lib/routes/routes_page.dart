@@ -4,14 +4,37 @@ import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/routes/add_route_page.dart';
 import 'package:stops_sg/routes/fade_page_route.dart';
+import 'package:stops_sg/routes/route_page.dart';
 import 'package:stops_sg/widgets/route_list.dart';
 import 'package:stops_sg/widgets/route_list_item.dart';
 
-class RoutesPage extends ConsumerWidget {
+class RoutesPage extends ConsumerStatefulWidget {
   const RoutesPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RoutesPage> createState() => _RoutesPageState();
+}
+
+class _RoutesPageState extends ConsumerState<RoutesPage> {
+  StoredUserRoute? selectedRoute;
+
+  @override
+  Widget build(BuildContext context) {
+    if (selectedRoute != null) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) {
+            return;
+          }
+          setState(() {
+            selectedRoute = null;
+          });
+        },
+        child: RoutePage(route: selectedRoute!),
+      );
+    }
+
     return NotificationListener<RouteActionNotification>(
         onNotification: (RouteActionNotification notification) {
           if (notification.action == RouteAction.select) {
@@ -46,8 +69,9 @@ class RoutesPage extends ConsumerWidget {
   }
 
   void _pushRoutePageRoute(BuildContext context, StoredUserRoute route) {
-    Navigator.push(context,
-        FadePageRoute<StoredUserRoute>(child: AddRoutePage.edit(route)));
+    setState(() {
+      selectedRoute = route;
+    });
   }
 
   Future<void> _pushEditRouteRoute(
