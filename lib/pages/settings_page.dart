@@ -4,8 +4,8 @@ import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:stops_sg/database/database.dart';
-import 'package:stops_sg/routes/fetch_data_page.dart';
-import 'package:stops_sg/routes/scan_card_page.dart';
+import 'package:stops_sg/pages/fetch_data_page.dart';
+import 'package:stops_sg/pages/scan_card_page.dart';
 import 'package:stops_sg/utils/cepas/nfc_availability.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -31,16 +31,11 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
         backgroundColor: Colors.transparent,
+        title: const Text('Settings'),
       ),
       body: ListView(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text('Settings',
-                style: Theme.of(context).textTheme.displaySmall),
-          ),
           _buildThemeTile(themeMode.value),
           if (isNfcAvailable) _buildScanCardTile(),
           _buildRefreshDataTile(),

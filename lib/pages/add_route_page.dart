@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
-import 'package:provider/provider.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:provider/provider.dart' as provider;
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/routes/fade_page_route.dart';
-import 'package:stops_sg/routes/search_page/search_page.dart';
+import 'package:stops_sg/pages/search_page/search_page.dart';
+import 'package:stops_sg/routes/bus_stop_search_route.dart';
+import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
 import 'package:stops_sg/widgets/card_app_bar.dart';
 import 'package:stops_sg/widgets/color_picker.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/never_focus_node.dart';
 
-class AddRoutePage extends ConsumerStatefulWidget {
-  const AddRoutePage({super.key})
-      : route = null,
-        routeId = null;
-  AddRoutePage.edit(StoredUserRoute storedRoute, {super.key})
-      : route = storedRoute,
-        routeId = storedRoute.id;
+class AddRoutePage extends StatefulHookConsumerWidget {
+  const AddRoutePage({super.key}) : routeId = null;
+  const AddRoutePage.edit({super.key, required int this.routeId});
 
-  final UserRoute? route;
   final int? routeId;
 
   @override
@@ -36,20 +34,20 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
   Color? _colorPickerColor;
   Color _color = Colors.red;
   final TextEditingController _nameController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-
-    if (widget.route != null) {
-      busStops = List<BusStop>.from(widget.route!.busStops);
-      _color = widget.route!.color;
-      _nameController.text = widget.route!.name;
-    }
-  }
+  StoredUserRoute? get route => widget.routeId != null
+      ? ref.watch(savedUserRouteProvider(id: widget.routeId!)).valueOrNull
+      : null;
 
   @override
   Widget build(BuildContext context) {
+    useEffect(() {
+      if (route != null) {
+        busStops = List<BusStop>.from(route!.busStops);
+        _color = route!.color;
+        _nameController.text = route!.name;
+      }
+    }, [route]);
+
     _color = _color.of(context);
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
     return Scaffold(
@@ -59,7 +57,7 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
           tooltip: 'Cancel',
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(widget.route == null ? 'Add route' : 'Edit route'),
+        title: Text(route == null ? 'Add route' : 'Edit route'),
         actions: [
           IconButton(
             icon: const Icon(Icons.done_rounded),
@@ -105,7 +103,7 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: TextField(
-                      autofocus: widget.route == null,
+                      autofocus: route == null,
                       controller: _nameController,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -156,7 +154,7 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
   Widget _buildBusStops() {
     const isEditing = true;
 
-    return Provider<EditModel>(
+    return provider.Provider<EditModel>(
       create: (_) => const EditModel(isEditing: isEditing),
       child: ReorderableListView.builder(
         shrinkWrap: true,
@@ -305,9 +303,7 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
   }
 
   Future<void> _pushSearchRoute() async {
-    final Widget page = SearchPage.onlyBusStops();
-    final route = FadePageRoute<BusStop>(child: page);
-    final selectedBusStop = await Navigator.push(context, route);
+    final selectedBusStop = await BusStopSearchRoute().push<BusStop>(context);
     if (selectedBusStop != null) {
       setState(() {
         busStops.add(selectedBusStop);

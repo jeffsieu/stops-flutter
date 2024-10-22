@@ -1,45 +1,34 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/routes/fade_page_route.dart';
-import 'package:stops_sg/routes/fetch_data_page.dart';
-import 'package:stops_sg/routes/routes_page.dart';
-import 'package:stops_sg/routes/saved_page/saved_page.dart';
-import 'package:stops_sg/routes/search_page/search_page.dart';
-import 'package:stops_sg/routes/settings_page.dart';
+import 'package:stops_sg/pages/fetch_data_page.dart';
+import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/routes_route.dart';
+import 'package:stops_sg/routes/saved_route.dart';
+import 'package:stops_sg/routes/search_route.dart';
+import 'package:stops_sg/routes/settings_route.dart';
 
 const defaultBottomNavIndex = 0;
 
-class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+class HomePageScaffold extends ConsumerStatefulWidget {
+  const HomePageScaffold({super.key, required this.child});
+
+  final Widget child;
 
   @override
-  ConsumerState<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePageScaffold> createState() => _HomePageScaffoldState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
   int _bottomNavIndex = defaultBottomNavIndex;
 
-  Widget get body {
-    if (_bottomNavIndex == 0) {
-      return const SavedPage();
-    } else if (_bottomNavIndex == 1) {
-      return SearchPage();
-    } else if (_bottomNavIndex == 2) {
-      return const RoutesPage();
-    } else if (_bottomNavIndex == 3) {
-      return const SettingsPage();
-    }
-
-    throw Exception('Invalid index: $_bottomNavIndex');
-  }
+  Widget get body => widget.child;
 
   @override
   void initState() {
@@ -49,7 +38,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       const quickActions = QuickActions();
       quickActions.initialize((String shortcutType) {
         if (shortcutType == 'action_search') {
-          _pushSearchRoute();
+          SearchRoute().go(context);
         }
       });
       quickActions.setShortcutItems(<ShortcutItem>[
@@ -93,6 +82,15 @@ class _HomePageState extends ConsumerState<HomePage> {
               setState(() {
                 _bottomNavIndex = index;
               });
+              if (index == 0) {
+                SavedRoute().go(context);
+              } else if (index == 1) {
+                SearchRoute().go(context);
+              } else if (index == 2) {
+                RoutesRoute().go(context);
+              } else if (index == 3) {
+                SettingsRoute().go(context);
+              }
             },
             destinations: const <NavigationDestination>[
               NavigationDestination(
@@ -139,11 +137,5 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       return;
     }
-  }
-
-  void _pushSearchRoute() {
-    final Widget page = SearchPage();
-    final Route<void> route = FadePageRoute<void>(child: page);
-    Navigator.push(context, route);
   }
 }

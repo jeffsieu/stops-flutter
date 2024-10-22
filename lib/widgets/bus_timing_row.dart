@@ -12,7 +12,7 @@ import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/routes/bus_service_page.dart';
+import 'package:stops_sg/pages/bus_service_page.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/utils/database/followed_buses.dart';
 import 'package:stops_sg/utils/time_utils.dart';

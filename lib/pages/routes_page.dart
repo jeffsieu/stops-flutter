@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
-import 'package:stops_sg/routes/add_route_page.dart';
-import 'package:stops_sg/routes/fade_page_route.dart';
-import 'package:stops_sg/routes/route_page.dart';
+import 'package:stops_sg/pages/route_page.dart';
+import 'package:stops_sg/routes/add_route_route.dart';
+import 'package:stops_sg/routes/edit_route_route.dart';
+import 'package:stops_sg/routes/route_detail_route.dart';
+import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/widgets/route_list.dart';
 import 'package:stops_sg/widgets/route_list_item.dart';
 
@@ -48,6 +50,10 @@ class _RoutesPageState extends ConsumerState<RoutesPage> {
           return false;
         },
         child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            title: const Text('Routes'),
+          ),
           floatingActionButton: FloatingActionButton.extended(
             heroTag: null,
             onPressed: () => _pushAddRouteRoute(context, ref),
@@ -59,9 +65,7 @@ class _RoutesPageState extends ConsumerState<RoutesPage> {
   }
 
   Future<void> _pushAddRouteRoute(BuildContext context, WidgetRef ref) async {
-    final Route<UserRoute> route =
-        FadePageRoute<UserRoute>(child: const AddRoutePage());
-    final userRoute = await Navigator.push(context, route);
+    final userRoute = await AddRouteRoute().push<UserRoute>(context);
 
     if (userRoute != null) {
       await ref.read(savedUserRoutesProvider.notifier).addRoute(userRoute);
@@ -69,15 +73,13 @@ class _RoutesPageState extends ConsumerState<RoutesPage> {
   }
 
   void _pushRoutePageRoute(BuildContext context, StoredUserRoute route) {
-    setState(() {
-      selectedRoute = route;
-    });
+    RouteDetailRoute(routeId: route.id).push(context);
   }
 
   Future<void> _pushEditRouteRoute(
       BuildContext context, WidgetRef ref, StoredUserRoute route) async {
-    final editedRoute = await Navigator.push(context,
-        FadePageRoute<StoredUserRoute>(child: AddRoutePage.edit(route)));
+    final editedRoute =
+        await EditRouteRoute(routeId: route.id).push<StoredUserRoute>(context);
     if (editedRoute != null) {
       await ref.read(savedUserRoutesProvider.notifier).updateRoute(editedRoute);
     }

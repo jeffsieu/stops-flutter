@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/routes/bus_service_page.dart';
+import 'package:stops_sg/pages/bus_service_page.dart';
 import 'package:stops_sg/utils/cepas/cepas_card.dart';
 import 'package:stops_sg/utils/cepas/nfc_commands.dart';
 

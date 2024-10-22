@@ -12,7 +12,7 @@ import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet_header.dart';
 import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet_service_list.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
-import 'package:stops_sg/routes/settings_page.dart';
+import 'package:stops_sg/pages/settings_page.dart';
 import 'package:stops_sg/widgets/bus_stop_legend_card.dart';
 
 const Duration kSheetUpdateDuration = Duration(milliseconds: 1000);

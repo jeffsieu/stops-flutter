@@ -48,6 +48,7 @@ dependencies:
   package_info_plus: ^8.1.0
   flutter_hooks: ^0.20.5
   hooks_riverpod: ^3.0.0-dev.3
+  go_router: ^14.3.0
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +59,8 @@ dev_dependencies:
   riverpod_generator: ^3.0.0-dev.3
   custom_lint: ^0.5.11
   riverpod_lint: ^3.0.0-dev.3
+  go_router_builder: ^2.7.1
+  build_verify: ^3.1.0
 
 flutter_icons:
   android: true

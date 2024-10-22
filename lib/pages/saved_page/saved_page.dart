@@ -49,8 +49,50 @@ class SavedPageState extends ConsumerState<SavedPage> {
 
           return true;
         },
-        child: ListView(
-          children: _buildHomeItems(),
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            title: const Text('Saved'),
+            actions: [
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 300),
+                firstChild: PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert_rounded,
+                      color: Theme.of(context).hintColor),
+                  itemBuilder: (BuildContext context) {
+                    return <PopupMenuItem<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'edit',
+                        child: Text('Edit stops'),
+                      ),
+                    ];
+                  },
+                  onSelected: (String value) {
+                    if (value == 'edit') {
+                      setState(() {
+                        _isEditing = true;
+                      });
+                    }
+                  },
+                ),
+                secondChild: IconButton(
+                    icon: const Icon(Icons.done_rounded),
+                    tooltip: 'Save',
+                    color: Theme.of(context).colorScheme.secondary,
+                    onPressed: () {
+                      setState(() {
+                        _isEditing = false;
+                      });
+                    }),
+                crossFadeState: _isEditing
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+              ),
+            ],
+          ),
+          body: ListView(
+            children: _buildHomeItems(),
+          ),
         ),
       ),
     );
@@ -175,7 +217,6 @@ class SavedPageState extends ConsumerState<SavedPage> {
   List<Widget> _buildHomeItems() {
     return [
       _buildTrackedBuses(),
-      _buildMyStopsHeader(),
       ProxyProvider0<EditModel>(
         update: (_, __) => EditModel(isEditing: _isEditing),
         child: const BusStopOverviewList(
@@ -184,52 +225,5 @@ class SavedPageState extends ConsumerState<SavedPage> {
       ),
       const SizedBox(height: 64.0),
     ];
-  }
-
-  Widget _buildMyStopsHeader() {
-    return Padding(
-      padding:
-          const EdgeInsets.only(top: 0, left: 32.0, right: 16.0, bottom: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text('My Stops', style: Theme.of(context).textTheme.headlineMedium),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 300),
-            firstChild: PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert_rounded,
-                  color: Theme.of(context).hintColor),
-              itemBuilder: (BuildContext context) {
-                return <PopupMenuItem<String>>[
-                  const PopupMenuItem<String>(
-                    value: 'edit',
-                    child: Text('Edit stops'),
-                  ),
-                ];
-              },
-              onSelected: (String value) {
-                if (value == 'edit') {
-                  setState(() {
-                    _isEditing = true;
-                  });
-                }
-              },
-            ),
-            secondChild: IconButton(
-                icon: const Icon(Icons.done_rounded),
-                tooltip: 'Save',
-                color: Theme.of(context).colorScheme.secondary,
-                onPressed: () {
-                  setState(() {
-                    _isEditing = false;
-                  });
-                }),
-            crossFadeState: _isEditing
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-          ),
-        ],
-      ),
-    );
   }
 }
