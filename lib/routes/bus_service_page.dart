@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:provider/provider.dart' as provider;
 import 'package:stops_sg/bus_api/models/bus_service_route.dart';
 import 'package:stops_sg/bus_api/models/bus_service_with_routes.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import 'package:stops_sg/database/database.dart';
-import 'package:stops_sg/routes/bottom_sheet_page.dart';
-import 'package:stops_sg/widgets/highlighted_icon.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
 
-class BusServicePage extends BottomSheetPage {
+class BusServicePage extends HookConsumerWidget {
   const BusServicePage(this.serviceNumber, {super.key}) : focusedBusStop = null;
   const BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
       {super.key});
@@ -19,112 +19,113 @@ class BusServicePage extends BottomSheetPage {
   final BusStop? focusedBusStop;
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() {
-    return _BusServicePageState();
-  }
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tabController = useTabController(initialLength: 2);
 
-class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
-  _BusServicePageState() : super(hasAppBar: false);
-
-  BusServiceWithRoutes? service;
-  int focusedDirection = 0;
-//  ScrollController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    initService();
-  }
-
-  Future<void> initService() async {
-    final service = await ref
-        .watch(cachedBusServiceWithRoutesProvider(widget.serviceNumber).future);
-    if (widget.focusedBusStop != null) {
-      final focusedRoute = service.routes[0].busStops
-              .map((b) => b.busStop)
-              .contains(widget.focusedBusStop)
-          ? service.routes[0]
-          : service.routes[1];
-      focusedDirection = service.routes.indexOf(focusedRoute);
-
-//      final double index = focusedRoute.busStops.indexOf(widget.focusedBusStop)
-//          .toDouble();
-//      controller = ScrollController(initialScrollOffset: 56 * index);
-    }
-    if (mounted) {
-      setState(() {
-        this.service = service;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tabController = TabController(length: 2, vsync: this);
-    final bottomSheetContainer = bottomSheet(child: _buildBody(tabController));
-
-    tabController.index = focusedDirection;
+    final homeRoute =
+        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).valueOrNull;
 
     return Scaffold(
-      body: bottomSheetContainer,
-    );
-  }
-
-  Widget _buildBody(TabController tabController) {
-    return NestedScrollView(
-//      controller: controller,
-      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-        final hasTabBar = (service?.directionCount ?? 0) > 1;
-        return [
-          SliverOverlapAbsorber(
-            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-            sliver: SliverAppBar(
-              elevation: 4.0,
-              forceElevated: true,
-              expandedHeight: 128.0 + kTextTabBarHeight,
-              collapsedHeight: kToolbarHeight,
-              floating: true,
-              pinned: true,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: EdgeInsets.only(
-                    left: 72, bottom: hasTabBar ? kTextTabBarHeight : 0),
-                title: SizedBox(
-                  height: kToolbarHeight,
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(widget.serviceNumber,
-                        style: Theme.of(context).textTheme.titleLarge),
-                  ),
-                ),
-                collapseMode: CollapseMode.pin,
-              ),
-              bottom: hasTabBar
-                  ? TabBar(
-                      controller: tabController,
-                      tabs: [
-                        Tab(
-                          text: 'To ${service!.destinations[0].defaultName}',
-                        ),
-                        Tab(
-                          text: 'To ${service!.destinations[1].defaultName}',
-                        ),
-                      ],
-                    )
-                  : null,
-            ),
+      body: provider.MultiProvider(
+        providers: [
+          provider.Provider(
+            create: (_) => const EditModel(isEditing: false),
           ),
-        ];
-      },
-      body: service != null
-          ? (service!.directionCount == 1
-              ? _buildRouteBusStops(service!.routes[0])
-              : _buildPageView(service!, tabController))
-          : (const Center(child: CircularProgressIndicator())),
+          provider.Provider<StoredUserRoute?>(
+            create: (_) => homeRoute,
+          ),
+        ],
+        child: _buildBody(context, ref, tabController),
+      ),
     );
   }
 
-  Widget _buildRouteBusStops(BusServiceRoute route) {
+  Widget _buildBody(
+      BuildContext context, WidgetRef ref, TabController tabController) {
+    final service =
+        ref.watch(cachedBusServiceWithRoutesProvider(serviceNumber));
+
+    final focusedRoute = useMemoized(() {
+      final serviceValue = service.valueOrNull;
+
+      if (focusedBusStop == null || serviceValue == null) {
+        return null;
+      }
+
+      return serviceValue.routes[0].busStops.reversed
+              .skip(1)
+              .map((b) => b.busStop)
+              .contains(focusedBusStop)
+          ? serviceValue.routes[0]
+          : serviceValue.routes[1];
+    }, [service, focusedBusStop]);
+
+    useEffect(() {
+      if (service.value == null || focusedRoute == null) {
+        return;
+      }
+
+      final focusedDirection = service.value!.routes.indexOf(focusedRoute);
+
+      tabController.index = focusedDirection;
+    }, [service, focusedRoute]);
+
+    return switch (service) {
+      AsyncData(:final value) => NestedScrollView(
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            final hasTabBar = value.directionCount > 1;
+
+            return [
+              SliverOverlapAbsorber(
+                handle:
+                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                sliver: SliverAppBar(
+                  elevation: 4.0,
+                  forceElevated: true,
+                  expandedHeight: 128.0 + kTextTabBarHeight,
+                  collapsedHeight: kToolbarHeight,
+                  floating: true,
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    titlePadding: EdgeInsets.only(
+                        left: 72, bottom: hasTabBar ? kTextTabBarHeight : 0),
+                    title: SizedBox(
+                      height: kToolbarHeight,
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(serviceNumber,
+                            style: Theme.of(context).textTheme.titleLarge),
+                      ),
+                    ),
+                    collapseMode: CollapseMode.pin,
+                  ),
+                  bottom: hasTabBar
+                      ? TabBar(
+                          controller: tabController,
+                          tabs: [
+                            Tab(
+                              text: 'To ${value.destinations[0].defaultName}',
+                            ),
+                            Tab(
+                              text: 'To ${value.destinations[1].defaultName}',
+                            ),
+                          ],
+                        )
+                      : null,
+                ),
+              ),
+            ];
+          },
+          body: (value.directionCount == 1
+              ? _buildRouteBusStops(context, value.routes[0])
+              : _buildPageView(context, value, tabController)),
+        ),
+      AsyncError(:final error) => Text('Unable to fetch bus service: $error'),
+      _ => const Center(child: CircularProgressIndicator()),
+    };
+  }
+
+  Widget _buildRouteBusStops(BuildContext context, BusServiceRoute route) {
     final focusedColor = Theme.of(context).highlightColor;
 
     return MediaQuery.removePadding(
@@ -139,129 +140,65 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int position) {
-                    final routeBusStop = route.busStops[position];
-                    final busStop = routeBusStop.busStop;
-                    final distance = routeBusStop.distance;
-                    final previousRoad = position > 0
-                        ? route.busStops[position - 1].busStop.road
-                        : '';
-                    final newRoad = busStop.road != previousRoad;
-                    return Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Row(
-                            children: [
-                              Container(
-                                margin: position == 0
-                                    ? const EdgeInsets.only(
-                                        left: 36.0, top: 72.0)
-                                    : position < route.busStops.length - 1
-                                        ? const EdgeInsets.only(left: 36.0)
-                                        : const EdgeInsets.only(
-                                            left: 36.0, bottom: 8.0),
-                                child: Container(
-                                  color: Theme.of(context).hintColor,
-                                  width: 8.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                delegate: SliverChildBuilderDelegate((routeBusStop, position) {
+                  final routeBusStop = route.busStops[position];
+                  final busStop = routeBusStop.busStop;
+                  final previousRoad = position > 0
+                      ? route.busStops[position - 1].busStop.road
+                      : '';
+                  final newRoad = busStop.road != previousRoad;
+
+                  return Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Row(
                           children: [
-                            if (newRoad)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 88.0, top: 24.0, bottom: 8.0),
-                                child: Text(busStop.road,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium),
-                              ),
-                            Material(
-                              color: busStop == widget.focusedBusStop
-                                  ? focusedColor
-                                  : Colors.transparent,
-                              child: InkWell(
-                                onTap: () => context
-                                    .read<BusStopSheetBloc>()
-                                    .add(SheetRequested(
-                                        busStop, kDefaultRouteId)),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0),
-                                  title: Text(busStop.defaultName,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium),
-                                  subtitle: Text(busStop.code,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall!
-                                          .copyWith(
-                                              color:
-                                                  Theme.of(context).hintColor)),
-                                  leading: Ink(
-                                    color: Color.alphaBlend(
-                                        busStop == widget.focusedBusStop
-                                            ? focusedColor
-                                            : Colors.transparent,
-                                        Theme.of(context)
-                                            .scaffoldBackgroundColor),
-                                    width: 64.0,
-                                    height: 72.0,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        HighlightedIcon(
-                                          iconColor: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                          child: SvgPicture.asset(
-                                            'assets/images/bus-stop.svg',
-                                            width: 24.0,
-                                            height: 24.0,
-                                            colorFilter: ColorFilter.mode(
-                                                Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
-                                                BlendMode.srcIn),
-                                          ),
-                                        ),
-                                        Flexible(
-                                          child: FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            child: Text(
-                                              '$distance km',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleSmall!
-                                                  .copyWith(
-                                                      color: Theme.of(context)
-                                                          .hintColor),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                            Container(
+                              margin: position == 0
+                                  ? const EdgeInsetsDirectional.only(
+                                      start: 44.0, top: 72.0)
+                                  : position < route.busStops.length - 1
+                                      ? const EdgeInsetsDirectional.only(
+                                          start: 44.0)
+                                      : const EdgeInsetsDirectional.only(
+                                          start: 44.0, bottom: 8.0),
+                              child: Container(
+                                color: Theme.of(context).hintColor,
+                                width: 8.0,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    );
-                  },
-                  childCount: route.busStops.length,
-                ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (newRoad)
+                            Padding(
+                              padding: const EdgeInsetsDirectional.only(
+                                  start: 72.0, top: 24.0, bottom: 8.0),
+                              child: Text(busStop.road,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium),
+                            ),
+                          Material(
+                            color: busStop == focusedBusStop
+                                ? focusedColor
+                                : Colors.transparent,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: BusStopOverviewItem(
+                                busStop,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }),
               ),
             ],
           );
@@ -270,13 +207,13 @@ class _BusServicePageState extends BottomSheetPageState<BusServicePage> {
     );
   }
 
-  Widget _buildPageView(
-      BusServiceWithRoutes service, TabController tabController) {
+  Widget _buildPageView(BuildContext context, BusServiceWithRoutes service,
+      TabController tabController) {
     return TabBarView(
       controller: tabController,
       children: [
-        _buildRouteBusStops(service.routes[0]),
-        _buildRouteBusStops(service.routes[1]),
+        _buildRouteBusStops(context, service.routes[0]),
+        _buildRouteBusStops(context, service.routes[1]),
       ],
     );
   }

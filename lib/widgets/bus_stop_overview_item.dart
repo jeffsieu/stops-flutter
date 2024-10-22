@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,7 +7,6 @@ import 'package:shimmer/shimmer.dart';
 import 'package:stops_sg/bus_api/bus_api.dart';
 import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/location/location.dart';
@@ -124,7 +124,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                               BlendMode.srcIn),
                         ),
                       ),
-                      const SizedBox(width: 8.0),
+                      const SizedBox(width: 16.0),
                     ],
                   ),
                 ),
@@ -139,7 +139,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
                         padding: isExpanded
-                            ? const EdgeInsets.symmetric(horizontal: 4)
+                            ? const EdgeInsetsDirectional.only(start: 8)
                             : EdgeInsets.zero,
                         child: AnimatedDefaultTextStyle(
                           style: isTitleLarge
@@ -147,7 +147,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                               : Theme.of(context).textTheme.titleMedium!,
                           curve: Curves.easeOutCubic,
                           duration: const Duration(milliseconds: 300),
-                          child: Text(name),
+                          child: AutoSizeText(name),
                         ),
                       ),
                     ),
@@ -155,7 +155,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
                       padding: isExpanded
-                          ? const EdgeInsets.symmetric(horizontal: 4)
+                          ? const EdgeInsetsDirectional.only(start: 8)
                           : EdgeInsets.zero,
                       child: Text('$code · $road',
                           style: Theme.of(context)
@@ -168,7 +168,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
               ),
               if (location != null) ...{
                 AnimatedOpacity(
-                  opacity: showDistance ? 1 : 0,
+                  opacity: showDistance && !isExpanded ? 1 : 0,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOutCubic,
                   child: Chip(
@@ -183,7 +183,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
           ),
         ),
         body: child,
-        titlePadding: 12,
+        titlePadding: 16.0,
         titleBorderGap: 0,
         topOffset: isExpanded ? 16.0 : 0.0,
       ),
@@ -301,12 +301,5 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
         },
       ),
     );
-  }
-
-  void _showDetailSheet(BuildContext context) {
-    FocusScope.of(context).unfocus();
-    context
-        .read<BusStopSheetBloc>()
-        .add(SheetRequested(busStop, context.read<StoredUserRoute>().id));
   }
 }
