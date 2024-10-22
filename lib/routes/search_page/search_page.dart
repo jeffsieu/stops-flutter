@@ -10,7 +10,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:latlong2/latlong.dart' as latlong;
 import 'package:provider/provider.dart' as provider;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rubber/rubber.dart';
@@ -21,6 +20,7 @@ import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/location/location.dart';
 import 'package:stops_sg/main.dart';
 import 'package:stops_sg/routes/bus_service_page.dart';
+import 'package:stops_sg/routes/search_page/search_page_map.dart';
 import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/widgets/bus_service_search_item.dart';
@@ -86,18 +86,12 @@ Future<List<BusStop>> busStopsInServices(
   return allBusServiceStops;
 }
 
-@riverpod
-Future<String> googleMapDarkStyle(GoogleMapDarkStyleRef ref) async {
-  return await rootBundle.loadString('assets/maps/map_style_dark.json');
-}
-
 class SearchPage extends StatefulHookConsumerWidget {
   SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
   SearchPage.onlyBusStops({super.key})
       : showMap = false,
         isSimpleMode = true;
 
-  static const int _furthestBusStopDistanceMeters = 3000;
   static const double _searchDifferenceThreshold = 0.2;
   static const double _launchVelocity = 0.5;
 
@@ -119,7 +113,6 @@ class SearchPageState extends ConsumerState<SearchPage>
   // The number of pixels to offset the FAB by animates out
   // via a fade down
   final double _resultsSheetCollapsedHeight = 124;
-  final LatLng _defaultCameraPosition = const LatLng(1.3521, 103.8198);
 
   List<BusStop> get _busStops =>
       ref.watch(busStopsByDistanceProvider).valueOrNull ?? [];
@@ -148,10 +141,8 @@ class SearchPageState extends ConsumerState<SearchPage>
   UserLocationSnapshot get userLocation =>
       ref.watch(userLocationProvider).value ??
       UserLocationSnapshot.noService(timestamp: DateTime.now());
-  final bool _isDistanceLoaded = false;
   final bool _showServicesOnly = false;
   late bool _isMapVisible = widget.showMap;
-  bool _isRefocusButtonVisible = true;
 
   BusStop? __focusedBusStop;
 
@@ -165,18 +156,9 @@ class SearchPageState extends ConsumerState<SearchPage>
   }
 
   bool _isFocusedBusStopExpanded = false;
-  LatLng? _focusedLocation;
 
   BusStop? get _displayedBusStop =>
       _focusedBusStop ?? _filteredBusStops.firstOrNull;
-
-  LatLng get _markerOrigin {
-    final userLocationData = userLocation.data;
-    return _focusedLocation ??
-        (userLocationData != null
-            ? LatLng(userLocationData.latitude!, userLocationData.longitude!)
-            : _defaultCameraPosition);
-  }
 
   // Controllers
   final TextEditingController _textController = TextEditingController();
@@ -565,122 +547,18 @@ class SearchPageState extends ConsumerState<SearchPage>
           key: widget._resultsSheetKey,
           animationController: _resultsSheetAnimationController,
           scrollController: _scrollController,
-          lowerLayer: Stack(
-            alignment: Alignment.topCenter,
-            children: [
-              Builder(builder: (context) {
-                return _buildMapWidget(context);
-              }),
-              if (userLocation.data != null)
-                Positioned(
-                  bottom: _resultsSheetCollapsedHeight + 16.0,
-                  child: FloatingActionButton.extended(
-                      label: const Text('Focus on my location'),
-                      icon: const Icon(Icons.my_location_rounded),
-                      onPressed: () async {
-                        final controller = await _googleMapController.future;
-                        final currentZoom = await controller.getZoomLevel();
-
-                        final locationData = userLocation.data;
-
-                        if (locationData == null) {
-                          return;
-                        }
-
-                        controller.animateCamera(
-                          CameraUpdate.newCameraPosition(
-                            CameraPosition(
-                              target: LatLng(locationData.latitude!,
-                                  locationData.longitude!),
-                              zoom: currentZoom,
-                            ),
-                          ),
-                        );
-                      }),
-                ),
-              Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + kToolbarHeight * 2,
-                  left: 16.0,
-                  right: 16.0,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 300),
-                      curve: _query.isEmpty
-                          ? const Interval(0.5, 1.0)
-                          : const Interval(0.0, 0.5),
-                      opacity: _query.isEmpty ? 0.0 : 1.0,
-                      child: AnimatedSlide(
-                        offset: _query.isEmpty
-                            ? const Offset(0, -0.5)
-                            : Offset.zero,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOutCubic,
-                        child: Material(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          elevation: 2,
-                          borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(8.0)),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 8.0, horizontal: 12.0),
-                            child: Row(
-                              children: [
-                                Icon(Icons.info_outline_rounded,
-                                    color: Theme.of(context).hintColor,
-                                    size: 20.0),
-                                const SizedBox(width: 8.0),
-                                Text(
-                                  'Showing only "$_query"',
-                                  style: TextStyle(
-                                      color: Theme.of(context).hintColor),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Opacity(
-                        opacity: _isRefocusButtonVisible ? 1.0 : 0.0,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final controller =
-                                await _googleMapController.future;
-                            final visibleRegion =
-                                await controller.getVisibleRegion();
-                            final centerLatitude =
-                                (visibleRegion.northeast.latitude +
-                                        visibleRegion.southwest.latitude) /
-                                    2;
-                            final centerLongitude =
-                                (visibleRegion.northeast.longitude +
-                                        visibleRegion.southwest.longitude) /
-                                    2;
-                            setState(() {
-                              _focusedLocation =
-                                  LatLng(centerLatitude, centerLongitude);
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).cardColor,
-                          ),
-                          child: Text(
-                              'Search this area for ${_query.isEmpty ? 'stops' : '"$_query"'}',
-                              style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          lowerLayer: SearchPageMap(
+            busStops: _filteredBusStops,
+            paddingTop: MediaQuery.of(context).padding.top + 128,
+            paddingBottom: _resultsSheetCollapsedHeight,
+            isVisible: _isMapVisible,
+            query: _query,
+            focusedBusStop: _focusedBusStop,
+            onFocusedBusStopChanged: (BusStop? busStop) {
+              setState(() {
+                _focusedBusStop = busStop;
+              });
+            },
           ),
           upperLayer: Material(
             clipBehavior: Clip.antiAlias,
@@ -734,109 +612,6 @@ class SearchPageState extends ConsumerState<SearchPage>
     );
 
     return body;
-  }
-
-  Widget _buildMapWidget(BuildContext context) {
-    /* Initialize google map */
-    final initialCameraPosition = _getCameraPositionFromLocation();
-    final googleMapStyle = Theme.of(context).brightness == Brightness.dark
-        ? _googleMapDarkStyle
-        : null;
-
-    _googleMap = GoogleMap(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 128,
-        bottom: _resultsSheetCollapsedHeight,
-      ),
-      scrollGesturesEnabled: true,
-      zoomGesturesEnabled: true,
-      mapToolbarEnabled: true,
-      compassEnabled: true,
-      zoomControlsEnabled: false,
-      myLocationEnabled: _isMapVisible,
-      myLocationButtonEnabled: false,
-      mapType: MapType.normal,
-      initialCameraPosition: initialCameraPosition,
-      style: googleMapStyle,
-      onMapCreated: (GoogleMapController controller) {
-        if (!_googleMapController.isCompleted) {
-          _googleMapController.complete(controller);
-        }
-        if (_isDistanceLoaded) {
-          controller.moveCamera(
-              CameraUpdate.newCameraPosition(_getCameraPositionFromLocation()));
-        }
-      },
-      onCameraMove: (CameraPosition position) {
-        // If the distance to _focusedLocation is greater than the threshold,
-        // make the re-focus button visible.
-        final distanceMeters = const latlong.Distance().as(
-            latlong.LengthUnit.Meter,
-            latlong.LatLng(_markerOrigin.latitude, _markerOrigin.longitude),
-            latlong.LatLng(
-                position.target.latitude, position.target.longitude));
-        final shouldShowRefocusButton =
-            distanceMeters > SearchPage._furthestBusStopDistanceMeters;
-        if (shouldShowRefocusButton != _isRefocusButtonVisible) {
-          setState(() {
-            _isRefocusButtonVisible = shouldShowRefocusButton;
-          });
-        }
-      },
-      onTap: (_) {
-        setState(() {
-          _focusedBusStop = null;
-        });
-      },
-      markers: _buildMapMarkersAround(_markerOrigin, context),
-    );
-
-    return _googleMap;
-  }
-
-  CameraPosition _getCameraPositionFromLocation() {
-    final locationData = userLocation.data;
-    return CameraPosition(
-      target: locationData != null
-          ? LatLng(locationData.latitude!, locationData.longitude!)
-          : _defaultCameraPosition,
-      zoom: 18,
-    );
-  }
-
-  Set<Marker> _buildMapMarkersAround(LatLng? position, BuildContext context) {
-    final markers = <Marker>{};
-
-    if (position == null) {
-      return markers;
-    }
-
-    for (var busStop in _filteredBusStops) {
-      if (busStop.getMetersFromLocation(position) >
-          SearchPage._furthestBusStopDistanceMeters) continue;
-      markers.add(Marker(
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-        markerId: MarkerId(busStop.code),
-        position: LatLng(busStop.latitude, busStop.longitude),
-        infoWindow:
-            InfoWindow(title: busStop.displayName, snippet: busStop.road),
-        onTap: () {
-          if (_focusedBusStop == busStop) {
-          } else {
-            focusBusStopOnMap(busStop);
-          }
-        },
-      ));
-    }
-
-    return markers;
-  }
-
-  void focusBusStopOnMap(BusStop busStop) {
-    setState(() {
-      _focusedBusStop = busStop;
-      _focusedLocation = LatLng(busStop.latitude, busStop.longitude);
-    });
   }
 
   static List<BusService> _getFilteredBusServices(
@@ -1353,7 +1128,6 @@ class SearchPageState extends ConsumerState<SearchPage>
                   controller.showMarkerInfoWindow(MarkerId(busStop.code)));
           setState(() {
             _focusedBusStop = busStop;
-            _focusedLocation = LatLng(busStop.latitude, busStop.longitude);
           });
         }
 

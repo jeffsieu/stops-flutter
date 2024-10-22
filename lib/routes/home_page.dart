@@ -12,7 +12,7 @@ import 'package:stops_sg/routes/fade_page_route.dart';
 import 'package:stops_sg/routes/fetch_data_page.dart';
 import 'package:stops_sg/routes/routes_page.dart';
 import 'package:stops_sg/routes/saved_page/saved_page.dart';
-import 'package:stops_sg/routes/search_page.dart';
+import 'package:stops_sg/routes/search_page/search_page.dart';
 import 'package:stops_sg/routes/settings_page.dart';
 
 const defaultBottomNavIndex = 0;

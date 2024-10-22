@@ -6,7 +6,7 @@ import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/main.dart';
 import 'package:stops_sg/routes/fade_page_route.dart';
-import 'package:stops_sg/routes/search_page.dart';
+import 'package:stops_sg/routes/search_page/search_page.dart';
 import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
 import 'package:stops_sg/widgets/card_app_bar.dart';
 import 'package:stops_sg/widgets/color_picker.dart';
