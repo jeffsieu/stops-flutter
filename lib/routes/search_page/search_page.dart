@@ -453,9 +453,6 @@ class SearchPageState extends ConsumerState<SearchPage>
     } else {
       _hideKeyboard();
       _scrollController.jumpTo(0);
-      // ignore: avoid_as
-      // (widget._resultsSheetKey.currentState as RubberBottomSheetState)
-      //     .setScrolling(false);
 
       return _collapseSheet();
     }
@@ -494,7 +491,11 @@ class SearchPageState extends ConsumerState<SearchPage>
                           MediaQuery.of(context).padding.top +
                           16.0,
                     ),
-                    child: child,
+                    child: Opacity(
+                      opacity: (const Interval(0.33, 1)
+                          .transform(_resultsSheetExpandedPercentage)),
+                      child: child,
+                    ),
                   ),
                 ),
               );
@@ -1046,9 +1047,16 @@ class SearchPageState extends ConsumerState<SearchPage>
             for (var i = 0; i < 3; i++) ...{
               if (i < _filteredBusServices.length) ...{
                 Expanded(
-                  child: BusServiceSearchItem(
-                    onTap: () => _pushBusServiceRoute(_filteredBusServices[i]),
-                    busService: _filteredBusServices[i],
+                  child: AnimatedBuilder(
+                    animation: _resultsSheetAnimationController,
+                    builder: (context, animation) => BusServiceSearchItem(
+                      onTap: () =>
+                          _pushBusServiceRoute(_filteredBusServices[i]),
+                      busService: _filteredBusServices[i],
+                      // TODO: Workaround because Ink does not work with opacity
+                      opacity: (const Interval(0.33, 1)
+                          .transform(_resultsSheetExpandedPercentage)),
+                    ),
                   ),
                 ),
               } else ...{
