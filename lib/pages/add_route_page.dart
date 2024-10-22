@@ -7,7 +7,6 @@ import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/pages/search_page/search_page.dart';
 import 'package:stops_sg/routes/bus_stop_search_route.dart';
 import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
@@ -46,6 +45,7 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
         _color = route!.color;
         _nameController.text = route!.name;
       }
+      return null;
     }, [route]);
 
     _color = _color.of(context);

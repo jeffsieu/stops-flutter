@@ -3,12 +3,9 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stops_sg/database/database.dart';
-import 'package:stops_sg/pages/home_page_scaffold.dart';
 import 'package:stops_sg/routes/router.dart';
-import 'package:stops_sg/routes/routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

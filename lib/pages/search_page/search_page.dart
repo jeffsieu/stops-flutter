@@ -302,10 +302,12 @@ class SearchPageState extends ConsumerState<SearchPage>
     useEffect(() {
       _filteredBusServices =
           _getFilteredBusServices(_busServices, _query, _showServicesOnly);
+      return null;
     }, [_busServices, _query, _showServicesOnly]);
 
     useEffect(() {
       _filteredBusStops = _getFilteredBusStops(_busStops, _query);
+      return null;
     }, [_busStops, _query]);
 
     useEffect(() {
@@ -314,6 +316,7 @@ class SearchPageState extends ConsumerState<SearchPage>
           _focusedBusStop = null;
         }
       }
+      return null;
     }, [_filteredBusStops]);
 
     return provider.MultiProvider(

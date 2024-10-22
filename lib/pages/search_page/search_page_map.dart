@@ -88,6 +88,7 @@ class _SearchPageMapState extends ConsumerState<SearchPageMap> {
 
     useEffect(() {
       focusedLocation.value = focusedBusStopLocation;
+      return null;
     }, [focusedBusStopLocation]);
 
     return Stack(

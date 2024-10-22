@@ -28,11 +28,11 @@ class BusServiceSearchItem extends StatelessWidget {
         horizontalTitleGap: 8.0,
         leading: HighlightedIcon(
           iconColor: BusService.listColor(context),
+          opacity: opacity,
           child: Icon(
             Icons.directions_bus_rounded,
             color: BusService.listColor(context),
           ),
-          opacity: opacity,
         ),
         title: Text(busService.number,
             style: Theme.of(context).textTheme.titleMedium),

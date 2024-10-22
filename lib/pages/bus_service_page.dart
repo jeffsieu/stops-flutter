@@ -68,6 +68,7 @@ class BusServicePage extends HookConsumerWidget {
       final focusedDirection = service.value!.routes.indexOf(focusedRoute);
 
       tabController.index = focusedDirection;
+      return null;
     }, [service, focusedRoute]);
 
     return switch (service) {
