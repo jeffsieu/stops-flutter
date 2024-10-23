@@ -59,15 +59,18 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
                 label: 'Search',
               ),
               NavigationDestination(
-                icon: Icon(Icons.bookmark_rounded),
+                icon: Icon(Icons.bookmark_outline_rounded),
+                selectedIcon: Icon(Icons.bookmark_rounded),
                 label: 'Saved',
               ),
               NavigationDestination(
-                icon: Icon(Icons.directions_rounded),
+                icon: Icon(Icons.directions_outlined),
+                selectedIcon: Icon(Icons.directions_rounded),
                 label: 'Routes',
               ),
               NavigationDestination(
-                icon: Icon(Icons.settings_rounded),
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings_rounded),
                 label: 'Settings',
               ),
             ],
