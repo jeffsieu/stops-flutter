@@ -33,7 +33,7 @@ class _RoutesPageState extends ConsumerState<RoutesPage> {
             selectedRoute = null;
           });
         },
-        child: RoutePage(route: selectedRoute!),
+        child: RoutePage(routeId: selectedRoute!.id),
       );
     }
 

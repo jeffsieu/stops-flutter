@@ -9,12 +9,12 @@ import 'package:stops_sg/widgets/bus_stop_overview_list.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 
 class RoutePage extends ConsumerWidget {
-  const RoutePage({super.key, required this.route});
-  final StoredUserRoute route;
+  const RoutePage({super.key, required this.routeId});
+  final int routeId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final latestRoute = ref.watch(savedUserRouteProvider(id: route.id));
+    final latestRoute = ref.watch(savedUserRouteProvider(id: routeId));
 
     return Scaffold(
       appBar: AppBar(
@@ -74,7 +74,7 @@ class RoutePage extends ConsumerWidget {
 
   Future<void> _pushEditRouteRoute(BuildContext context, WidgetRef ref) async {
     final newRoute =
-        await EditRouteRoute(routeId: route.id).push<StoredUserRoute>(context);
+        await EditRouteRoute(routeId: routeId).push<StoredUserRoute>(context);
     if (newRoute != null) {
       await ref.read(savedUserRoutesProvider.notifier).updateRoute(newRoute);
     }

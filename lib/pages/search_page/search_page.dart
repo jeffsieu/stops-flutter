@@ -19,8 +19,9 @@ import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/location/location.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/pages/bus_service_page.dart';
 import 'package:stops_sg/pages/search_page/search_page_map.dart';
+import 'package:stops_sg/routes/bus_service_detail_route.dart';
+import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/widgets/bus_service_search_item.dart';
@@ -986,7 +987,7 @@ class SearchPageState extends ConsumerState<SearchPage>
                           child: BusServiceSearchItem(
                             busService: busService,
                             onTap: () {
-                              Navigator.of(context).pop([busService]);
+                              Navigator.pop(context, [busService]);
                             },
                           ),
                         );
@@ -1291,11 +1292,8 @@ class SearchPageState extends ConsumerState<SearchPage>
   }
 
   void _pushBusServiceRoute(BusService busService) {
-    final Widget page = BusServicePage(busService.number);
-    final Route<void> route =
-        MaterialPageRoute<void>(builder: (BuildContext context) => page);
     pushHistory(_query); // add query to history
-    Navigator.push(context, route);
+    BusServiceDetailRoute(serviceNumber: busService.number).push(context);
   }
 }
 

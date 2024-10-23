@@ -7,14 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/pages/fetch_data_page.dart';
+import 'package:stops_sg/routes/initial_fetch_data_route.dart';
 import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/routes/routes_route.dart';
 import 'package:stops_sg/routes/saved_route.dart';
 import 'package:stops_sg/routes/search_route.dart';
 import 'package:stops_sg/routes/settings_route.dart';
 
-const defaultBottomNavIndex = 0;
+const defaultBottomNavIndex = 1;
 
 class HomePageScaffold extends ConsumerStatefulWidget {
   const HomePageScaffold({super.key, required this.child});
@@ -55,12 +55,7 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
     final isFullyCached = cacheProgress == 1.0;
 
     if (!isFullyCached && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute<void>(
-          builder: (context) => const FetchDataPage(isSetup: true),
-        ),
-      );
+      InitialFetchDataRoute().pushReplacement(context);
     }
   }
 

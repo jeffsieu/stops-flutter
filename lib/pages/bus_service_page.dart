@@ -11,12 +11,13 @@ import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 
 class BusServicePage extends HookConsumerWidget {
-  const BusServicePage(this.serviceNumber, {super.key}) : focusedBusStop = null;
-  const BusServicePage.withBusStop(this.serviceNumber, this.focusedBusStop,
-      {super.key});
+  const BusServicePage(this.serviceNumber, {super.key})
+      : focusedBusStopCode = null;
+  const BusServicePage.withBusStop(this.serviceNumber,
+      {super.key, required String this.focusedBusStopCode});
 
   final String serviceNumber;
-  final BusStop? focusedBusStop;
+  final String? focusedBusStopCode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,6 +43,9 @@ class BusServicePage extends HookConsumerWidget {
 
   Widget _buildBody(
       BuildContext context, WidgetRef ref, TabController tabController) {
+    final focusedBusStop = focusedBusStopCode == null
+        ? null
+        : ref.watch(busStopWithCodeProvider(focusedBusStopCode!)).valueOrNull;
     final service =
         ref.watch(cachedBusServiceWithRoutesProvider(serviceNumber));
 
@@ -118,15 +122,16 @@ class BusServicePage extends HookConsumerWidget {
             ];
           },
           body: (value.directionCount == 1
-              ? _buildRouteBusStops(context, value.routes[0])
-              : _buildPageView(context, value, tabController)),
+              ? _buildRouteBusStops(context, value.routes[0], focusedBusStop)
+              : _buildPageView(context, value, focusedBusStop, tabController)),
         ),
       AsyncError(:final error) => Text('Unable to fetch bus service: $error'),
       _ => const Center(child: CircularProgressIndicator()),
     };
   }
 
-  Widget _buildRouteBusStops(BuildContext context, BusServiceRoute route) {
+  Widget _buildRouteBusStops(
+      BuildContext context, BusServiceRoute route, BusStop? focusedBusStop) {
     final focusedColor = Theme.of(context).highlightColor;
 
     return MediaQuery.removePadding(
@@ -208,13 +213,17 @@ class BusServicePage extends HookConsumerWidget {
     );
   }
 
-  Widget _buildPageView(BuildContext context, BusServiceWithRoutes service,
-      TabController tabController) {
+  Widget _buildPageView(
+    BuildContext context,
+    BusServiceWithRoutes service,
+    BusStop? focusedBusStop,
+    TabController tabController,
+  ) {
     return TabBarView(
       controller: tabController,
       children: [
-        _buildRouteBusStops(context, service.routes[0]),
-        _buildRouteBusStops(context, service.routes[1]),
+        _buildRouteBusStops(context, service.routes[0], focusedBusStop),
+        _buildRouteBusStops(context, service.routes[1], focusedBusStop),
       ],
     );
   }

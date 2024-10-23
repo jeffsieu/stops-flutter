@@ -12,7 +12,8 @@ import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/pages/bus_service_page.dart';
+import 'package:stops_sg/routes/bus_service_detail_with_focused_bus_stop_route.dart';
+import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/utils/database/followed_buses.dart';
 import 'package:stops_sg/utils/time_utils.dart';
@@ -217,11 +218,9 @@ class BusTimingState extends ConsumerState<BusTimingRow>
   }
 
   void _pushBusServiceRoute(String serviceNumber) {
-    final Widget page =
-        BusServicePage.withBusStop(serviceNumber, widget.busStop);
-    final Route<void> route =
-        MaterialPageRoute<void>(builder: (BuildContext context) => page);
-    Navigator.push(context, route);
+    BusServiceDetailWithFocusedBusStopRoute(
+            serviceNumber: serviceNumber, busStopCode: widget.busStop.code)
+        .push(context);
   }
 }
 

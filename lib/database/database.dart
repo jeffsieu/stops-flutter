@@ -120,6 +120,13 @@ class BusStopList extends _$BusStopList {
 }
 
 @riverpod
+Future<BusStop?> busStopWithCode(BusStopWithCodeRef ref, String code) async {
+  final busStop = await ref.watch(busStopListProvider.selectAsync((busStops) =>
+      busStops.firstWhereOrNull((busStop) => busStop.code == code)));
+  return busStop;
+}
+
+@riverpod
 class BusServiceList extends _$BusServiceList {
   @override
   Future<List<BusService>> build() async {

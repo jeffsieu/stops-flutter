@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
@@ -6,7 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/pages/bus_service_page.dart';
+import 'package:stops_sg/routes/bus_service_detail_route.dart';
+import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/utils/cepas/cepas_card.dart';
 import 'package:stops_sg/utils/cepas/nfc_commands.dart';
 
@@ -146,7 +146,8 @@ class ScanCardPageState extends State<ScanCardPage>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(_prompt,
-                                style: Theme.of(context).textTheme.headlineSmall),
+                                style:
+                                    Theme.of(context).textTheme.headlineSmall),
                             Text(_subPrompt,
                                 style: Theme.of(context)
                                     .textTheme
@@ -187,8 +188,7 @@ class ScanCardPageState extends State<ScanCardPage>
               physics: const NeverScrollableScrollPhysics(),
               itemCount: card?.transactions.length ?? 0,
               itemBuilder: (BuildContext context, int position) {
-                final transaction =
-                    card!.transactions[position];
+                final transaction = card!.transactions[position];
                 var busServiceNumber = '';
                 if (transaction.additionalData
                     .toLowerCase()
@@ -238,13 +238,9 @@ class ScanCardPageState extends State<ScanCardPage>
                                   color: Theme.of(context).hintColor),
                               onSelected: (String value) {
                                 if (value == 'see bus') {
-                                  final Widget page =
-                                      BusServicePage(busServiceNumber);
-                                  final Route<void> route =
-                                      MaterialPageRoute<void>(
-                                          builder: (BuildContext context) =>
-                                              page);
-                                  Navigator.push(context, route);
+                                  BusServiceDetailRoute(
+                                          serviceNumber: busServiceNumber)
+                                      .push(context);
                                 }
                               },
                               itemBuilder: (BuildContext context) {

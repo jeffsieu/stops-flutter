@@ -4,8 +4,9 @@ import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:stops_sg/database/database.dart';
-import 'package:stops_sg/pages/fetch_data_page.dart';
-import 'package:stops_sg/pages/scan_card_page.dart';
+import 'package:stops_sg/routes/refetch_data_route.dart';
+import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/scan_card_route.dart';
 import 'package:stops_sg/utils/cepas/nfc_availability.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -90,12 +91,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     return ListTile(
       title: const Text('Scan card value'),
       leading: const Icon(Icons.credit_card_rounded),
-      onTap: () {
-        const Widget page = ScanCardPage();
-        final Route<void> route =
-            MaterialPageRoute<void>(builder: (BuildContext context) => page);
-        Navigator.push(context, route);
-      },
+      onTap: () => ScanCardRoute().push(context),
     );
   }
 
@@ -155,15 +151,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
       title: const Text('Refresh cached data'),
       subtitle: const Text('Select if there are missing stops/services'),
       leading: const Icon(Icons.update_rounded),
-      onTap: () {
-        showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return const FetchDataPage(isSetup: false);
-          },
-        );
-      },
+      onTap: () => RefetchDataRoute().push(context),
     );
   }
 
