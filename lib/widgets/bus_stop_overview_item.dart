@@ -101,7 +101,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
               ? const EdgeInsetsDirectional.only(
                   top: 8.0, bottom: 8.0, start: 40)
               : isExpanded
-                  ? EdgeInsets.zero
+                  ? const EdgeInsets.symmetric(horizontal: 8.0)
                   : const EdgeInsets.symmetric(vertical: 8.0),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -121,20 +121,29 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                       children: [
                         Column(
                           children: [
-                            HighlightedIcon(
-                              opacity: showBusIcon ? 1 : 0,
-                              iconColor: Theme.of(context).colorScheme.primary,
-                              child: SvgPicture.asset(
-                                'assets/images/bus-stop.svg',
-                                width: 24.0,
-                                height: 24.0,
-                                colorFilter: ColorFilter.mode(
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: HighlightedIcon(
+                                opacity: showBusIcon ? 1 : 0,
+                                iconColor:
                                     Theme.of(context).colorScheme.primary,
-                                    BlendMode.srcIn),
+                                child: SvgPicture.asset(
+                                  'assets/images/bus-stop.svg',
+                                  width: 24.0,
+                                  height: 24.0,
+                                  colorFilter: ColorFilter.mode(
+                                      Theme.of(context).colorScheme.primary,
+                                      BlendMode.srcIn),
+                                ),
                               ),
                             ),
                             if (location != null) ...{
-                              Text(
+                              SizedBox(
+                                width: 48,
+                                child: AutoSizeText(
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
                                   formatDistance(
                                     busStop.getMetersFromLocation(location),
                                   ),
@@ -142,11 +151,12 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                                       .textTheme
                                       .bodySmall!
                                       .copyWith(
-                                          color: Theme.of(context).hintColor)),
-                            }
+                                          color: Theme.of(context).hintColor),
+                                ),
+                              ),
+                            },
                           ],
                         ),
-                        const SizedBox(width: 16.0),
                       ],
                     ),
                   ),
@@ -199,7 +209,16 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                 opacity: isExpanded ? 1 : 0,
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutCubic,
-                child: IconButton.filledTonal(
+                child: IconButton.outlined(
+                  style: IconButton.styleFrom(
+                    backgroundColor: isSaved
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).scaffoldBackgroundColor,
+                    foregroundColor: isSaved
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).hintColor,
+                  ),
+                  padding: EdgeInsets.zero,
                   onPressed: () {
                     showModalBottomSheet(
                       isScrollControlled: true,
@@ -263,16 +282,16 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                       ),
                     );
                   },
-                  selectedIcon: Icon(Icons.bookmark_added_rounded),
+                  selectedIcon: const Icon(Icons.bookmark_added_rounded),
                   isSelected: isSaved,
-                  icon: Icon(Icons.bookmark_add_outlined),
+                  icon: const Icon(Icons.bookmark_add_outlined),
                 ),
               ),
             ],
           ),
         ),
         body: child,
-        titlePadding: 16.0,
+        titlePadding: 0,
         titleBorderGap: 0,
         topOffset: isExpanded ? 16.0 : 0.0,
       ),
