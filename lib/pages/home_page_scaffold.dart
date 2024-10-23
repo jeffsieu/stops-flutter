@@ -1,13 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:quick_actions/quick_actions.dart';
-import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/main.dart';
-import 'package:stops_sg/routes/initial_fetch_data_route.dart';
 import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/routes/routes_route.dart';
 import 'package:stops_sg/routes/saved_route.dart';
@@ -29,35 +24,6 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
   int _bottomNavIndex = defaultBottomNavIndex;
 
   Widget get body => widget.child;
-
-  @override
-  void initState() {
-    super.initState();
-    showSetupDialog();
-    if (Platform.isAndroid || Platform.isIOS) {
-      const quickActions = QuickActions();
-      quickActions.initialize((String shortcutType) {
-        if (shortcutType == 'action_search') {
-          SearchRoute().go(context);
-        }
-      });
-      quickActions.setShortcutItems(<ShortcutItem>[
-        const ShortcutItem(
-            type: 'action_search',
-            localizedTitle: 'Search',
-            icon: 'ic_shortcut_search'),
-      ]);
-    }
-  }
-
-  Future<void> showSetupDialog() async {
-    final cacheProgress = await ref.read(cachedDataProgressProvider.future);
-    final isFullyCached = cacheProgress == 1.0;
-
-    if (!isFullyCached && mounted) {
-      InitialFetchDataRoute().pushReplacement(context);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

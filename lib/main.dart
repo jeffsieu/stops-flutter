@@ -1,18 +1,25 @@
+import 'dart:io';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:quick_actions/quick_actions.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/routes/router.dart';
+import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/search_route.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const ProviderScope(child: StopsApp()));
 }
 
-class StopsApp extends ConsumerWidget {
+class StopsApp extends HookConsumerWidget {
   const StopsApp({super.key});
 
   static String monospacedFont = 'Cousine';
@@ -39,6 +46,10 @@ class StopsApp extends ConsumerWidget {
     final themeMode = ref.watch(selectedThemeModeProvider);
     final headerTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
     final mainTextStyle = GoogleFonts.nunitoSans(fontWeight: FontWeight.bold);
+
+    useEffect(() {
+      _initializeQuickActions(context);
+    }, []);
 
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
@@ -160,6 +171,8 @@ class StopsApp extends ConsumerWidget {
           ),
         );
 
+        final router = ref.watch(routerProvider);
+
         return MaterialApp.router(
           title: 'Stops',
           themeMode: themeMode.value ?? ThemeMode.system,
@@ -169,5 +182,22 @@ class StopsApp extends ConsumerWidget {
         );
       },
     );
+  }
+
+  void _initializeQuickActions(BuildContext context) {
+    if (Platform.isAndroid || Platform.isIOS) {
+      const quickActions = QuickActions();
+      quickActions.initialize((String shortcutType) {
+        if (shortcutType == 'action_search') {
+          SearchRoute().go(context);
+        }
+      });
+      quickActions.setShortcutItems(<ShortcutItem>[
+        const ShortcutItem(
+            type: 'action_search',
+            localizedTitle: 'Search',
+            icon: 'ic_shortcut_search'),
+      ]);
+    }
   }
 }
