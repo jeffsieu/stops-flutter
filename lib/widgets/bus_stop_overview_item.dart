@@ -147,7 +147,11 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                               : Theme.of(context).textTheme.titleMedium!,
                           curve: Curves.easeOutCubic,
                           duration: const Duration(milliseconds: 300),
-                          child: AutoSizeText(name),
+                          child: AutoSizeText(
+                            name,
+                            maxLines: 1,
+                            stepGranularity: 0.1,
+                          ),
                         ),
                       ),
                     ),
@@ -167,6 +171,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                 ),
               ),
               if (location != null) ...{
+                const SizedBox(width: 16.0),
                 AnimatedOpacity(
                   opacity: showDistance && !isExpanded ? 1 : 0,
                   duration: const Duration(milliseconds: 300),
