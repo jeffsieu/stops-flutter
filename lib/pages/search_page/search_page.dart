@@ -368,7 +368,7 @@ class SearchPageState extends ConsumerState<SearchPage>
     return Hero(
       tag: 'searchField',
       child: CardAppBar(
-        leading: Navigator.canPop(context)
+        leading: widget.isSimpleMode
             ? IconButton(
                 color: Theme.of(context).hintColor,
                 icon: const Icon(Icons.arrow_back_rounded),

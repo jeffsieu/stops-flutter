@@ -44,6 +44,13 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
     final name = busStop.displayName;
     final code = busStop.code;
     final road = busStop.road;
+    final route = context.read<StoredUserRoute>();
+    final isSaved = ref
+            .watch(
+              isBusStopInRouteProvider(busStop: busStop, routeId: route.id),
+            )
+            .valueOrNull ??
+        false;
 
     final Widget child = InkWell(
       borderRadius: const BorderRadius.all(
@@ -74,7 +81,6 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
 
     final showBusIcon = !isEditing && !isExpanded;
     final isTitleLarge = isExpanded && !isEditing;
-    final showDistance = !isEditing;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -101,89 +107,167 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              AnimatedAlign(
-                duration: const Duration(milliseconds: 300),
-                widthFactor: showBusIcon ? 1 : 0,
-                alignment: Alignment.center,
-                curve: Curves.easeOutCubic,
-                child: AnimatedOpacity(
-                  opacity: showBusIcon ? 1 : 0,
+              IgnorePointer(
+                child: AnimatedAlign(
                   duration: const Duration(milliseconds: 300),
+                  widthFactor: showBusIcon ? 1 : 0,
+                  alignment: Alignment.center,
                   curve: Curves.easeOutCubic,
-                  child: Row(
-                    children: [
-                      HighlightedIcon(
-                        opacity: showBusIcon ? 1 : 0,
-                        iconColor: Theme.of(context).colorScheme.primary,
-                        child: SvgPicture.asset(
-                          'assets/images/bus-stop.svg',
-                          width: 24.0,
-                          height: 24.0,
-                          colorFilter: ColorFilter.mode(
-                              Theme.of(context).colorScheme.primary,
-                              BlendMode.srcIn),
+                  child: AnimatedOpacity(
+                    opacity: showBusIcon ? 1 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    child: Row(
+                      children: [
+                        Column(
+                          children: [
+                            HighlightedIcon(
+                              opacity: showBusIcon ? 1 : 0,
+                              iconColor: Theme.of(context).colorScheme.primary,
+                              child: SvgPicture.asset(
+                                'assets/images/bus-stop.svg',
+                                width: 24.0,
+                                height: 24.0,
+                                colorFilter: ColorFilter.mode(
+                                    Theme.of(context).colorScheme.primary,
+                                    BlendMode.srcIn),
+                              ),
+                            ),
+                            if (location != null) ...{
+                              Text(
+                                  formatDistance(
+                                    busStop.getMetersFromLocation(location),
+                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall!
+                                      .copyWith(
+                                          color: Theme.of(context).hintColor)),
+                            }
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 16.0),
-                    ],
+                        const SizedBox(width: 16.0),
+                      ],
+                    ),
                   ),
                 ),
               ),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Ink(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      child: AnimatedPadding(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
-                        padding: isExpanded
-                            ? const EdgeInsetsDirectional.only(start: 8)
-                            : EdgeInsets.zero,
-                        child: AnimatedDefaultTextStyle(
-                          style: isTitleLarge
-                              ? Theme.of(context).textTheme.titleLarge!
-                              : Theme.of(context).textTheme.titleMedium!,
-                          curve: Curves.easeOutCubic,
+                child: IgnorePointer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Ink(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: AnimatedPadding(
                           duration: const Duration(milliseconds: 300),
-                          child: AutoSizeText(
-                            name,
-                            maxLines: 1,
-                            stepGranularity: 0.1,
+                          curve: Curves.easeOutCubic,
+                          padding: isExpanded
+                              ? const EdgeInsets.symmetric(horizontal: 8)
+                              : EdgeInsets.zero,
+                          child: AnimatedDefaultTextStyle(
+                            style: isTitleLarge
+                                ? Theme.of(context).textTheme.titleLarge!
+                                : Theme.of(context).textTheme.titleMedium!,
+                            curve: Curves.easeOutCubic,
+                            duration: const Duration(milliseconds: 300),
+                            child: AutoSizeText(
+                              name,
+                              maxLines: 1,
+                              stepGranularity: 0.1,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    AnimatedPadding(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutCubic,
-                      padding: isExpanded
-                          ? const EdgeInsetsDirectional.only(start: 8)
-                          : EdgeInsets.zero,
-                      child: Text('$code · $road',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall!
-                              .copyWith(color: Theme.of(context).hintColor)),
-                    ),
-                  ],
+                      AnimatedPadding(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        padding: isExpanded
+                            ? const EdgeInsets.symmetric(horizontal: 8)
+                            : EdgeInsets.zero,
+                        child: Text('$code · $road',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall!
+                                .copyWith(color: Theme.of(context).hintColor)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              if (location != null) ...{
-                const SizedBox(width: 16.0),
-                AnimatedOpacity(
-                  opacity: showDistance && !isExpanded ? 1 : 0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  child: Chip(
-                    visualDensity: VisualDensity.compact,
-                    label: Text(formatDistance(
-                      busStop.getMetersFromLocation(location),
-                    )),
-                  ),
-                )
-              }
+              AnimatedOpacity(
+                opacity: isExpanded ? 1 : 0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                child: IconButton.filledTonal(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      isScrollControlled: true,
+                      context: context,
+                      builder: (context) => DraggableScrollableSheet(
+                        expand: false,
+                        builder: (context, scrollController) =>
+                            Consumer(builder: (context, ref, child) {
+                          final routes = ref.watch(savedUserRoutesProvider);
+
+                          return switch (routes) {
+                            AsyncData(:final value) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text('Add to route',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge),
+                                  ),
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    controller: scrollController,
+                                    itemBuilder: (context, index) {
+                                      final route = value[index];
+                                      final isBusStopInRoute = ref
+                                              .watch(isBusStopInRouteProvider(
+                                                  busStop: busStop,
+                                                  routeId: route.id))
+                                              .valueOrNull ??
+                                          false;
+
+                                      return CheckboxListTile(
+                                        value: isBusStopInRoute,
+                                        title: Text(route.name),
+                                        onChanged: (checked) async {
+                                          if (checked ?? false) {
+                                            await ref
+                                                .read(savedUserRouteProvider(
+                                                        id: route.id)
+                                                    .notifier)
+                                                .addBusStop(busStop);
+                                          } else {
+                                            await ref
+                                                .read(savedUserRouteProvider(
+                                                        id: route.id)
+                                                    .notifier)
+                                                .removeBusStop(busStop);
+                                          }
+                                        },
+                                      );
+                                    },
+                                    itemCount: value.length,
+                                  ),
+                                ],
+                              ),
+                            _ => const SizedBox(),
+                          };
+                        }),
+                      ),
+                    );
+                  },
+                  selectedIcon: Icon(Icons.bookmark_added_rounded),
+                  isSelected: isSaved,
+                  icon: Icon(Icons.bookmark_add_outlined),
+                ),
+              ),
             ],
           ),
         ),

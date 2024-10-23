@@ -221,7 +221,14 @@ class StopsDatabase extends _$StopsDatabase {
       ..where((ur) => ur.id.equals(routeId))
       ..orderBy([(ur) => OrderingTerm(expression: ur.position)]);
     final results = await query.get();
-    return results.first;
+
+    final entry = results.first;
+
+    if (entry.id == kDefaultRouteId) {
+      return entry.copyWith(name: defaultRouteName);
+    }
+
+    return entry;
   }
 
   Future<List<BusStop>> getBusStopsInRouteWithId(int routeId) async {
@@ -353,7 +360,14 @@ class StopsDatabase extends _$StopsDatabase {
     final query = select(userRoutes)
       ..orderBy([(ur) => OrderingTerm(expression: ur.position)]);
     final results = await query.get();
-    return results;
+
+    return results.map((entry) {
+      if (entry.id == kDefaultRouteId) {
+        return entry.copyWith(name: defaultRouteName);
+      }
+
+      return entry;
+    }).toList();
   }
 
   Future<void> moveUserRoutePosition(int from, int to) async {

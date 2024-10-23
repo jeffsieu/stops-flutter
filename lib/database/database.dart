@@ -20,7 +20,7 @@ typedef BusPinStatusListener = void Function(
     String stop, String bus, bool isPinned);
 
 const int kDefaultRouteId = -1;
-const String defaultRouteName = 'Home';
+const String defaultRouteName = 'Saved';
 const String _themeModeKey = 'THEME_OPTION';
 const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
 const String _searchHistoryKey = 'SEARCH_HISTORY';

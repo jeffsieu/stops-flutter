@@ -84,38 +84,36 @@ class OutlineTitledContainer extends StatelessWidget {
               ),
             ),
           ),
-          IgnorePointer(
-            child: AnimatedContainer(
-              duration: duration,
-              curve: curve,
-              padding: buildBody ? EdgeInsets.zero : collapsedTitlePadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: titlePadding - titleBorderGap),
-                    child: Ink(
-                      color: showGap
-                          ? Theme.of(context).scaffoldBackgroundColor
-                          : Colors.transparent,
-                      child: Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: titleBorderGap),
-                        child: title,
-                      ),
+          AnimatedContainer(
+            duration: duration,
+            curve: curve,
+            padding: buildBody ? EdgeInsets.zero : collapsedTitlePadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: titlePadding - titleBorderGap),
+                  child: Ink(
+                    color: showGap
+                        ? Theme.of(context).scaffoldBackgroundColor
+                        : Colors.transparent,
+                    child: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: titleBorderGap),
+                      child: title,
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: titlePadding),
-                    child: Column(
-                      children: [
-                        ...childrenBelowTitle,
-                      ],
-                    ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: titlePadding),
+                  child: Column(
+                    children: [
+                      ...childrenBelowTitle,
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
