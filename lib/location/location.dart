@@ -1,9 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:location/location.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
 
 part 'location.g.dart';
 
+const kLocationValidDuration = Duration(minutes: 1);
 final Location location = Location();
 
 class UserLocationSnapshot {
@@ -30,6 +32,18 @@ class UserLocationSnapshot {
 class UserLocation extends _$UserLocation {
   @override
   Future<UserLocationSnapshot> build() async {
+    final value = await _getValue();
+
+    ref.cacheFor(kLocationValidDuration);
+
+    if (value.data != null) {
+      ref.refreshIn(kLocationValidDuration);
+    }
+
+    return value;
+  }
+
+  Future<UserLocationSnapshot> _getValue() async {
     var serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
