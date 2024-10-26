@@ -98,7 +98,6 @@ class SearchPage extends StatefulHookConsumerWidget {
 
   final bool showMap;
   final bool isSimpleMode;
-  final GlobalKey _resultsSheetKey = GlobalKey();
 
   @override
   ConsumerState<SearchPage> createState() {
@@ -165,27 +164,10 @@ class SearchPageState extends ConsumerState<SearchPage>
   final TextEditingController _textController = TextEditingController();
   late final TabController _tabController =
       TabController(length: 2, vsync: this);
-  late final RubberAnimationController _resultsSheetAnimationController =
-      RubberAnimationController(
-    vsync: this,
-    // initialValue: widget.showMap
-    //     ? AnimationControllerValue(pixel: _resultsSheetCollapsedHeight)
-    //         .percentage
-    //     : 1.0,
-    lowerBoundValue: AnimationControllerValue(
-        pixel: _resultsSheetCollapsedHeight, percentage: 0),
-    upperBoundValue: AnimationControllerValue(percentage: 1.0),
-    duration: const Duration(milliseconds: 300),
-    springDescription: SpringDescription.withDampingRatio(
-        mass: 1, ratio: DampingRatio.NO_BOUNCY, stiffness: Stiffness.LOW),
-  );
+  late final RubberAnimationController _resultsSheetAnimationController;
   final ScrollController _scrollController = ScrollController();
   final Completer<GoogleMapController> _googleMapController =
       Completer<GoogleMapController>();
-
-  late GoogleMap _googleMap;
-  String? get _googleMapDarkStyle =>
-      ref.watch(googleMapDarkStyleProvider).valueOrNull;
 
   double get sheetLowerBound =>
       _resultsSheetAnimationController.lowerBoundValue.pixel! /
@@ -194,6 +176,16 @@ class SearchPageState extends ConsumerState<SearchPage>
   @override
   void initState() {
     super.initState();
+
+    _resultsSheetAnimationController = RubberAnimationController(
+      vsync: this,
+      lowerBoundValue: AnimationControllerValue(
+          pixel: _resultsSheetCollapsedHeight, percentage: 0),
+      upperBoundValue: AnimationControllerValue(percentage: 1.0),
+      duration: const Duration(milliseconds: 300),
+      springDescription: SpringDescription.withDampingRatio(
+          mass: 1, ratio: DampingRatio.NO_BOUNCY, stiffness: Stiffness.LOW),
+    );
 
     _resultsSheetAnimationController.value = widget.showMap
         ? _resultsSheetAnimationController.upperBound!
@@ -221,7 +213,7 @@ class SearchPageState extends ConsumerState<SearchPage>
         }
       }
 
-      // Update map visibility wwhen bottom sheet has finish animating
+      // Update map visibility when bottom sheet has finish animating
       // or when it has been fully closed.
       if (_resultsSheetAnimationController.value >=
           _resultsSheetAnimationController.upperBound!) {
@@ -247,6 +239,8 @@ class SearchPageState extends ConsumerState<SearchPage>
   @override
   void dispose() {
     _textController.dispose();
+    _resultsSheetAnimationController.dispose();
+
     super.dispose();
   }
 
@@ -549,7 +543,6 @@ class SearchPageState extends ConsumerState<SearchPage>
     final Widget body = Stack(
       children: [
         RubberBottomSheet(
-          key: widget._resultsSheetKey,
           animationController: _resultsSheetAnimationController,
           scrollController: _scrollController,
           lowerLayer: SearchPageMap(
