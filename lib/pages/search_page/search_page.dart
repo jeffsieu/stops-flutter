@@ -112,7 +112,7 @@ class SearchPageState extends ConsumerState<SearchPage>
     with TickerProviderStateMixin {
   // The number of pixels to offset the FAB by animates out
   // via a fade down
-  final double _resultsSheetCollapsedHeight = 124;
+  static const _resultsSheetCollapsedHeight = 124.0;
 
   List<BusStop> get _busStops =>
       ref.watch(busStopsByDistanceProvider).valueOrNull ?? [];
@@ -177,19 +177,20 @@ class SearchPageState extends ConsumerState<SearchPage>
   void initState() {
     super.initState();
 
+    const upperBoundPercentage = 1.0;
+    const lowerBoundPixels = _resultsSheetCollapsedHeight;
+
     _resultsSheetAnimationController = RubberAnimationController(
       vsync: this,
-      lowerBoundValue: AnimationControllerValue(
-          pixel: _resultsSheetCollapsedHeight, percentage: 0),
-      upperBoundValue: AnimationControllerValue(percentage: 1.0),
+      initialValue: upperBoundPercentage,
+      lowerBoundValue:
+          AnimationControllerValue(pixel: lowerBoundPixels, percentage: 0),
+      upperBoundValue:
+          AnimationControllerValue(percentage: upperBoundPercentage),
       duration: const Duration(milliseconds: 300),
       springDescription: SpringDescription.withDampingRatio(
           mass: 1, ratio: DampingRatio.NO_BOUNCY, stiffness: Stiffness.LOW),
     );
-
-    _resultsSheetAnimationController.value = widget.showMap
-        ? _resultsSheetAnimationController.upperBound!
-        : _resultsSheetAnimationController.upperBound!;
 
     if (widget.showMap) {
       WidgetsBinding.instance.addPostFrameCallback((Duration timeStamp) {
@@ -200,7 +201,7 @@ class SearchPageState extends ConsumerState<SearchPage>
     _tabController.index = widget.showMap ? 1 : 0;
     _resultsSheetAnimationController.addListener(() {
       final visibilityBound = lerpDouble(
-          _resultsSheetAnimationController.upperBound!, sheetLowerBound, 0.9)!;
+          _resultsSheetAnimationController.upperBound!, sheetLowerBound, 0.5)!;
 
       final shouldMapBeVisible =
           _resultsSheetAnimationController.value < visibilityBound;
@@ -209,31 +210,21 @@ class SearchPageState extends ConsumerState<SearchPage>
         if (_isMapVisible != shouldMapBeVisible) {
           setState(() {
             _isMapVisible = shouldMapBeVisible;
+            _tabController.animateTo(shouldMapBeVisible ? 1 : 0);
           });
         }
       }
 
-      // Update map visibility when bottom sheet has finish animating
-      // or when it has been fully closed.
-      if (_resultsSheetAnimationController.value >=
-          _resultsSheetAnimationController.upperBound!) {
-        // TODO: Fix map tab not updating when bottom sheet is fully expanded
-        updateMapVisibility();
-      }
+      updateMapVisibility();
 
-      late void Function(AnimationStatus) statusListener;
-      statusListener = (AnimationStatus status) {
+      void statusListener(AnimationStatus status) {
         if (status == AnimationStatus.completed) {
           updateMapVisibility();
-          _resultsSheetAnimationController.removeStatusListener(statusListener);
         }
-      };
+      }
 
       _resultsSheetAnimationController.addStatusListener(statusListener);
     });
-
-    // If normal mode, perform bus service and map-related functions
-    if (widget.isSimpleMode) return;
   }
 
   @override
