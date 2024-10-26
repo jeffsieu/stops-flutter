@@ -10,9 +10,12 @@ import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/location/location.dart';
+import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/settings_route.dart';
 import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/utils/distance_utils.dart';
+import 'package:stops_sg/widgets/bus_stop_legend_card.dart';
 import 'package:stops_sg/widgets/bus_timing_row.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/highlighted_icon.dart';
@@ -36,6 +39,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
 
   bool _isExpanded = false;
   bool get isExpanded => widget.isExpanded ?? _isExpanded;
+  bool _showLegend = false;
 
   @override
   Widget build(BuildContext context) {
@@ -44,13 +48,19 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
     final name = busStop.displayName;
     final code = busStop.code;
     final road = busStop.road;
-    final route = context.read<StoredUserRoute>();
-    final isSaved = ref
-            .watch(
-              isBusStopInRouteProvider(busStop: busStop, routeId: route.id),
-            )
-            .valueOrNull ??
-        false;
+    final route = context.read<StoredUserRoute?>();
+    final isSaved = (() {
+      if (route == null) {
+        return false;
+      }
+
+      return ref
+              .watch(
+                isBusStopInRouteProvider(busStop: busStop, routeId: route.id),
+              )
+              .valueOrNull ??
+          false;
+    })();
 
     final Widget child = InkWell(
       borderRadius: const BorderRadius.all(
@@ -67,10 +77,51 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
               padding: const EdgeInsets.only(top: 40.0, bottom: 16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildPinnedServices(context),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Wrap(
+                      spacing: 8.0,
+                      children: [
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                              visualDensity: VisualDensity.compact),
+                          onPressed: () {
+                            setState(() {
+                              _showLegend = !_showLegend;
+                            });
+                          },
+                          child: Text('Legend',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall!
+                                  .copyWith(
+                                      color: Theme.of(context).hintColor)),
+                        ),
+                        OutlinedButton(
+                          style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact),
+                          onPressed: () {
+                            SettingsRoute().push(context);
+                          },
+                          child: Text('Missing bus services?',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall!
+                                  .copyWith(
+                                      color: Theme.of(context).hintColor)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_showLegend)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: const BusStopLegendCard(),
+                    ),
                 ],
               ),
             )
@@ -299,9 +350,10 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
   }
 
   Widget _buildPinnedServices(BuildContext context) {
-    final routeId = context.read<StoredUserRoute>().id;
-    final pinnedServices =
-        ref.watch(pinnedServicesProvider(busStop, routeId)).valueOrNull;
+    final routeId = context.read<StoredUserRoute?>()?.id;
+    final pinnedServices = routeId != null
+        ? ref.watch(pinnedServicesProvider(busStop, routeId)).valueOrNull
+        : null;
 
     if (pinnedServices == null) {
       return Shimmer.fromColors(
