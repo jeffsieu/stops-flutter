@@ -147,11 +147,15 @@ Future<String> _busStopArrivalList(
 @riverpod
 Future<List<BusServiceArrivalResult>> busStopArrivals(
     BusStopArrivalsRef ref, BusStop busStop) async {
-  ref.refreshIn(const Duration(seconds: _kRefreshInterval));
   final result =
       await ref.watch(_busStopArrivalListProvider(busStop.code).future);
   final services = jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
-  return services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
+  final arrivals = services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
+
+  ref.cacheFor(const Duration(seconds: _kRefreshInterval));
+  ref.refreshIn(const Duration(seconds: _kRefreshInterval));
+  
+  return arrivals;
 }
 
 extension RefreshRef<T> on Ref<T> {
@@ -159,6 +163,16 @@ extension RefreshRef<T> on Ref<T> {
     Timer.periodic(duration, (timer) {
       invalidateSelf();
     });
+  }
+}
+
+extension CacheForExtension<T> on AutoDisposeRef<T> {
+  /// Keeps the provider alive for [duration].
+  void cacheFor(Duration duration) {
+    final link = keepAlive();
+    final timer = Timer(duration, link.close);
+
+    onDispose(timer.cancel);
   }
 }
 
