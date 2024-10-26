@@ -118,9 +118,9 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                     ),
                   ),
                   if (_showLegend)
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: const BusStopLegendCard(),
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: BusStopLegendCard(),
                     ),
                 ],
               ),

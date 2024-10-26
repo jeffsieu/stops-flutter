@@ -25,6 +25,7 @@ import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/widgets/bus_service_search_item.dart';
+import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
 import 'package:stops_sg/widgets/bus_stop_search_item.dart';
 import 'package:stops_sg/widgets/card_app_bar.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
@@ -152,10 +153,11 @@ class SearchPageState extends ConsumerState<SearchPage>
 
   set _focusedBusStop(BusStop? busStop) {
     __focusedBusStop = busStop;
-    _isFocusedBusStopExpanded = false;
+    _isFocusedBusStopExpanded = true;
   }
 
-  bool _isFocusedBusStopExpanded = false;
+  bool _isFocusedBusStopExpanded = true;
+  bool _isNearestBusStopExpanded = false;
 
   BusStop? get _displayedBusStop =>
       _focusedBusStop ?? _filteredBusStops.firstOrNull;
@@ -498,6 +500,37 @@ class SearchPageState extends ConsumerState<SearchPage>
             ])),
       ),
       if (!_showServicesOnly) ...<Widget>{
+        if (_focusedBusStop != null) ...{
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(
+                  start: 16.0, end: 16.0, top: 24.0),
+              child: Text('Selected stop',
+                  style: Theme.of(context).textTheme.headlineMedium),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: BusStopOverviewItem(
+                _focusedBusStop!,
+                isExpanded: _isMapVisible ? false : _isFocusedBusStopExpanded,
+                onTap: () {
+                  if (_isMapVisible) {
+                    _expandSheet();
+                    setState(() {
+                      _isFocusedBusStopExpanded = true;
+                    });
+                  } else {
+                    setState(() {
+                      _isFocusedBusStopExpanded = !_isFocusedBusStopExpanded;
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+        },
         _buildBusStopsSliverHeader(),
         _buildBusStopList(),
       },
@@ -1145,20 +1178,11 @@ class SearchPageState extends ConsumerState<SearchPage>
                 .valueOrNull ??
             [];
 
-    final orderedBusStops = (() {
-      if (_focusedBusStop == null) {
-        return _filteredBusStops
-            .where((busStop) =>
-                _busStopServicesFilter.isEmpty ||
-                busStopsInSelectedBusService.contains(busStop))
-            .toList();
-      }
-
-      return [
-        _focusedBusStop!,
-        ..._filteredBusStops.where((busStop) => busStop != _focusedBusStop)
-      ];
-    })();
+    final orderedBusStops = _filteredBusStops
+        .where((busStop) =>
+            _busStopServicesFilter.isEmpty ||
+            busStopsInSelectedBusService.contains(busStop))
+        .toList();
 
     return SliverList(
         delegate: SliverChildBuilderDelegate(
@@ -1190,7 +1214,7 @@ class SearchPageState extends ConsumerState<SearchPage>
             onTap: () {
               _expandSheet();
               setState(() {
-                _isFocusedBusStopExpanded = true;
+                _isNearestBusStopExpanded = true;
               });
             },
             isExpanded: false,
@@ -1203,14 +1227,14 @@ class SearchPageState extends ConsumerState<SearchPage>
         busStop,
         context,
         showMapButton: false,
-        isExpanded: _isFocusedBusStopExpanded,
+        isExpanded: _isNearestBusStopExpanded,
         onTap: () {
           if (widget.isSimpleMode) {
             // Return result
             Navigator.pop(context, busStop);
           } else {
             setState(() {
-              _isFocusedBusStopExpanded = !_isFocusedBusStopExpanded;
+              _isNearestBusStopExpanded = !_isNearestBusStopExpanded;
             });
           }
         },
