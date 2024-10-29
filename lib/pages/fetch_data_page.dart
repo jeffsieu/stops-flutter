@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/routes/routes.dart';
-import 'package:stops_sg/routes/search_route.dart';
+import 'package:stops_sg/routes/saved_route.dart';
 
 class FetchDataPage extends ConsumerStatefulWidget {
   const FetchDataPage({super.key, required this.isSetup});
@@ -35,7 +35,7 @@ class _FetchDataPageState extends ConsumerState<FetchDataPage> {
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
-              SearchRoute().go(context);
+              SavedRoute().go(context);
             }
           });
     }
