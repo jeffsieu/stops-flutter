@@ -63,10 +63,7 @@ class ReorderableBusStopList extends ConsumerWidget {
             key: Key(busStop.hashCode.toString()),
             alignment: Alignment.centerLeft,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: busStopItem,
-              ),
+              busStopItem,
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 600),
                 opacity: isEditing ? 1.0 : 0.0,
@@ -80,7 +77,7 @@ class ReorderableBusStopList extends ConsumerWidget {
                           index: position,
                           child: Padding(
                             padding:
-                                const EdgeInsetsDirectional.only(start: 32.0),
+                                const EdgeInsetsDirectional.only(start: 16.0),
                             child: Icon(
                               Icons.drag_handle_rounded,
                               color: Theme.of(context).hintColor,
@@ -92,9 +89,7 @@ class ReorderableBusStopList extends ConsumerWidget {
               ),
               Positioned.fill(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 17.0,
-                      vertical: 9.0), // Offset by 1 to account for outline
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Material(
                     type: MaterialType.transparency,
                     child: Row(

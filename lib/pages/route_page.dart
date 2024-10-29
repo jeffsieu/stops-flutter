@@ -55,8 +55,11 @@ class RoutePage extends ConsumerWidget {
                       create: (_) => const EditModel(isEditing: false),
                       child: Provider<StoredUserRoute>(
                         create: (_) => value,
-                        child: BusStopOverviewList(
-                          routeId: value.id,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: BusStopOverviewList(
+                            routeId: value.id,
+                          ),
                         ),
                       ),
                     ),

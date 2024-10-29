@@ -14,6 +14,7 @@ import 'package:stops_sg/widgets/card_app_bar.dart';
 import 'package:stops_sg/widgets/color_picker.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/never_focus_node.dart';
+import 'package:stops_sg/widgets/reorderable_bus_stop_list.dart';
 
 class AddRoutePage extends StatefulHookConsumerWidget {
   const AddRoutePage({super.key}) : routeId = null;
@@ -154,20 +155,16 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
   Widget _buildBusStops() {
     const isEditing = true;
 
-    return ReorderableListView.builder(
-      shrinkWrap: true,
-      itemCount: busStops.length,
-      buildDefaultDragHandles: false,
-      proxyDecorator: (Widget child, int index, Animation<double> animation) {
-        return child;
-      },
-      onReorderStart: (int position) {
+    return ReorderableBusStopList(
+      busStops: busStops,
+      isEditing: isEditing,
+      onReorderStart: (position) {
         _isReordering = true;
       },
-      onReorder: (int oldIndex, int newIndex) {
-        if (oldIndex < newIndex) {
-          newIndex -= 1;
-        }
+      onReorderEnd: (position) {
+        _isReordering = false;
+      },
+      onReorder: (oldIndex, newIndex) {
         final newBusStops = List<BusStop>.from(busStops);
         final item = newBusStops.removeAt(oldIndex);
         newBusStops.insert(newIndex, item);
@@ -176,86 +173,9 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
           busStops = newBusStops;
         });
       },
-      itemBuilder: (BuildContext context, int position) {
-        final busStop = busStops[position];
-
-        final busStopItem = provider.Provider<EditModel>(
-          create: (_) => const EditModel(isEditing: isEditing),
-          child: BusStopOverviewItem(
-            busStop,
-            key: Key(busStop.code),
-          ),
-        );
-
-        return Stack(
-          key: Key(busStop.hashCode.toString()),
-          alignment: Alignment.centerLeft,
-          children: [
-            busStopItem,
-            Positioned.fill(
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 600),
-                opacity: isEditing ? 1.0 : 0.0,
-                curve: const Interval(0.5, 1),
-                child: AnimatedSlide(
-                  duration: const Duration(milliseconds: 600),
-                  offset: isEditing ? Offset.zero : const Offset(0, 0.25),
-                  curve: const Interval(0.5, 1, curve: Curves.easeOutCubic),
-                  child: isEditing
-                      ? ReorderableDragStartListener(
-                          index: position,
-                          child: Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsetsDirectional.only(
-                                    start: 16.0),
-                                child: Icon(
-                                  Icons.drag_handle_rounded,
-                                  color: Theme.of(context).hintColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Container(),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 9.0,
-                    horizontal: 1.0), // Offset by 1 to account for card outline
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      isEditing
-                          ? Padding(
-                              padding:
-                                  const EdgeInsetsDirectional.only(end: 0.0),
-                              child: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    busStops.remove(busStop);
-                                  });
-                                },
-                                icon: Icon(
-                                  Icons.clear_rounded,
-                                  color: Theme.of(context).hintColor,
-                                ),
-                              ),
-                            )
-                          : Container(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+      onBusStopRemoved: (busStop) => setState(() {
+        busStops.remove(busStop);
+      }),
     );
   }
 

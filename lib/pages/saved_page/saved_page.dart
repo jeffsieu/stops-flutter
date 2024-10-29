@@ -219,8 +219,11 @@ class SavedPageState extends ConsumerState<SavedPage> {
       _buildTrackedBuses(),
       ProxyProvider0<EditModel>(
         update: (_, __) => EditModel(isEditing: _isEditing),
-        child: const BusStopOverviewList(
-          routeId: kDefaultRouteId,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
+          child: BusStopOverviewList(
+            routeId: kDefaultRouteId,
+          ),
         ),
       ),
       const SizedBox(height: 64.0),

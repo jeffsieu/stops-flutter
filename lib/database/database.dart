@@ -228,6 +228,17 @@ class SavedUserRoutes extends _$SavedUserRoutes {
   }
 
   Future<void> updateRoute(StoredUserRoute route) async {
+    final currentValue = await future;
+    // Optimistic update
+    final newRoutes = currentValue.map((oldRoute) {
+      if (oldRoute.id == route.id) {
+        return route;
+      }
+
+      return oldRoute;
+    }).toList();
+    state = AsyncValue.data(newRoutes);
+
     await _database.updateUserRoute(route);
     ref.invalidateSelf();
   }
