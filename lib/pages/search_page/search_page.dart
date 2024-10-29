@@ -119,8 +119,8 @@ class SearchPageState extends ConsumerState<SearchPage>
   // via a fade down
   static const _resultsSheetCollapsedHeight = 124.0;
 
-  List<BusStop> get _busStops =>
-      ref.watch(busStopsByDistanceProvider).valueOrNull ?? [];
+  List<BusStop>? get _busStops =>
+      ref.watch(busStopsByDistanceProvider).valueOrNull;
   List<BusService> get _busServices =>
       ref.watch(busServiceListProvider).valueOrNull ?? [];
   bool get areBusStopsLoading =>
@@ -128,7 +128,7 @@ class SearchPageState extends ConsumerState<SearchPage>
       ref.watch(busStopsByDistanceProvider).isRefreshing ||
       ref.watch(busStopsByDistanceProvider).isReloading;
   late List<BusService> _filteredBusServices;
-  late List<BusStop> _filteredBusStops;
+  late List<BusStop>? _filteredBusStops;
   BusStopSearchFilter _searchFilter = BusStopSearchFilter.all;
   List<BusService> _busStopServicesFilter = [];
 
@@ -164,7 +164,7 @@ class SearchPageState extends ConsumerState<SearchPage>
   bool _isNearestBusStopExpanded = false;
 
   BusStop? get _displayedBusStop =>
-      _focusedBusStop ?? _filteredBusStops.firstOrNull;
+      _focusedBusStop ?? _filteredBusStops?.firstOrNull;
 
   // Controllers
   final TextEditingController _textController = TextEditingController();
@@ -298,13 +298,18 @@ class SearchPageState extends ConsumerState<SearchPage>
     }, [_busServices, _query, _showServicesOnly]);
 
     useEffect(() {
-      _filteredBusStops = _getFilteredBusStops(_busStops, _query);
+      if (_busStops == null) {
+        _filteredBusStops = null;
+      } else {
+        _filteredBusStops = _getFilteredBusStops(_busStops!, _query);
+      }
+
       return null;
     }, [_busStops, _query]);
 
     useEffect(() {
-      if (_focusedBusStop != null) {
-        if (!_filteredBusStops.contains(_focusedBusStop)) {
+      if (_focusedBusStop != null && _filteredBusStops != null) {
+        if (!_filteredBusStops!.contains(_focusedBusStop)) {
           _focusedBusStop = null;
         }
       }
@@ -553,7 +558,7 @@ class SearchPageState extends ConsumerState<SearchPage>
         _buildBusStopList(queryMetadata),
       },
       if (_query.isNotEmpty &&
-          _filteredBusStops.isEmpty &&
+          ((_filteredBusStops ?? []).isEmpty) &&
           _filteredBusServices.isEmpty)
         SliverToBoxAdapter(
           child: ListTile(
@@ -588,7 +593,7 @@ class SearchPageState extends ConsumerState<SearchPage>
           animationController: _resultsSheetAnimationController,
           scrollController: _scrollController,
           lowerLayer: SearchPageMap(
-            busStops: _filteredBusStops,
+            busStops: _filteredBusStops ?? [],
             paddingTop: MediaQuery.of(context).padding.top + 128,
             paddingBottom: _resultsSheetCollapsedHeight,
             isVisible: _isMapVisible,
@@ -1071,12 +1076,12 @@ class SearchPageState extends ConsumerState<SearchPage>
             [];
 
     final orderedBusStops = _filteredBusStops
-        .where((busStop) =>
+        ?.where((busStop) =>
             _busStopServicesFilter.isEmpty ||
             busStopsInSelectedBusService.contains(busStop))
         .toList();
 
-    if (areBusStopsLoading) {
+    if (areBusStopsLoading || orderedBusStops == null) {
       return SliverList(delegate: SliverChildBuilderDelegate(
         (BuildContext context, int position) {
           final name =
@@ -1086,23 +1091,27 @@ class SearchPageState extends ConsumerState<SearchPage>
           final code =
               '${Random(RANDOM_SEED + position).nextInt(90000) + 10000}';
 
+          final placeholderBusStop = BusStop(
+            defaultName: name,
+            displayName: name,
+            code: code,
+            latitude: 0,
+            longitude: 0,
+            road: road,
+          );
+
+          final busStop = orderedBusStops?[position] ?? placeholderBusStop;
+
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Shimmer.fromColors(
               baseColor: Color.lerp(Theme.of(context).hintColor,
                   Theme.of(context).canvasColor, 0.9)!,
               highlightColor: Theme.of(context).canvasColor,
-              child: BusStopOverviewItem(
-                  key: ValueKey(position),
-                  isLoading: true,
-                  BusStop(
-                    defaultName: name,
-                    displayName: name,
-                    code: code,
-                    latitude: 0,
-                    longitude: 0,
-                    road: road,
-                  )),
+              child: IgnorePointer(
+                child: BusStopOverviewItem(
+                    key: ValueKey(position), isLoading: true, busStop),
+              ),
             ),
           );
         },
@@ -1186,7 +1195,7 @@ class SearchPageState extends ConsumerState<SearchPage>
   Map<BusStop, _QueryMetadata> useQueryMetadata() {
     return useMemoized(() {
       return <BusStop, _QueryMetadata>{
-        for (BusStop busStop in _filteredBusStops)
+        for (BusStop busStop in (_filteredBusStops ?? []))
           busStop: _calculateQueryMetadata(busStop, _query)
       };
     }, [_filteredBusStops, _query]);
