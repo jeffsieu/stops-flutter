@@ -150,7 +150,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
           curve: Curves.easeOutCubic,
           padding: isEditing
               ? const EdgeInsetsDirectional.only(
-                  top: 8.0, bottom: 8.0, start: 40)
+                  top: 8.0, bottom: 8.0, start: 56)
               : isExpanded
                   ? const EdgeInsets.symmetric(horizontal: 8.0)
                   : const EdgeInsets.symmetric(vertical: 8.0),
@@ -168,57 +168,50 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                     opacity: showBusIcon ? 1 : 0,
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOutCubic,
-                    child: Row(
+                    child: Column(
                       children: [
-                        Column(
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: HighlightedIcon(
-                                opacity: showBusIcon ? 1 : 0,
-                                iconColor:
-                                    Theme.of(context).colorScheme.primary,
-                                child: SvgPicture.asset(
-                                  'assets/images/bus-stop.svg',
-                                  width: 24.0,
-                                  height: 24.0,
-                                  colorFilter: ColorFilter.mode(
-                                      Theme.of(context).colorScheme.primary,
-                                      BlendMode.srcIn),
-                                ),
-                              ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: HighlightedIcon(
+                            opacity: showBusIcon ? 1 : 0,
+                            iconColor: Theme.of(context).colorScheme.primary,
+                            child: SvgPicture.asset(
+                              'assets/images/bus-stop.svg',
+                              width: 24.0,
+                              height: 24.0,
+                              colorFilter: ColorFilter.mode(
+                                  Theme.of(context).colorScheme.primary,
+                                  BlendMode.srcIn),
                             ),
-                            AnimatedAlign(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOutCubic,
-                              alignment: Alignment.center,
-                              heightFactor: location != null ? 1 : 0,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOutCubic,
-                                opacity: location != null ? 1 : 0,
-                                child: (location != null)
-                                    ? SizedBox(
-                                        child: AutoSizeText(
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          formatDistance(
-                                            busStop.getMetersFromLocation(
-                                                location),
-                                          ),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall!
-                                              .copyWith(
-                                                  color: Theme.of(context)
-                                                      .hintColor),
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          ],
+                          ),
+                        ),
+                        AnimatedAlign(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.center,
+                          heightFactor: location != null ? 1 : 0,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            opacity: location != null ? 1 : 0,
+                            child: (location != null)
+                                ? SizedBox(
+                                    child: AutoSizeText(
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      formatDistance(
+                                        busStop.getMetersFromLocation(location),
+                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall!
+                                          .copyWith(
+                                              color:
+                                                  Theme.of(context).hintColor),
+                                    ),
+                                  )
+                                : null,
+                          ),
                         ),
                       ],
                     ),
