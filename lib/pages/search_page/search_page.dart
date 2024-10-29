@@ -19,6 +19,7 @@ import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/location/location.dart';
 import 'package:stops_sg/main.dart';
+import 'package:stops_sg/pages/search_page/bus_service_filter_sheet.dart';
 import 'package:stops_sg/pages/search_page/search_page_map.dart';
 import 'package:stops_sg/routes/bus_service_detail_route.dart';
 import 'package:stops_sg/routes/routes.dart';
@@ -123,7 +124,6 @@ class SearchPageState extends ConsumerState<SearchPage>
   late List<BusStop> _filteredBusStops;
   BusStopSearchFilter _searchFilter = BusStopSearchFilter.all;
   List<BusService> _busStopServicesFilter = [];
-  final _busStopServicesFilterQueryController = TextEditingController();
 
   static JaroWinkler jw = JaroWinkler();
 
@@ -642,7 +642,7 @@ class SearchPageState extends ConsumerState<SearchPage>
       return [];
     }
 
-    return _filterBusServices(services, query)
+    return filterBusServices(services, query)
         .sorted((BusService a, BusService b) =>
             compareBusNumber(a.number, b.number))
         .toList(growable: false);
@@ -705,7 +705,7 @@ class SearchPageState extends ConsumerState<SearchPage>
       _filteredBusServices = <BusService>[];
     } else {
       _filteredBusServices =
-          _filterBusServices(_busServices, _query).toList(growable: false);
+          filterBusServices(_busServices, _query).toList(growable: false);
       _filteredBusServices.sort(
           (BusService a, BusService b) => compareBusNumber(a.number, b.number));
     }
@@ -958,63 +958,12 @@ class SearchPageState extends ConsumerState<SearchPage>
   }
 
   Future<List<BusService>?> _showBusServiceFilterBottomSheet() async {
-    return await showModalBottomSheet<List<BusService>?>(
+    return await showModalBottomSheet<List<BusService>>(
+        useSafeArea: true,
         isScrollControlled: true,
         context: context,
         builder: (context) {
-          return Consumer(
-            builder: (context, ref, child) {
-              final busServices =
-                  ref.watch(busServiceListProvider).valueOrNull ?? [];
-
-              final matchingBusServices = _filterBusServices(
-                      busServices, _busStopServicesFilterQueryController.text)
-                  .toList();
-
-              return DraggableScrollableSheet(
-                maxChildSize: 1,
-                initialChildSize: .5,
-                expand: false,
-                builder: (context, controller) => CustomScrollView(
-                  controller: controller,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: TextField(
-                          controller: _busStopServicesFilterQueryController,
-                          decoration: InputDecoration(
-                            hintText: 'Search for bus services',
-                            prefixIcon: const Icon(Icons.search_rounded),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SliverList.builder(
-                      itemCount: matchingBusServices.length,
-                      itemBuilder: (context, position) {
-                        final busService = matchingBusServices[position];
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 8.0),
-                          child: BusServiceSearchItem(
-                            busService: busService,
-                            onTap: () {
-                              Navigator.pop(context, [busService]);
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
+          return const BusServiceFilterSheet();
         });
   }
 
@@ -1246,7 +1195,7 @@ class SearchPageState extends ConsumerState<SearchPage>
     FocusScope.of(context).unfocus();
   }
 
-  static Iterable<BusService> _filterBusServices(
+  static Iterable<BusService> filterBusServices(
           List<BusService> list, String query) =>
       list.where((BusService busService) =>
           busService.number.toLowerCase().startsWith(query.toLowerCase()));

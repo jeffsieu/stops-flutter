@@ -104,7 +104,6 @@ class StopsApp extends HookConsumerWidget {
           fontFamily: GoogleFonts.nunitoSans().fontFamily,
           blendLevel: 16,
           subThemesData: const FlexSubThemesData(
-            inputDecoratorBorderType: FlexInputBorderType.underline,
             inputDecoratorRadius: 8,
             inputDecoratorIsFilled: false,
           ),
