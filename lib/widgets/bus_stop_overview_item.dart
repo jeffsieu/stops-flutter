@@ -189,23 +189,35 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                                 ),
                               ),
                             ),
-                            if (location != null) ...{
-                              SizedBox(
-                                width: 48,
-                                child: AutoSizeText(
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  formatDistance(
-                                    busStop.getMetersFromLocation(location),
-                                  ),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall!
-                                      .copyWith(
-                                          color: Theme.of(context).hintColor),
-                                ),
+                            AnimatedAlign(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              alignment: Alignment.center,
+                              heightFactor: location != null ? 1 : 0,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOutCubic,
+                                opacity: location != null ? 1 : 0,
+                                child: (location != null)
+                                    ? SizedBox(
+                                        child: AutoSizeText(
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          formatDistance(
+                                            busStop.getMetersFromLocation(
+                                                location),
+                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall!
+                                              .copyWith(
+                                                  color: Theme.of(context)
+                                                      .hintColor),
+                                        ),
+                                      )
+                                    : null,
                               ),
-                            },
+                            ),
                           ],
                         ),
                       ],
