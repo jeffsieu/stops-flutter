@@ -44,9 +44,9 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
                 _bottomNavIndex = index;
               });
               if (index == 0) {
-                SearchRoute().go(context);
-              } else if (index == 1) {
                 SavedRoute().go(context);
+              } else if (index == 1) {
+                SearchRoute().go(context);
               } else if (index == 2) {
                 RoutesRoute().go(context);
               } else if (index == 3) {
@@ -55,13 +55,13 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
             },
             destinations: const <NavigationDestination>[
               NavigationDestination(
-                icon: Icon(Icons.search_rounded),
-                label: 'Search',
-              ),
-              NavigationDestination(
                 icon: Icon(Icons.bookmark_outline_rounded),
                 selectedIcon: Icon(Icons.bookmark_rounded),
                 label: 'Saved',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.search_rounded),
+                label: 'Search',
               ),
               NavigationDestination(
                 icon: Icon(Icons.directions_outlined),

@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/routes/initial_fetch_data_route.dart';
 import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/saved_route.dart';
 
 part 'router.g.dart';
 
@@ -27,6 +28,6 @@ GoRouter router(RouterRef ref) {
 
       return null;
     },
-    initialLocation: '/search',
+    initialLocation: SavedRoute().location,
   );
 }
