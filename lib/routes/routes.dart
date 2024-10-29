@@ -27,9 +27,9 @@ part 'routes.g.dart';
     ],
   ),
   TypedGoRoute<BusStopSearchRoute>(path: '/search/busStops'),
+  TypedGoRoute<AddRouteRoute>(path: '/routes/add'),
   TypedGoRoute<RouteDetailRoute>(path: '/routes/:routeId'),
   TypedGoRoute<EditRouteRoute>(path: '/routes/:routeId/edit'),
-  TypedGoRoute<AddRouteRoute>(path: '/routes/add'),
   TypedGoRoute<BusServiceDetailRoute>(path: '/bus-services/:serviceNumber'),
   TypedGoRoute<BusServiceDetailWithFocusedBusStopRoute>(
       path: '/bus-services/:serviceNumber/busStop/:busStopCode'),
