@@ -1,7 +1,7 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 
-import 'bus_service_arrival_result.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
 
 Color getBusOperatorColor(String operator) {
   switch (operator) {

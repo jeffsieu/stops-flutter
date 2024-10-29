@@ -1,12 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/bus_stop.dart';
-import '../../utils/database_utils.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/database.dart';
 
 part 'bus_stop_sheet_event.dart';
 
 class BusStopSheetBloc extends Bloc<BusStopSheetEvent, BusStopSheetState> {
-  BusStopSheetBloc() : super(BusStopSheetState.initial()) {
+  BusStopSheetBloc({required this.ref}) : super(BusStopSheetState.initial()) {
     on<SheetRequested>(_onSheetRequested);
     on<SheetHidden>(_onSheetHidden);
     on<EditModeEntered>(_onEditModeEntered);
@@ -16,19 +17,18 @@ class BusStopSheetBloc extends Bloc<BusStopSheetEvent, BusStopSheetState> {
     on<BusStopRenamed>(_onBusStopRenamed);
   }
 
+  final WidgetRef ref;
+
   Future<void> _onSheetRequested(
       SheetRequested event, Emitter<BusStopSheetState> emit) async {
     final busStop = event.busStop;
     final routeId = event.routeId;
-
-    final isInRoute = await isBusStopInRouteWithId(busStop, routeId);
 
     emit(state.copyWith(
       busStop: busStop,
       routeId: routeId,
       visible: true,
       isEditing: event.withEdit,
-      isInRoute: isInRoute,
       isRenaming: false,
       latestOpenTimestamp: DateTime.now().millisecondsSinceEpoch,
     ));
@@ -69,7 +69,9 @@ class BusStopSheetBloc extends Bloc<BusStopSheetEvent, BusStopSheetState> {
       return;
     }
     final newBusStop = state.busStop!.copyWith(displayName: event.newName);
-    updateBusStop(newBusStop);
+
+    ref.read(busStopListProvider.notifier).updateBusStop(newBusStop);
+
     emit(state.copyWith(
       busStop: newBusStop,
     ));
@@ -82,7 +84,6 @@ class BusStopSheetState {
   final bool visible;
   final bool isEditing;
   final bool isRenaming;
-  final bool isInRoute;
 
   /// The timestamp of the last time the sheet was opened.
   /// Used to force the state to be different when the sheet is opened again.
@@ -94,7 +95,6 @@ class BusStopSheetState {
         visible = false,
         isEditing = false,
         isRenaming = false,
-        isInRoute = false,
         latestOpenTimestamp = 0;
   BusStopSheetState({
     required this.busStop,
@@ -102,7 +102,6 @@ class BusStopSheetState {
     required this.visible,
     required this.isEditing,
     required this.isRenaming,
-    required this.isInRoute,
     required this.latestOpenTimestamp,
   });
 
@@ -112,7 +111,6 @@ class BusStopSheetState {
     bool? visible,
     bool? isEditing,
     bool? isRenaming,
-    bool? isInRoute,
     int? latestOpenTimestamp,
   }) {
     return BusStopSheetState(
@@ -121,7 +119,6 @@ class BusStopSheetState {
       visible: visible ?? this.visible,
       isEditing: isEditing ?? this.isEditing,
       isRenaming: isRenaming ?? this.isRenaming,
-      isInRoute: isInRoute ?? this.isInRoute,
       latestOpenTimestamp: latestOpenTimestamp ?? this.latestOpenTimestamp,
     );
   }

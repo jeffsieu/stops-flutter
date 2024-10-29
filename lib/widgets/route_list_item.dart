@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
 
-import '../models/bus_stop.dart';
-import '../models/user_route.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/models/user_route.dart';
 
 class RouteListItem extends StatelessWidget {
-  const RouteListItem(this.route, {Key? key}) : super(key: key);
+  const RouteListItem({super.key, required this.route, required this.index});
 
   final StoredUserRoute route;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    return Handle(
-      delay: const Duration(milliseconds: 500),
+    return ReorderableDelayedDragStartListener(
+      index: index,
       child: ListTile(
         contentPadding: const EdgeInsets.only(left: 24.0, right: 16.0),
         onTap: () {
@@ -26,15 +26,17 @@ class RouteListItem extends StatelessWidget {
             color: route.color.of(context),
           ),
         ),
-        title: Text(route.name, style: Theme.of(context).textTheme.headline6),
-        subtitle: Text(
-            route.busStops
-                .map<String>((BusStop busStop) => busStop.displayName)
-                .join(' > '),
-            style: Theme.of(context)
-                .textTheme
-                .subtitle2!
-                .copyWith(color: Theme.of(context).hintColor)),
+        title: Text(route.name, style: Theme.of(context).textTheme.titleLarge),
+        subtitle: route.busStops.isNotEmpty
+            ? Text(
+                route.busStops
+                    .map<String>((BusStop busStop) => busStop.displayName)
+                    .join(' > '),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall!
+                    .copyWith(color: Theme.of(context).hintColor))
+            : null,
         trailing: PopupMenuButton<RouteAction>(
           icon:
               Icon(Icons.more_vert_rounded, color: Theme.of(context).hintColor),
@@ -45,9 +47,9 @@ class RouteListItem extends StatelessWidget {
           itemBuilder: (BuildContext context) {
             return <PopupMenuItem<RouteAction>>[
               const PopupMenuItem<RouteAction>(
-                  child: Text('Edit'), value: RouteAction.edit),
+                  value: RouteAction.edit, child: Text('Edit')),
               const PopupMenuItem<RouteAction>(
-                  child: Text('Delete'), value: RouteAction.delete),
+                  value: RouteAction.delete, child: Text('Delete')),
             ];
           },
         ),

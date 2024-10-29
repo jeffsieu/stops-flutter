@@ -2,27 +2,26 @@ import 'package:flutter/material.dart';
 
 class CardAppBar extends StatelessWidget {
   const CardAppBar({
-    Key? key,
+    super.key,
     this.onTap,
     this.leading,
     this.title,
     this.bottom,
     this.actions,
-    this.elevation,
-  }) : super(key: key);
+  });
 
   final Widget? leading;
   final Widget? title;
   final Widget? bottom;
   final void Function()? onTap;
   final List<Widget>? actions;
-  final double? elevation;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceBright,
       clipBehavior: Clip.antiAlias,
-      elevation: elevation ?? 0,
       shape: Theme.of(context).cardTheme.shape,
       child: InkWell(
         customBorder: Theme.of(context).cardTheme.shape,

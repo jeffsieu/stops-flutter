@@ -1,201 +1,491 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart' hide Consumer;
+import 'package:shimmer/shimmer.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/location/location.dart';
+import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/settings_route.dart';
+import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/utils/distance_utils.dart';
+import 'package:stops_sg/widgets/bus_stop_legend_card.dart';
+import 'package:stops_sg/widgets/bus_timing_row.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
+import 'package:stops_sg/widgets/highlighted_icon.dart';
+import 'package:stops_sg/widgets/outline_titled_container.dart';
 
-import '../bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
-import '../models/bus_service.dart';
-import '../models/bus_stop_with_pinned_services.dart';
-import '../models/user_route.dart';
-import '../utils/bus_api.dart';
-import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_utils.dart';
-import '../widgets/bus_timing_row.dart';
-import 'edit_model.dart';
-import 'outline_titled_container.dart';
+class BusStopOverviewItem extends ConsumerStatefulWidget {
+  const BusStopOverviewItem(this.busStop,
+      {super.key, this.onTap, this.isExpanded, this.isLoading = false});
 
-class BusStopOverviewItem extends StatefulWidget {
-  const BusStopOverviewItem(this.busStop, {Key? key}) : super(key: key);
-
-  final BusStopWithPinnedServices busStop;
+  final BusStop busStop;
+  final void Function()? onTap;
+  final bool? isExpanded;
+  final bool isLoading;
 
   @override
-  State<StatefulWidget> createState() {
-    return BusStopOverviewItemState();
-  }
+  ConsumerState<BusStopOverviewItem> createState() =>
+      _BusStopOverviewItemState();
 }
 
-class BusStopOverviewItemState extends State<BusStopOverviewItem> {
-  List<BusServiceArrivalResult>? _latestData;
+class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
+  BusStop get busStop => widget.busStop;
 
-  late final Stream<List<BusServiceArrivalResult>> _busArrivalStream =
-      BusAPI().busStopArrivalStream(widget.busStop);
-  // ignore: prefer_function_declarations_over_variables
-
-  @override
-  void initState() {
-    super.initState();
-    _latestData = BusAPI().getLatestArrival(widget.busStop);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  bool _isExpanded = false;
+  bool get isExpanded => widget.isExpanded ?? _isExpanded;
+  bool _showLegend = false;
 
   @override
   Widget build(BuildContext context) {
-    final name = widget.busStop.displayName;
-    final code = widget.busStop.code;
-    final road = widget.busStop.road;
+    final location =
+        ref.watch(userLocationProvider).valueOrNull?.data?.toLatLng();
+    final name = busStop.displayName;
+    final code = busStop.code;
+    final road = busStop.road;
+    final route = context.read<StoredUserRoute?>();
+    final isSaved = (() {
+      if (route == null) {
+        return false;
+      }
 
-    const titleHorizontalPadding = 12.0;
+      return ref
+              .watch(
+                isBusStopInRouteProvider(busStop: busStop, routeId: route.id),
+              )
+              .valueOrNull ??
+          false;
+    })();
+
     final Widget child = InkWell(
       borderRadius: const BorderRadius.all(
         Radius.circular(8.0),
       ),
-      onTap: _showDetailSheet,
-      child: Container(
-        padding: const EdgeInsets.only(top: 40.0, bottom: 16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildPinnedServices(widget.busStop.pinnedServices),
-          ],
-        ),
-      ),
+      onTap: () {
+        widget.onTap?.call();
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      child: isExpanded
+          ? Container(
+              padding: const EdgeInsets.only(top: 40.0, bottom: 16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildPinnedServices(context),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Wrap(
+                      spacing: 8.0,
+                      children: [
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                              visualDensity: VisualDensity.compact),
+                          onPressed: () {
+                            setState(() {
+                              _showLegend = !_showLegend;
+                            });
+                          },
+                          child: Text('Legend',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall!
+                                  .copyWith(
+                                      color: Theme.of(context).hintColor)),
+                        ),
+                        OutlinedButton(
+                          style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact),
+                          onPressed: () {
+                            SettingsRoute().push(context);
+                          },
+                          child: Text('Missing bus services?',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall!
+                                  .copyWith(
+                                      color: Theme.of(context).hintColor)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_showLegend)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: BusStopLegendCard(),
+                    ),
+                ],
+              ),
+            )
+          : Container(height: 60.0),
     );
 
     final isEditing = context.watch<EditModel>().isEditing;
+
+    final showBusIcon = !isEditing && !isExpanded;
+    final isTitleLarge = isExpanded && !isEditing;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
       padding: isEditing
           ? const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0)
-          : const EdgeInsets.symmetric(vertical: 16.0, horizontal: 0),
+          : const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
       child: OutlineTitledContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: (widget.isLoading)
+            ? Colors.transparent
+            : Theme.of(context).scaffoldBackgroundColor,
         buildBody: !isEditing,
-        collapsedTitlePadding: const EdgeInsetsDirectional.only(
-            start: 48.0, end: 16.0, top: 8.0, bottom: 8.0),
-        title: Text(name, style: Theme.of(context).textTheme.titleLarge),
-        childrenBelowTitle: [
-          Text('$code · $road',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall!
-                  .copyWith(color: Theme.of(context).hintColor)),
-        ],
+        showGap: false,
+        title: AnimatedPadding(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          padding: isEditing
+              ? const EdgeInsetsDirectional.only(
+                  top: 8.0, bottom: 8.0, start: 56)
+              : isExpanded
+                  ? const EdgeInsets.symmetric(horizontal: 8.0)
+                  : const EdgeInsets.symmetric(vertical: 8.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              IgnorePointer(
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 300),
+                  widthFactor: showBusIcon ? 1 : 0,
+                  alignment: Alignment.center,
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: showBusIcon ? 1 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: HighlightedIcon(
+                            opacity: showBusIcon ? 1 : 0,
+                            iconColor: Theme.of(context).colorScheme.primary,
+                            child: SvgPicture.asset(
+                              'assets/images/bus-stop.svg',
+                              width: 24.0,
+                              height: 24.0,
+                              colorFilter: ColorFilter.mode(
+                                  Theme.of(context).colorScheme.primary,
+                                  BlendMode.srcIn),
+                            ),
+                          ),
+                        ),
+                        AnimatedAlign(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.center,
+                          heightFactor: location != null ? 1 : 0,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            opacity: location != null ? 1 : 0,
+                            child: widget.isLoading
+                                ? Container(
+                                    child: Text(
+                                      '100m',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall!
+                                          .copyWith(
+                                              color:
+                                                  Theme.of(context).hintColor),
+                                    ),
+                                  )
+                                : (location != null)
+                                    ? SizedBox(
+                                        child: AutoSizeText(
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          formatDistance(
+                                            busStop.getMetersFromLocation(
+                                                location),
+                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall!
+                                              .copyWith(
+                                                  color: Theme.of(context)
+                                                      .hintColor),
+                                        ),
+                                      )
+                                    : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: IgnorePointer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Ink(
+                        color: widget.isLoading
+                            ? Colors.transparent
+                            : Theme.of(context).scaffoldBackgroundColor,
+                        child: AnimatedPadding(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          padding: isExpanded
+                              ? const EdgeInsets.symmetric(horizontal: 8)
+                              : EdgeInsets.zero,
+                          child: AnimatedDefaultTextStyle(
+                            style: isTitleLarge
+                                ? Theme.of(context).textTheme.titleLarge!
+                                : Theme.of(context).textTheme.titleMedium!,
+                            curve: Curves.easeOutCubic,
+                            duration: const Duration(milliseconds: 300),
+                            child: AutoSizeText(
+                              name,
+                              maxLines: 1,
+                              stepGranularity: 0.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      AnimatedPadding(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        padding: isExpanded
+                            ? const EdgeInsets.symmetric(horizontal: 8)
+                            : EdgeInsets.zero,
+                        child: Text('$code · $road',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall!
+                                .copyWith(color: Theme.of(context).hintColor)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              AnimatedOpacity(
+                opacity: isExpanded ? 1 : 0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                child: IconButton.outlined(
+                  style: IconButton.styleFrom(
+                    backgroundColor: isSaved
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).scaffoldBackgroundColor,
+                    foregroundColor: isSaved
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).hintColor,
+                  ),
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    showModalBottomSheet(
+                      isScrollControlled: true,
+                      useRootNavigator: true,
+                      useSafeArea: true,
+                      context: context,
+                      builder: (context) => DraggableScrollableSheet(
+                        expand: false,
+                        builder: (context, scrollController) =>
+                            Consumer(builder: (context, ref, child) {
+                          final routes = ref.watch(savedUserRoutesProvider);
+
+                          return switch (routes) {
+                            AsyncData(:final value) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                        start: 16.0, end: 16.0, top: 24.0),
+                                    child: Text('Add to route',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge),
+                                  ),
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    controller: scrollController,
+                                    itemBuilder: (context, index) {
+                                      final route = value[index];
+                                      final isBusStopInRoute = ref
+                                              .watch(isBusStopInRouteProvider(
+                                                  busStop: busStop,
+                                                  routeId: route.id))
+                                              .valueOrNull ??
+                                          false;
+
+                                      return CheckboxListTile(
+                                        value: isBusStopInRoute,
+                                        title: Text(route.name),
+                                        onChanged: (checked) async {
+                                          if (checked ?? false) {
+                                            await ref
+                                                .read(savedUserRouteProvider(
+                                                        id: route.id)
+                                                    .notifier)
+                                                .addBusStop(busStop);
+                                          } else {
+                                            await ref
+                                                .read(savedUserRouteProvider(
+                                                        id: route.id)
+                                                    .notifier)
+                                                .removeBusStop(busStop);
+                                          }
+                                        },
+                                      );
+                                    },
+                                    itemCount: value.length,
+                                  ),
+                                ],
+                              ),
+                            _ => const SizedBox(),
+                          };
+                        }),
+                      ),
+                    );
+                  },
+                  selectedIcon: const Icon(Icons.bookmark_added_rounded),
+                  isSelected: isSaved,
+                  icon: const Icon(Icons.bookmark_add_outlined),
+                ),
+              ),
+            ],
+          ),
+        ),
         body: child,
-        titlePadding: titleHorizontalPadding,
-        topOffset: 16.0,
+        titlePadding: 0,
+        titleBorderGap: 0,
+        topOffset: isExpanded ? 16.0 : 0.0,
       ),
     );
   }
 
-  Widget _buildPinnedServices(List<BusService> pinnedServices) {
-    if (pinnedServices.isEmpty) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.add_rounded),
-            label: Text(BusAPI.kNoPinnedBusesError,
-                style: Theme.of(context)
-                    .textTheme
-                    .subtitle1!
-                    .copyWith(color: Theme.of(context).hintColor)),
-            onPressed: () async {
-              context.read<BusStopSheetBloc>().add(SheetRequested.withEdit(
-                  widget.busStop, context.read<StoredUserRoute>().id));
-            },
+  Widget _buildPinnedServices(BuildContext context) {
+    final routeId = context.read<StoredUserRoute?>()?.id;
+    final pinnedServices = routeId != null
+        ? ref.watch(pinnedServicesProvider(busStop, routeId)).valueOrNull
+        : null;
+
+    if (pinnedServices == null) {
+      return Shimmer.fromColors(
+        baseColor: Color.lerp(
+            Theme.of(context).hintColor, Theme.of(context).canvasColor, 0.9)!,
+        highlightColor: Theme.of(context).canvasColor,
+        child: Container(
+          height: 36.0,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(8.0),
           ),
-        ],
+        ),
       );
     }
+
+    final busStopArrivals = ref.watch(busStopArrivalsProvider(busStop));
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: StreamBuilder<List<BusServiceArrivalResult>>(
-        initialData: _latestData,
-        stream: _busArrivalStream,
-        builder: (BuildContext context,
-            AsyncSnapshot<List<BusServiceArrivalResult>> snapshot) {
-          if (snapshot.hasError) {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.signal_wifi_connected_no_internet_4_rounded,
-                    color: Theme.of(context).hintColor),
-                const SizedBox(width: 16.0),
-                Text(snapshot.error.toString(),
-                    style: Theme.of(context)
-                        .textTheme
-                        .subtitle1!
-                        .copyWith(color: Theme.of(context).hintColor)),
-              ],
-            );
-          }
-          switch (snapshot.connectionState) {
-            case ConnectionState.none:
-            // Should not happen.
-            case ConnectionState.active:
-            case ConnectionState.waiting:
-              if (snapshot.data == null) {
-                return const Center(child: Text(BusAPI.kLoadingMessage));
+      child: Builder(
+        builder: (context) {
+          switch (busStopArrivals) {
+            case AsyncData(:final value):
+              {
+                final busArrivals = value
+                    .where((BusServiceArrivalResult result) =>
+                        pinnedServices.isEmpty ||
+                        pinnedServices.contains(result.busService))
+                    .toList(growable: false);
+                busArrivals.sort((BusServiceArrivalResult a,
+                        BusServiceArrivalResult b) =>
+                    compareBusNumber(a.busService.number, b.busService.number));
+
+                return busArrivals.isNotEmpty
+                    ? AbsorbPointer(
+                        absorbing: false,
+                        child: Wrap(
+                          spacing: 16.0,
+                          direction: Axis.horizontal,
+                          children: [
+                            for (BusServiceArrivalResult arrivalResult
+                                in busArrivals)
+                              BusTimingRow.unfocusable(busStop,
+                                  arrivalResult.busService, arrivalResult)
+                          ],
+                        ),
+                      )
+                    : Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.bus_alert_rounded,
+                                color: Theme.of(context).hintColor),
+                            const SizedBox(width: 16.0),
+                            Text(BusApiError.noPinnedBusesInService.message,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium!
+                                    .copyWith(
+                                        color: Theme.of(context).hintColor)),
+                          ],
+                        ),
+                      );
               }
-              continue done;
-            done:
-            case ConnectionState.done:
-              final busArrivals = snapshot.data!
-                  .where((BusServiceArrivalResult result) =>
-                      pinnedServices.contains(result.busService))
-                  .toList(growable: false);
-              busArrivals.sort((BusServiceArrivalResult a,
-                      BusServiceArrivalResult b) =>
-                  compareBusNumber(a.busService.number, b.busService.number));
-              _latestData = snapshot.data;
-              return busArrivals.isNotEmpty
-                  ? AbsorbPointer(
-                      absorbing: false,
-                      child: Wrap(
-                        spacing: 16.0,
-                        direction: Axis.horizontal,
-                        children: [
-                          for (BusServiceArrivalResult arrivalResult
-                              in busArrivals)
-                            BusTimingRow.unfocusable(widget.busStop,
-                                arrivalResult.busService, arrivalResult)
-                        ],
+
+            case AsyncError(:final error):
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.signal_wifi_connected_no_internet_4_rounded,
+                      color: Theme.of(context).hintColor),
+                  const SizedBox(width: 16.0),
+                  Text(error.toString(),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium!
+                          .copyWith(color: Theme.of(context).hintColor)),
+                ],
+              );
+            case _:
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < 3; i++) ...{
+                      Shimmer.fromColors(
+                        baseColor: Color.lerp(Theme.of(context).hintColor,
+                            Theme.of(context).canvasColor, 0.9)!,
+                        highlightColor: Theme.of(context).canvasColor,
+                        child: Container(
+                          height: 36.0,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
                       ),
-                    )
-                  : Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.bus_alert_rounded,
-                              color: Theme.of(context).hintColor),
-                          const SizedBox(width: 16.0),
-                          Text(BusAPI.kNoPinnedBusesInServiceError,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .subtitle1!
-                                  .copyWith(
-                                      color: Theme.of(context).hintColor)),
-                        ],
-                      ),
-                    );
+                      if (i < 2) const SizedBox(height: 8.0),
+                    }
+                  ],
+                ),
+              );
           }
         },
       ),
     );
-  }
-
-  void _showDetailSheet() {
-    FocusScope.of(context).unfocus();
-    context.read<BusStopSheetBloc>().add(
-        SheetRequested(widget.busStop, context.read<StoredUserRoute>().id));
   }
 }

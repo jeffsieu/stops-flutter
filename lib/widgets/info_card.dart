@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 class InfoCard extends StatelessWidget {
   const InfoCard(
-      {Key? key, required this.icon, required this.title, this.color})
-      : super(key: key);
+      {super.key, required this.icon, required this.title, this.color});
 
   final Widget icon;
   final Widget title;

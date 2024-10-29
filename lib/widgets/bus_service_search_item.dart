@@ -1,27 +1,42 @@
 import 'package:flutter/material.dart';
 
-import '../models/bus_service.dart';
-import '../widgets/highlighted_icon.dart';
+import 'package:stops_sg/bus_api/models/bus_service.dart';
+import 'package:stops_sg/widgets/highlighted_icon.dart';
 
 class BusServiceSearchItem extends StatelessWidget {
-  const BusServiceSearchItem({Key? key, required this.busService, this.onTap})
-      : super(key: key);
+  const BusServiceSearchItem(
+      {super.key, required this.busService, this.onTap, this.opacity = 1});
 
   final BusService busService;
   final void Function()? onTap;
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
-      leading: HighlightedIcon(
-        iconColor: BusService.listColor(context),
-        child: Icon(Icons.directions_bus_rounded,
-            color: BusService.listColor(context)),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
+        borderRadius: const BorderRadius.all(
+          Radius.circular(8.0),
+        ),
       ),
-      title: Text(busService.number,
-          style: Theme.of(context).textTheme.titleMedium),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
+        horizontalTitleGap: 8.0,
+        leading: HighlightedIcon(
+          iconColor: BusService.listColor(context),
+          opacity: opacity,
+          child: Icon(
+            Icons.directions_bus_rounded,
+            color: BusService.listColor(context),
+          ),
+        ),
+        title: Text(busService.number,
+            style: Theme.of(context).textTheme.titleMedium),
+      ),
     );
   }
 }

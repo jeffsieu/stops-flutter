@@ -2,16 +2,16 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rubber/rubber.dart';
-import '../bloc/bus_stop_sheet_bloc.dart';
-import 'bus_stop_sheet.dart';
-import 'bus_stop_sheet_header_dropdown.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet_header_dropdown.dart';
 
 class BusStopSheetHeader extends StatelessWidget {
   const BusStopSheetHeader({
-    Key? key,
+    super.key,
     required this.rubberAnimationController,
     required this.hasAppBar,
-  }) : super(key: key);
+  });
 
   final RubberAnimationController rubberAnimationController;
   final bool hasAppBar;
@@ -61,11 +61,11 @@ class BusStopSheetHeader extends StatelessWidget {
                   layoutBuilder:
                       (Widget? currentChild, List<Widget> previousChildren) {
                     return Stack(
+                      alignment: Alignment.topCenter,
                       children: [
                         ...previousChildren,
                         if (currentChild != null) currentChild,
                       ],
-                      alignment: Alignment.topCenter,
                     );
                   },
                   transitionBuilder:
@@ -103,7 +103,7 @@ class BusStopSheetHeader extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: Theme.of(context)
                               .textTheme
-                              .subtitle2!
+                              .titleSmall!
                               .copyWith(color: Theme.of(context).hintColor)),
                     ],
                   ),

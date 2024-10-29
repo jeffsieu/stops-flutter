@@ -2,19 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
 import 'package:rubber/rubber.dart';
-
-import '../../models/bus_stop.dart';
-import '../../models/user_route.dart';
-import '../../routes/settings_page.dart';
-import '../../utils/bus_api.dart';
-import '../../utils/bus_service_arrival_result.dart';
-import '../../utils/database_utils.dart';
-import '../../widgets/bus_stop_legend_card.dart';
-import '../bloc/bus_stop_sheet_bloc.dart';
-import 'bus_stop_sheet_header.dart';
-import 'bus_stop_sheet_service_list.dart';
+import 'package:stops_sg/bus_api/bus_api.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet_header.dart';
+import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet_service_list.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/settings_route.dart';
+import 'package:stops_sg/widgets/bus_stop_legend_card.dart';
 
 const Duration kSheetUpdateDuration = Duration(milliseconds: 1000);
 const Duration kSheetEditDuration = Duration(milliseconds: 250);
@@ -24,9 +24,9 @@ const double _launchVelocity = 5.0;
 const double kTitleFadeInDurationFactor = 0.5;
 const double _sheetHalfBoundValue = 0.5;
 
-class BusStopSheet extends StatefulWidget {
+class BusStopSheet extends ConsumerStatefulWidget {
   BusStopSheet(
-      {Key? key, required TickerProvider vsync, required this.hasAppBar})
+      {super.key, required TickerProvider vsync, required this.hasAppBar})
       : rubberAnimationController = RubberAnimationController(
           vsync: vsync,
           lowerBoundValue: AnimationControllerValue(percentage: 0),
@@ -36,8 +36,7 @@ class BusStopSheet extends StatefulWidget {
           springDescription: SpringDescription.withDampingRatio(
               mass: 1, ratio: DampingRatio.NO_BOUNCY, stiffness: Stiffness.LOW),
         ),
-        scrollController = ScrollController(),
-        super(key: key) {
+        scrollController = ScrollController() {
     rubberAnimationController.addStatusListener((AnimationStatus status) {
       if (status == AnimationStatus.completed) {
         rubberAnimationController.halfBoundValue = null;
@@ -53,12 +52,12 @@ class BusStopSheet extends StatefulWidget {
       context.findAncestorStateOfType<_BusStopSheetState>();
 
   @override
-  State<StatefulWidget> createState() => _BusStopSheetState();
+  ConsumerState<BusStopSheet> createState() => _BusStopSheetState();
 }
 
-class _BusStopSheetState extends State<BusStopSheet>
+class _BusStopSheetState extends ConsumerState<BusStopSheet>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  List<BusServiceArrivalResult>? _latestData;
+  BusStop? busStop;
   bool _isAnimating = false;
 
   late final AnimationController timingListAnimationController =
@@ -68,14 +67,16 @@ class _BusStopSheetState extends State<BusStopSheet>
 
   /// Updates the bottom sheet with details of another bus stop.
   /// Called externally from the parent containing this widget.
-  Future<void> updateWith(BusStop? busStop, int? routeId) async {
-    if (busStop == null || routeId == null) {
-      setState(() {});
+  Future<void> updateWith(BusStop? newBusStop, int? routeId) async {
+    if (newBusStop == null || routeId == null) {
+      setState(() {
+        busStop = newBusStop;
+      });
       return;
     }
     setState(() {
-      _latestData = BusAPI().getLatestArrival(busStop);
-      textController = TextEditingController(text: busStop.displayName);
+      busStop = newBusStop;
+      textController = TextEditingController(text: newBusStop.displayName);
 
       timingListAnimationController.forward(from: 0);
       widget.rubberAnimationController.halfBoundValue =
@@ -124,6 +125,8 @@ class _BusStopSheetState extends State<BusStopSheet>
     final routeId =
         context.select((BusStopSheetBloc bloc) => bloc.state.routeId);
     if (busStop == null || routeId == null) return Container();
+
+    final route = ref.watch(savedUserRouteProvider(id: routeId)).valueOrNull;
 
     final Widget scrollView = ListView(
       padding: const EdgeInsets.all(0),
@@ -180,8 +183,9 @@ class _BusStopSheetState extends State<BusStopSheet>
           },
         ),
       ],
-      child: WillPopScope(
-        onWillPop: _onWillPop,
+      child: PopScope(
+        canPop: _canPop,
+        onPopInvokedWithResult: _onPopInvokedWithResult,
         child: Material(
           type: MaterialType.card,
           borderRadius: const BorderRadius.only(
@@ -189,18 +193,12 @@ class _BusStopSheetState extends State<BusStopSheet>
             topRight: Radius.circular(16.0),
           ),
           elevation: 16.0,
-          child: FutureBuilder<StoredUserRoute>(
-              future: getRouteWithId(routeId),
-              builder: (context, snapshot) {
-                if (snapshot.data != null) {
-                  return Provider<StoredUserRoute>(
-                    create: (_) => snapshot.data!,
-                    child: scrollView,
-                  );
-                } else {
-                  return Container();
-                }
-              }),
+          child: (route != null)
+              ? Provider<StoredUserRoute>(
+                  create: (_) => route,
+                  child: scrollView,
+                )
+              : Container(),
         ),
       ),
     );
@@ -212,11 +210,8 @@ class _BusStopSheetState extends State<BusStopSheet>
     super.dispose();
   }
 
-  Future<bool> _onWillPop() async {
+  bool get _canPop {
     if (context.read<BusStopSheetBloc>().state.isEditing) {
-      setState(() {
-        context.read<BusStopSheetBloc>().add(const EditModeExited());
-      });
       return false;
     }
 
@@ -228,8 +223,28 @@ class _BusStopSheetState extends State<BusStopSheet>
     return true;
   }
 
+  void _onPopInvokedWithResult<T>(bool didPop, T? result) {
+    if (didPop) {
+      return;
+    }
+
+    if (context.read<BusStopSheetBloc>().state.isEditing) {
+      setState(() {
+        context.read<BusStopSheetBloc>().add(const EditModeExited());
+      });
+      return;
+    }
+
+    if (widget.rubberAnimationController.value != 0) {
+      widget.rubberAnimationController.animateTo(to: 0);
+      return;
+    }
+  }
+
   Widget _buildFooter(BuildContext context) {
-    final rowCount = _latestData?.length ?? 0;
+    final rowCount = busStop == null
+        ? 0
+        : ref.watch(busStopArrivalsProvider(busStop!)).value?.length ?? 0;
     final startOffset = (rowCount * kSheetRowAnimationOffset).clamp(0.0, 1.0);
     final endOffset =
         (rowCount * kSheetRowAnimationOffset + kSheetRowAnimDuration)
@@ -261,17 +276,12 @@ class _BusStopSheetState extends State<BusStopSheet>
               Center(
                 child: TextButton(
                   onPressed: () {
-                    // Open settings page
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                            builder: (BuildContext context) =>
-                                const SettingsPage()));
+                    SettingsRoute().push(context);
                   },
                   child: Text('Missing bus services?',
                       style: Theme.of(context)
                           .textTheme
-                          .subtitle2!
+                          .titleSmall!
                           .copyWith(color: Theme.of(context).hintColor)),
                 ),
               ),
@@ -303,7 +313,7 @@ class _BusStopSheetState extends State<BusStopSheet>
                     padding: const EdgeInsets.only(top: 16.0, left: 16.0),
                     child: Text(
                       'Rename bus stop',
-                      style: Theme.of(context).textTheme.headline6,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                   Container(height: 16.0),

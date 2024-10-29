@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 class HomePageContentSwitcher extends StatelessWidget {
   const HomePageContentSwitcher(
-      {Key? key, required this.scrollController, required this.child})
-      : super(key: key);
+      {super.key, required this.scrollController, required this.child});
   final ScrollController scrollController;
   final Widget child;
 
@@ -16,11 +15,11 @@ class HomePageContentSwitcher extends StatelessWidget {
       child: child,
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
         return Stack(
+          alignment: Alignment.topCenter,
           children: [
             ...previousChildren,
             if (currentChild != null) currentChild,
           ],
-          alignment: Alignment.topCenter,
         );
       },
       transitionBuilder: (Widget child, Animation<double> animation) {

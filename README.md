@@ -41,10 +41,10 @@ Or check out the [releases page](https://github.com/jeffsieu/stops-flutter/relea
  ```
  
 ### Setting API keys
-Set your [Google Maps API key](https://console.cloud.google.com/google/maps-apis/overview) for Android at `stops-flutter/android/local.properties`.
+Set your [Google Maps API key](https://console.cloud.google.com/google/maps-apis/overview) for Android at `stops-flutter/android/secret.properties`.
  ```properties
 ...
-googleMaps.apiKey=apikey
+MAPS_API_KEY=YOUR_API_KEY
  ```
 
  

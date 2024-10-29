@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../utils/bus_service_arrival_result.dart';
-import '../utils/bus_utils.dart';
+import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/utils/bus_utils.dart';
 
 class BusStopLegendCard extends StatelessWidget {
-  const BusStopLegendCard({Key? key}) : super(key: key);
+  const BusStopLegendCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +27,9 @@ class BusStopLegendCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.info_outline_rounded,
-                  color: Theme.of(context).textTheme.headline4!.color),
+                  color: Theme.of(context).textTheme.headlineMedium!.color),
               Container(width: 16.0),
-              Text('Legend', style: Theme.of(context).textTheme.headline4),
+              Text('Legend', style: Theme.of(context).textTheme.headlineMedium),
             ],
           ),
           Row(
@@ -82,7 +82,7 @@ class BusStopLegendCard extends StatelessWidget {
                 child: Center(
                   child: Text(
                     getBusTypeVerbose(BusType.double),
-                    style: Theme.of(context).textTheme.headline4,
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
               ),

@@ -1,12 +1,11 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/bus_stop.dart';
-import '../utils/database_utils.dart';
-import '../widgets/highlighted_icon.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
 
-class BusStopSearchItem extends StatefulWidget {
+class BusStopSearchItem extends ConsumerWidget {
   const BusStopSearchItem({
     required Key key,
     required this.codeStart,
@@ -15,11 +14,11 @@ class BusStopSearchItem extends StatefulWidget {
     required this.nameStart,
     required this.nameBold,
     required this.nameEnd,
-    required this.distance,
     required this.busStop,
     required this.isMapEnabled,
     required this.onShowOnMapTap,
     this.onTap,
+    this.isExpanded,
   }) : super(key: key);
 
   final String codeStart;
@@ -28,172 +27,149 @@ class BusStopSearchItem extends StatefulWidget {
   final String nameStart;
   final String nameBold;
   final String nameEnd;
-  final String distance;
   final BusStop busStop;
   final bool isMapEnabled;
   final void Function()? onTap;
   final void Function() onShowOnMapTap;
+  final bool? isExpanded;
 
   @override
-  State<StatefulWidget> createState() {
-    return BusStopSearchItemState();
-  }
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isInRoute = ref
+            .watch(isBusStopInRouteProvider(
+                busStop: busStop, routeId: kDefaultRouteId))
+            .valueOrNull ??
+        false;
 
-class BusStopSearchItemState extends State<BusStopSearchItem>
-    with SingleTickerProviderStateMixin {
-  bool _isStarEnabled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    isBusStopInRouteWithId(widget.busStop, kDefaultRouteId)
-        .then((bool contains) {
-      if (mounted) {
-        setState(() {
-          _isStarEnabled = contains;
-        });
-      }
-    });
-    // _busStopListener = (BusStop busStop) {
-    //   isBusStopInRouteWithId(widget.busStop, defaultRouteId).then((bool contains) {
-    //     if (mounted) {
-    //       setState(() {
-    //         _isStarEnabled = contains;
-    //       });
-    //     }
-    //   });
-    // };
-    // registerBusStopListener(widget.busStop, _busStopListener);
-  }
-
-  @override
-  void dispose() {
-    // unregisterBusStopListener(widget.busStop, _busStopListener);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      onTap: widget.onTap,
-      leading: SizedBox(
-        width: 48.0,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            HighlightedIcon(
-              iconColor: Theme.of(context).colorScheme.primary,
-              child: SvgPicture.asset(
-                'assets/images/bus-stop.svg',
-                width: 24.0,
-                height: 24.0,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            if (widget.distance.isNotEmpty)
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    widget.distance,
-                    softWrap: false,
-                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                          color: Theme.of(context).hintColor,
-                        ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: BusStopOverviewItem(
+        busStop,
+        onTap: onTap,
+        isExpanded: isExpanded,
       ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AutoSizeText.rich(
-            TextSpan(
-              text: widget.nameStart,
-              style: Theme.of(context).textTheme.titleMedium,
-              children: <TextSpan>[
-                TextSpan(
-                  text: widget.nameBold,
-                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                ),
-                TextSpan(text: widget.nameEnd),
-              ],
-            ),
-            maxLines: 1,
-          ),
-          AutoSizeText.rich(
-            TextSpan(
-              text: widget.codeStart,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall!
-                  .copyWith(color: Theme.of(context).hintColor),
-              children: <TextSpan>[
-                TextSpan(
-                  text: widget.codeBold,
-                  style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                ),
-                TextSpan(text: widget.codeEnd),
-                TextSpan(text: ' · ${widget.busStop.road}'),
-              ],
-            ),
-            maxLines: 1,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-        ],
-      ),
-      trailing: widget.isMapEnabled
-          ? IconButton(
-              tooltip: 'Show on map',
-              icon: Icon(
-                Icons.my_location_rounded,
-                color: Theme.of(context).hintColor,
-              ),
-              onPressed: widget.onShowOnMapTap,
-            )
-          : PopupMenuButton<String>(
-              tooltip: 'More',
-              icon: Icon(Icons.more_vert_rounded,
-                  color: Theme.of(context).hintColor),
-              onSelected: (String item) {
-                if (item == 'Pin') {
-                  setState(() {
-                    _isStarEnabled = !_isStarEnabled;
-                  });
-                  if (_isStarEnabled) {
-                    addBusStopToRouteWithId(
-                        widget.busStop, kDefaultRouteId, context);
-                  } else {
-                    removeBusStopFromRoute(
-                        widget.busStop, kDefaultRouteId, context);
-                  }
-                } else if (item == 'Show on map') {
-                  widget.onShowOnMapTap();
-                }
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                PopupMenuItem<String>(
-                  child: Text(
-                    _isStarEnabled ? 'Unpin from home' : 'Pin to home',
-                  ),
-                  value: 'Pin',
-                ),
-                const PopupMenuItem<String>(
-                  child: Text('Show on map'),
-                  value: 'Show on map',
-                ),
-              ],
-            ),
     );
+    // return ListTile(
+    //   contentPadding:
+    //       const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+    //   onTap: onTap,
+    //   leading: SizedBox(
+    //     width: 48.0,
+    //     child: Column(
+    //       mainAxisAlignment: MainAxisAlignment.center,
+    //       crossAxisAlignment: CrossAxisAlignment.center,
+    //       children: [
+    //         HighlightedIcon(
+    //           iconColor: Theme.of(context).colorScheme.primary,
+    //           child: SvgPicture.asset(
+    //             'assets/images/bus-stop.svg',
+    //             width: 24.0,
+    //             height: 24.0,
+    //             colorFilter: ColorFilter.mode(
+    //                 Theme.of(context).colorScheme.primary, BlendMode.srcIn),
+    //           ),
+    //         ),
+    //         if (distance.isNotEmpty)
+    //           Flexible(
+    //             child: FittedBox(
+    //               fit: BoxFit.scaleDown,
+    //               child: Text(
+    //                 distance,
+    //                 softWrap: false,
+    //                 style: Theme.of(context).textTheme.titleSmall!.copyWith(
+    //                       color: Theme.of(context).hintColor,
+    //                     ),
+    //               ),
+    //             ),
+    //           ),
+    //       ],
+    //     ),
+    //   ),
+    //   title: Column(
+    //     crossAxisAlignment: CrossAxisAlignment.start,
+    //     children: [
+    //       AutoSizeText.rich(
+    //         TextSpan(
+    //           text: nameStart,
+    //           style: Theme.of(context).textTheme.titleMedium,
+    //           children: <TextSpan>[
+    //             TextSpan(
+    //               text: nameBold,
+    //               style: Theme.of(context).textTheme.titleMedium!.copyWith(
+    //                     color: Theme.of(context).colorScheme.secondary,
+    //                   ),
+    //             ),
+    //             TextSpan(text: nameEnd),
+    //           ],
+    //         ),
+    //         maxLines: 1,
+    //       ),
+    //       AutoSizeText.rich(
+    //         TextSpan(
+    //           text: codeStart,
+    //           style: Theme.of(context)
+    //               .textTheme
+    //               .titleSmall!
+    //               .copyWith(color: Theme.of(context).hintColor),
+    //           children: <TextSpan>[
+    //             TextSpan(
+    //               text: codeBold,
+    //               style: Theme.of(context).textTheme.titleSmall!.copyWith(
+    //                     color: Theme.of(context).colorScheme.secondary,
+    //                   ),
+    //             ),
+    //             TextSpan(text: codeEnd),
+    //             TextSpan(text: ' · ${busStop.road}'),
+    //           ],
+    //         ),
+    //         maxLines: 1,
+    //         style: Theme.of(context).textTheme.titleSmall,
+    //       ),
+    //     ],
+    //   ),
+    //   trailing: isMapEnabled
+    //       ? IconButton(
+    //           tooltip: 'Show on map',
+    //           icon: Icon(
+    //             Icons.my_location_rounded,
+    //             color: Theme.of(context).hintColor,
+    //           ),
+    //           onPressed: onShowOnMapTap,
+    //         )
+    //       : PopupMenuButton<String>(
+    //           tooltip: 'More',
+    //           icon: Icon(Icons.more_vert_rounded,
+    //               color: Theme.of(context).hintColor),
+    //           onSelected: (String item) {
+    //             if (item == 'Pin') {
+    //               if (isInRoute) {
+    //                 ref
+    //                     .read(savedUserRouteProvider(id: kDefaultRouteId)
+    //                         .notifier)
+    //                     .removeBusStop(busStop);
+    //               } else {
+    //                 ref
+    //                     .read(savedUserRouteProvider(id: kDefaultRouteId)
+    //                         .notifier)
+    //                     .addBusStop(busStop);
+    //               }
+    //             } else if (item == 'Show on map') {
+    //               onShowOnMapTap();
+    //             }
+    //           },
+    //           itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+    //             PopupMenuItem<String>(
+    //               value: 'Pin',
+    //               child: Text(
+    //                 isInRoute ? 'Unpin from home' : 'Pin to home',
+    //               ),
+    //             ),
+    //             const PopupMenuItem<String>(
+    //               value: 'Show on map',
+    //               child: Text('Show on map'),
+    //             ),
+    //           ],
+    //         ),
+    // );
   }
 }

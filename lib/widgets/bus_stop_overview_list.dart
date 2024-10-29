@@ -1,210 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:implicitly_animated_reorderable_list/implicitly_animated_reorderable_list.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
+import 'package:stops_sg/bus_api/models/bus_stop.dart';
+import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/models/user_route.dart';
+import 'package:stops_sg/utils/reorder_status_notification.dart';
+import 'package:stops_sg/widgets/edit_model.dart';
+import 'package:stops_sg/widgets/reorderable_bus_stop_list.dart';
 
-import '../models/bus_stop_with_pinned_services.dart';
-import '../models/user_route.dart';
-import '../utils/bus_api.dart';
-import '../utils/database_utils.dart';
-import '../utils/reorder_status_notification.dart';
-import '../widgets/bus_stop_overview_item.dart';
-import 'edit_model.dart';
-
-class BusStopOverviewList extends StatelessWidget {
-  const BusStopOverviewList({Key? key, required this.routeId})
-      : super(key: key);
+class BusStopOverviewList extends ConsumerWidget {
+  const BusStopOverviewList(
+      {super.key, required this.routeId, required this.emptyView});
 
   final int routeId;
+  final Widget emptyView;
 
   @override
-  Widget build(BuildContext context) {
-    final rootContext = context;
-    final _isEditing = context.watch<EditModel>().isEditing;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isEditing = context.watch<EditModel>().isEditing;
+    final route = ref.watch(savedUserRouteProvider(id: routeId)).value;
 
-    return StreamBuilder<StoredUserRoute>(
-        initialData: null,
-        stream: routeStream(routeId),
-        builder:
-            (BuildContext context, AsyncSnapshot<StoredUserRoute> snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.none:
-              return _messageBox(BusAPI.kNoInternetError);
-            case ConnectionState.waiting:
-              if (snapshot.data == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              continue done;
-            done:
-            case ConnectionState.active:
-            case ConnectionState.done:
-              if (snapshot.hasData) {
-                if (snapshot.data?.busStops.isEmpty ?? true) {
-                  return Container(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Center(
-                      child: Text(
-                          'Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headline4!
-                              .copyWith(color: Theme.of(context).hintColor)),
-                    ),
-                  );
-                } else {
-                  // Only update list when database is updated, otherwise the list is updated with old positions
-                  /// ToDO: handle this
-                  // _busStops = snapshot.data!;
-                }
-              }
-              return Provider<StoredUserRoute>(
-                create: (_) => snapshot.data!,
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeTop: true,
-                  child: ImplicitlyAnimatedReorderableList<
-                      BusStopWithPinnedServices>(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    items: snapshot.data!.busStops,
-                    areItemsTheSame: (BusStopWithPinnedServices busStop,
-                            BusStopWithPinnedServices otherBusStop) =>
-                        busStop.code == otherBusStop.code,
-                    onReorderStarted:
-                        (BusStopWithPinnedServices busStop, int position) {
-                      ReorderStatusNotification(true).dispatch(context);
-                    },
-                    onReorderFinished: (BusStopWithPinnedServices busStop,
-                        int from,
-                        int to,
-                        List<BusStopWithPinnedServices> newBusStops) async {
-                      ReorderStatusNotification(false).dispatch(context);
-                      if (from == to) {
-                        return;
-                      }
-                      // setState(() {
-                      //   _busStops
-                      //     ..clear()
-                      //     ..addAll(newBusStops);
-                      // });
-                      await moveBusStopPositionInRoute(
-                          from, to, context.read<StoredUserRoute>());
-                      // setState(() {});
-                    },
-                    itemBuilder: (BuildContext context,
-                        Animation<double> itemAnimation,
-                        BusStopWithPinnedServices busStop,
-                        int position) {
-                      final Widget busStopItem = BusStopOverviewItem(
-                        busStop,
-                        key: Key(busStop.code +
-                            hashList(busStop.pinnedServices).toString()),
-                      );
+    if (route == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-                      return Reorderable(
-                        key: Key(busStop.hashCode.toString()),
-                        child: Stack(
-                          alignment: Alignment.centerLeft,
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: busStopItem,
-                            ),
-                            AnimatedOpacity(
-                              duration: const Duration(milliseconds: 600),
-                              opacity: _isEditing ? 1.0 : 0.0,
-                              curve: const Interval(0.5, 1),
-                              child: AnimatedSlide(
-                                duration: const Duration(milliseconds: 600),
-                                offset: _isEditing
-                                    ? Offset.zero
-                                    : const Offset(0, 0.25),
-                                curve: const Interval(0.5, 1,
-                                    curve: Curves.easeOutCubic),
-                                child: _isEditing
-                                    ? Handle(
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsetsDirectional.only(
-                                                  start: 32.0),
-                                          child: Icon(
-                                            Icons.drag_handle_rounded,
-                                            color: Theme.of(context).hintColor,
-                                          ),
-                                        ),
-                                      )
-                                    : Container(),
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 17.0,
-                                    vertical:
-                                        9.0), // Offset by 1 to account for outline
-                                child: Material(
-                                  type: MaterialType.transparency,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      AnimatedOpacity(
-                                        duration:
-                                            const Duration(milliseconds: 600),
-                                        opacity: _isEditing ? 1.0 : 0.0,
-                                        curve: _isEditing
-                                            ? const Interval(0.5, 1)
-                                            : const Interval(0, 0.25),
-                                        child: AnimatedSlide(
-                                          duration:
-                                              const Duration(milliseconds: 600),
-                                          offset: _isEditing
-                                              ? Offset.zero
-                                              : const Offset(0, 0.25),
-                                          curve: _isEditing
-                                              ? const Interval(0.5, 1,
-                                                  curve: Curves.easeOutCubic)
-                                              : const Interval(0, 0.5,
-                                                  curve: Curves.easeOutCubic),
-                                          child: Padding(
-                                            padding: const EdgeInsetsDirectional
-                                                .only(end: 8.0),
-                                            child: IconButton(
-                                              onPressed: () async {
-                                                await removeBusStopFromRoute(
-                                                    busStop,
-                                                    kDefaultRouteId,
-                                                    rootContext);
-                                              },
-                                              icon: Icon(
-                                                Icons.clear_rounded,
-                                                color:
-                                                    Theme.of(context).hintColor,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-          }
-        });
-  }
+    final busStops = route.busStops;
 
-  Widget _messageBox(String text) {
-    return SliverToBoxAdapter(
-      child: Center(
-        child: Text(text),
-      ),
+    if (busStops.isEmpty) {
+      return emptyView;
+    }
+
+    return Provider<StoredUserRoute>(
+      create: (_) => route,
+      child: ReorderableBusStopList(
+          busStops: busStops,
+          isEditing: isEditing,
+          onReorderStart: (int position) {
+            ReorderStatusNotification(true).dispatch(context);
+          },
+          onReorderEnd: (position) =>
+              ReorderStatusNotification(false).dispatch(context),
+          onReorder: (int oldIndex, int newIndex) async {
+            ReorderStatusNotification(false).dispatch(context);
+
+            await ref
+                .read(savedUserRouteProvider(id: routeId).notifier)
+                .moveBusStop(oldIndex, newIndex);
+          },
+          onBusStopRemoved: (BusStop busStop) async {
+            await ref
+                .read(savedUserRouteProvider(id: routeId).notifier)
+                .removeBusStop(busStop);
+          }),
     );
   }
 }

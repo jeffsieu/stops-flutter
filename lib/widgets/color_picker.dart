@@ -9,8 +9,8 @@ class ColorPicker extends StatefulWidget {
     this.spacing,
     this.runSpacing,
     this.shape = const CircleBorder(),
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   final double size;
   final List<Color> colors;
@@ -21,12 +21,12 @@ class ColorPicker extends StatefulWidget {
   final ShapeBorder shape;
 
   @override
-  _ColorPickerState createState() {
-    return _ColorPickerState();
+  ColorPickerState createState() {
+    return ColorPickerState();
   }
 }
 
-class _ColorPickerState extends State<ColorPicker> {
+class ColorPickerState extends State<ColorPicker> {
   Color? selectedColor;
 
   @override
