@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rubber/rubber.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/database/database.dart';
@@ -33,6 +34,8 @@ import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/highlighted_icon.dart';
 
 part 'search_page.g.dart';
+
+const RANDOM_SEED = 0x12345678;
 
 @riverpod
 Future<List<BusStop>> busStopsByDistance(BusStopsByDistanceRef ref) async {
@@ -120,6 +123,10 @@ class SearchPageState extends ConsumerState<SearchPage>
       ref.watch(busStopsByDistanceProvider).valueOrNull ?? [];
   List<BusService> get _busServices =>
       ref.watch(busServiceListProvider).valueOrNull ?? [];
+  bool get areBusStopsLoading =>
+      ref.watch(busStopsByDistanceProvider).isLoading ||
+      ref.watch(busStopsByDistanceProvider).isRefreshing ||
+      ref.watch(busStopsByDistanceProvider).isReloading;
   late List<BusService> _filteredBusServices;
   late List<BusStop> _filteredBusStops;
   BusStopSearchFilter _searchFilter = BusStopSearchFilter.all;
@@ -502,9 +509,22 @@ class SearchPageState extends ConsumerState<SearchPage>
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsetsDirectional.only(
-                  start: 16.0, end: 16.0, top: 24.0),
+                  start: 16.0, end: 16.0, top: 16.0),
               child: Text('Selected stop',
                   style: Theme.of(context).textTheme.headlineMedium),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: AnimatedBuilder(
+              animation: _resultsSheetAnimationController,
+              builder: (BuildContext context, Widget? child) {
+                return Align(
+                  alignment: Alignment.bottomCenter,
+                  heightFactor: _resultsSheetExpandedPercentage,
+                  child: child,
+                );
+              },
+              child: const SizedBox(height: 8.0),
             ),
           ),
           SliverToBoxAdapter(
@@ -756,27 +776,26 @@ class SearchPageState extends ConsumerState<SearchPage>
         ? DateFormat('HH:mm')
         : DateFormat('hh:mm a');
     return SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedBuilder(
-            animation: _resultsSheetAnimationController,
-            builder: (BuildContext context, Widget? child) {
-              return _buildVerticalSwitcher(
-                expandedChild: ClipRect(
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    heightFactor:
-                        (_filteredBusServices.isNotEmpty || _query.isEmpty)
-                            ? 1
-                            : 0,
-                    child: Padding(
-                      padding: EdgeInsetsDirectional.only(
-                          top: 24.0,
-                          start: 16.0,
-                          bottom: _resultsSheetExpandedPercentage * 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: AnimatedBuilder(
+        animation: _resultsSheetAnimationController,
+        builder: (BuildContext context, Widget? child) {
+          return _buildVerticalSwitcher(
+            expandedChild: ClipRect(
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                heightFactor:
+                    (_filteredBusServices.isNotEmpty || _query.isEmpty) ? 1 : 0,
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(
+                      top: _resultsSheetExpandedPercentage * 24.0,
+                      start: 16.0,
+                      bottom: _resultsSheetExpandedPercentage * 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           RichText(
                               text: TextSpan(children: <InlineSpan>[
@@ -797,81 +816,90 @@ class SearchPageState extends ConsumerState<SearchPage>
                               ),
                           ])),
                           Align(
-                            alignment: AlignmentDirectional.bottomStart,
+                            alignment: AlignmentDirectional.center,
                             heightFactor: _resultsSheetExpandedPercentage,
-                            child: FractionalTranslation(
-                              translation: Offset(
-                                  0, (1 - _resultsSheetExpandedPercentage)),
-                              child: Wrap(
-                                spacing: 8.0,
-                                children: [
-                                  ChoiceChip(
-                                    label: const Text('All'),
-                                    selected: _searchFilter ==
-                                        BusStopSearchFilter.all,
-                                    onSelected: (value) {
-                                      setState(() {
-                                        _searchFilter = BusStopSearchFilter.all;
-                                      });
-                                    },
-                                  ),
-                                  ChoiceChip(
-                                    label: Text(_busStopServicesFilter.isEmpty
-                                        ? 'With bus services...'
-                                        : 'With ${_busStopServicesFilter.map((e) => e.number).join(', ')}'),
-                                    selected: _searchFilter ==
-                                        BusStopSearchFilter.withService,
-                                    onSelected: (value) async {
-                                      final selectedBusServices =
-                                          await _showBusServiceFilterBottomSheet();
-
-                                      if (selectedBusServices == null ||
-                                          selectedBusServices.isEmpty) {
-                                        return;
-                                      }
-
-                                      setState(() {
-                                        _searchFilter =
-                                            BusStopSearchFilter.withService;
-                                        _busStopServicesFilter =
-                                            selectedBusServices;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
+                            child: IconButton(
+                                onPressed: () {
+                                  ref.invalidate(userLocationProvider);
+                                  ref.invalidate(busStopsByDistanceProvider);
+                                },
+                                icon: Icon(Icons.refresh)),
                           ),
                         ],
                       ),
-                    ),
+                      Align(
+                        alignment: AlignmentDirectional.bottomStart,
+                        heightFactor: _resultsSheetExpandedPercentage,
+                        child: FractionalTranslation(
+                          translation:
+                              Offset(0, (1 - _resultsSheetExpandedPercentage)),
+                          child: Wrap(
+                            spacing: 8.0,
+                            children: [
+                              ChoiceChip(
+                                label: const Text('All'),
+                                selected:
+                                    _searchFilter == BusStopSearchFilter.all,
+                                onSelected: (value) {
+                                  setState(() {
+                                    _searchFilter = BusStopSearchFilter.all;
+                                  });
+                                },
+                              ),
+                              ChoiceChip(
+                                label: Text(_busStopServicesFilter.isEmpty
+                                    ? 'With bus services...'
+                                    : 'With ${_busStopServicesFilter.map((e) => e.number).join(', ')}'),
+                                selected: _searchFilter ==
+                                    BusStopSearchFilter.withService,
+                                onSelected: (value) async {
+                                  final selectedBusServices =
+                                      await _showBusServiceFilterBottomSheet();
+
+                                  if (selectedBusServices == null ||
+                                      selectedBusServices.isEmpty) {
+                                    return;
+                                  }
+
+                                  setState(() {
+                                    _searchFilter =
+                                        BusStopSearchFilter.withService;
+                                    _busStopServicesFilter =
+                                        selectedBusServices;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                collapsedChild: Align(
-                  alignment: Alignment.bottomLeft,
-                  heightFactor:
-                      (_filteredBusServices.isNotEmpty || _query.isEmpty)
-                          ? 1
-                          : 1 - _resultsSheetExpandedPercentage,
-                  child: Padding(
-                    padding: EdgeInsetsDirectional.only(
-                        top: 24.0,
-                        start: 16.0,
-                        bottom: _resultsSheetExpandedPercentage * 8.0),
-                    child: Text(
-                        _focusedBusStop != null
-                            ? 'Selected stop'
-                            : (_query.isEmpty
-                                ? 'Nearest stop'
-                                : 'Nearest matching stop'),
-                        style: Theme.of(context).textTheme.headlineMedium),
-                  ),
-                ),
-                expandedPercentage: _resultsSheetExpandedPercentage,
-              );
-            },
-          ),
-        ],
+              ),
+            ),
+            collapsedChild: Align(
+              alignment: Alignment.bottomLeft,
+              heightFactor: (_filteredBusServices.isNotEmpty || _query.isEmpty)
+                  ? 1
+                  : 1 - _resultsSheetExpandedPercentage,
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(
+                    top: 16.0,
+                    start: 16.0,
+                    bottom: _resultsSheetExpandedPercentage * 8.0),
+                child: Text(
+                    _focusedBusStop != null
+                        ? ''
+                        : (_query.isEmpty
+                            ? 'Nearest stop'
+                            : 'Nearest matching stop'),
+                    style: Theme.of(context).textTheme.headlineMedium),
+              ),
+            ),
+            expandedPercentage: _resultsSheetExpandedPercentage,
+          );
+        },
       ),
     );
   }
@@ -1045,6 +1073,39 @@ class SearchPageState extends ConsumerState<SearchPage>
             _busStopServicesFilter.isEmpty ||
             busStopsInSelectedBusService.contains(busStop))
         .toList();
+
+    if (areBusStopsLoading) {
+      return SliverList(delegate: SliverChildBuilderDelegate(
+        (BuildContext context, int position) {
+          final name =
+              'Bus stop ${Random(RANDOM_SEED + position).nextInt(999) + 1}';
+          final road =
+              '${Random(RANDOM_SEED + position).nextInt(99) + 1} Street';
+          final code =
+              '${Random(RANDOM_SEED + position).nextInt(90000) + 10000}';
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Shimmer.fromColors(
+              baseColor: Color.lerp(Theme.of(context).hintColor,
+                  Theme.of(context).canvasColor, 0.9)!,
+              highlightColor: Theme.of(context).canvasColor,
+              child: BusStopOverviewItem(
+                  key: ValueKey(position),
+                  isLoading: true,
+                  BusStop(
+                    defaultName: name,
+                    displayName: name,
+                    code: code,
+                    latitude: 0,
+                    longitude: 0,
+                    road: road,
+                  )),
+            ),
+          );
+        },
+      ));
+    }
 
     return SliverList(
         delegate: SliverChildBuilderDelegate(

@@ -23,11 +23,12 @@ import 'package:stops_sg/widgets/outline_titled_container.dart';
 
 class BusStopOverviewItem extends ConsumerStatefulWidget {
   const BusStopOverviewItem(this.busStop,
-      {super.key, this.onTap, this.isExpanded});
+      {super.key, this.onTap, this.isExpanded, this.isLoading = false});
 
   final BusStop busStop;
   final void Function()? onTap;
   final bool? isExpanded;
+  final bool isLoading;
 
   @override
   ConsumerState<BusStopOverviewItem> createState() =>
@@ -142,7 +143,9 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
       child: OutlineTitledContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: (widget.isLoading)
+            ? Colors.transparent
+            : Theme.of(context).scaffoldBackgroundColor,
         buildBody: !isEditing,
         showGap: false,
         title: AnimatedPadding(
@@ -194,14 +197,10 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.easeOutCubic,
                             opacity: location != null ? 1 : 0,
-                            child: (location != null)
-                                ? SizedBox(
-                                    child: AutoSizeText(
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      formatDistance(
-                                        busStop.getMetersFromLocation(location),
-                                      ),
+                            child: widget.isLoading
+                                ? Container(
+                                    child: Text(
+                                      '100m',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall!
@@ -210,7 +209,24 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                                                   Theme.of(context).hintColor),
                                     ),
                                   )
-                                : null,
+                                : (location != null)
+                                    ? SizedBox(
+                                        child: AutoSizeText(
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          formatDistance(
+                                            busStop.getMetersFromLocation(
+                                                location),
+                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall!
+                                              .copyWith(
+                                                  color: Theme.of(context)
+                                                      .hintColor),
+                                        ),
+                                      )
+                                    : null,
                           ),
                         ),
                       ],
@@ -224,7 +240,9 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Ink(
-                        color: Theme.of(context).scaffoldBackgroundColor,
+                        color: widget.isLoading
+                            ? Colors.transparent
+                            : Theme.of(context).scaffoldBackgroundColor,
                         child: AnimatedPadding(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
