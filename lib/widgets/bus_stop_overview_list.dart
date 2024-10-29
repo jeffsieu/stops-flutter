@@ -9,9 +9,11 @@ import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/reorderable_bus_stop_list.dart';
 
 class BusStopOverviewList extends ConsumerWidget {
-  const BusStopOverviewList({super.key, required this.routeId});
+  const BusStopOverviewList(
+      {super.key, required this.routeId, required this.emptyView});
 
   final int routeId;
+  final Widget emptyView;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,21 +24,11 @@ class BusStopOverviewList extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (route.busStops.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(32.0),
-        child: Center(
-          child: Text(
-              'Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium!
-                  .copyWith(color: Theme.of(context).hintColor)),
-        ),
-      );
-    }
-
     final busStops = route.busStops;
+
+    if (busStops.isEmpty) {
+      return emptyView;
+    }
 
     return Provider<StoredUserRoute>(
       create: (_) => route,

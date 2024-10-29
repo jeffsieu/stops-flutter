@@ -27,14 +27,16 @@ class RouteListItem extends StatelessWidget {
           ),
         ),
         title: Text(route.name, style: Theme.of(context).textTheme.titleLarge),
-        subtitle: Text(
-            route.busStops
-                .map<String>((BusStop busStop) => busStop.displayName)
-                .join(' > '),
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall!
-                .copyWith(color: Theme.of(context).hintColor)),
+        subtitle: route.busStops.isNotEmpty
+            ? Text(
+                route.busStops
+                    .map<String>((BusStop busStop) => busStop.displayName)
+                    .join(' > '),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall!
+                    .copyWith(color: Theme.of(context).hintColor))
+            : null,
         trailing: PopupMenuButton<RouteAction>(
           icon:
               Icon(Icons.more_vert_rounded, color: Theme.of(context).hintColor),
@@ -45,11 +47,9 @@ class RouteListItem extends StatelessWidget {
           itemBuilder: (BuildContext context) {
             return <PopupMenuItem<RouteAction>>[
               const PopupMenuItem<RouteAction>(
-                  value: RouteAction.edit,
-                  child: Text('Edit')),
+                  value: RouteAction.edit, child: Text('Edit')),
               const PopupMenuItem<RouteAction>(
-                  value: RouteAction.delete,
-                  child: Text('Delete')),
+                  value: RouteAction.delete, child: Text('Delete')),
             ];
           },
         ),

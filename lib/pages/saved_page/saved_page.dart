@@ -219,10 +219,21 @@ class SavedPageState extends ConsumerState<SavedPage> {
       _buildTrackedBuses(),
       ProxyProvider0<EditModel>(
         update: (_, __) => EditModel(isEditing: _isEditing),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: BusStopOverviewList(
             routeId: kDefaultRouteId,
+            emptyView: Container(
+              padding: const EdgeInsets.symmetric(vertical: 32.0),
+              child: Center(
+                child: Text(
+                    'Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium!
+                        .copyWith(color: Theme.of(context).hintColor)),
+              ),
+            ),
           ),
         ),
       ),

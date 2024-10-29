@@ -14,7 +14,6 @@ class BusStopSearchItem extends ConsumerWidget {
     required this.nameStart,
     required this.nameBold,
     required this.nameEnd,
-    required this.distance,
     required this.busStop,
     required this.isMapEnabled,
     required this.onShowOnMapTap,
@@ -28,7 +27,6 @@ class BusStopSearchItem extends ConsumerWidget {
   final String nameStart;
   final String nameBold;
   final String nameEnd;
-  final String distance;
   final BusStop busStop;
   final bool isMapEnabled;
   final void Function()? onTap;

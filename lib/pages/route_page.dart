@@ -35,21 +35,6 @@ class RoutePage extends ConsumerWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 slivers: [
-                  if (value.busStops.isEmpty)
-                    SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Center(
-                          child: Text(
-                              'This route has no stops.\n\nTap the edit icon to add stops to this route.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineMedium!
-                                  .copyWith(
-                                      color: Theme.of(context).hintColor)),
-                        ),
-                      ),
-                    ),
                   SliverToBoxAdapter(
                     child: Provider<EditModel>(
                       create: (_) => const EditModel(isEditing: false),
@@ -59,6 +44,17 @@ class RoutePage extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: BusStopOverviewList(
                             routeId: value.id,
+                            emptyView: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 32.0),
+                              child: Text(
+                                  'This route has no stops.\n\nTap the edit icon to add stops to this route.',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium!
+                                      .copyWith(
+                                          color: Theme.of(context).hintColor)),
+                            ),
                           ),
                         ),
                       ),
