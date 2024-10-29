@@ -90,8 +90,8 @@ Future<List<BusStop>> busStopsInServices(
 }
 
 class SearchPage extends StatefulHookConsumerWidget {
-  SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
-  SearchPage.onlyBusStops({super.key})
+  const SearchPage({super.key, this.showMap = false}) : isSimpleMode = false;
+  const SearchPage.onlyBusStops({super.key})
       : showMap = false,
         isSimpleMode = true;
 

@@ -48,6 +48,7 @@ class StopsApp extends HookConsumerWidget {
 
     useEffect(() {
       _initializeQuickActions(context);
+      return null;
     }, []);
 
     return DynamicColorBuilder(

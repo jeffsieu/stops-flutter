@@ -9,7 +9,7 @@ class SearchRoute extends GoRouteData {
     BuildContext context,
     GoRouterState state,
   ) {
-    return FadePage(
+    return const FadePage(
       child: SearchPage(),
     );
   }
