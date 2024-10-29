@@ -906,12 +906,14 @@ class SearchPageState extends ConsumerState<SearchPage>
 
   Future<List<BusService>?> _showBusServiceFilterBottomSheet() async {
     return await showModalBottomSheet<List<BusService>>(
-        useSafeArea: true,
-        isScrollControlled: true,
-        context: context,
-        builder: (context) {
-          return const BusServiceFilterSheet();
-        });
+      useSafeArea: true,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      context: context,
+      builder: (context) {
+        return const BusServiceFilterSheet();
+      },
+    );
   }
 
   static Widget _buildVerticalSwitcher(

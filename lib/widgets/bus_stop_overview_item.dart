@@ -296,6 +296,8 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                   onPressed: () {
                     showModalBottomSheet(
                       isScrollControlled: true,
+                      useRootNavigator: true,
+                      useSafeArea: true,
                       context: context,
                       builder: (context) => DraggableScrollableSheet(
                         expand: false,
@@ -308,7 +310,8 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Padding(
-                                    padding: const EdgeInsets.all(16.0),
+                                    padding: const EdgeInsetsDirectional.only(
+                                        start: 16.0, end: 16.0, top: 24.0),
                                     child: Text('Add to route',
                                         style: Theme.of(context)
                                             .textTheme
