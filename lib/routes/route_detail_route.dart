@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:stops_sg/pages/fade_page.dart';
 import 'package:stops_sg/pages/route_page.dart';
 
 class RouteDetailRoute extends GoRouteData {
@@ -9,12 +8,10 @@ class RouteDetailRoute extends GoRouteData {
   final int routeId;
 
   @override
-  Page<void> buildPage(
+  Widget build(
     BuildContext context,
     GoRouterState state,
   ) {
-    return FadePage(
-      child: RoutePage(routeId: routeId),
-    );
+    return RoutePage(routeId: routeId);
   }
 }
