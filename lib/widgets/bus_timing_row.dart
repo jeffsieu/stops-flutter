@@ -141,8 +141,8 @@ class BusTimingState extends ConsumerState<BusTimingRow>
                       ),
                   ],
                 ),
-                if (widget.hasArrivals && widget.showNotificationButton)
-                  _buildNotificationButton(),
+                // if (widget.hasArrivals && widget.showNotificationButton)
+                //   _buildNotificationButton(),
               ],
             ),
           ),
