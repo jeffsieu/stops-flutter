@@ -34,6 +34,20 @@ class StoredUserRoute extends UserRoute {
   int get hashCode {
     return id.hashCode;
   }
+
+  StoredUserRoute copyWith({
+    int? id,
+    String? name,
+    Color? color,
+    List<BusStop>? busStops,
+  }) {
+    return StoredUserRoute(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      busStops: busStops ?? this.busStops,
+    );
+  }
 }
 
 class UserRoute {

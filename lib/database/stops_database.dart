@@ -395,33 +395,36 @@ class StopsDatabase extends _$StopsDatabase {
 
   Future<void> moveBusStopPositionInRoute(
       {required int from, required int to, required int routeId}) async {
-    final direction = (to - from).sign;
     await transaction(() async {
-      // Change from's position to -2
+      // Temporarily remove busStop from route
       await (update(userRouteBusStops)
             ..where((u) => u.routeId.equals(routeId))
             ..where((u) => u.position.equals(from)))
           .write(
-              UserRouteBusStopsCompanion.custom(position: const Constant(-2)));
+              UserRouteBusStopsCompanion.custom(position: const Constant(-1)));
 
-      // Shift everything after 'from' one step closer to 'from'
-      final shiftPosition = UserRouteBusStopsCompanion.custom(
-          position: coalesce([
-        userRouteBusStops.position + Variable(direction),
-        const Constant(0)
-      ]));
+      // Shift everything after 'from' down by 1
+      final shiftPositionDown = UserRouteBusStopsCompanion.custom(
+          position: userRouteBusStops.position - const Variable(1));
 
-      for (var i = from; i != to; i += direction) {
-        await (update(userRouteBusStops)
-              ..where((u) => u.routeId.equals(routeId))
-              ..where((u) => u.position.equals(i)))
-            .write(shiftPosition);
-      }
-
-      // Change from's position ot to
       await (update(userRouteBusStops)
             ..where((u) => u.routeId.equals(routeId))
-            ..where((u) => u.position.equals(-2)))
+            ..where((u) => u.position.isBiggerThanValue(from)))
+          .write(shiftPositionDown);
+
+      // Shift everything after 'to' up by 1
+      final shiftPositionUp = UserRouteBusStopsCompanion.custom(
+          position: userRouteBusStops.position + const Variable(1));
+
+      await (update(userRouteBusStops)
+            ..where((u) => u.routeId.equals(routeId))
+            ..where((u) => u.position.isBiggerOrEqualValue(to)))
+          .write(shiftPositionUp);
+
+      // Change item position to "to"
+      await (update(userRouteBusStops)
+            ..where((u) => u.routeId.equals(routeId))
+            ..where((u) => u.position.equals(-1)))
           .write(UserRouteBusStopsCompanion.custom(position: Variable(to)));
     });
   }

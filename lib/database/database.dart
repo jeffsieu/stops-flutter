@@ -312,6 +312,15 @@ class SavedUserRoute extends _$SavedUserRoute {
   }
 
   Future<void> moveBusStop(int from, int to) async {
+    final currentValue = await future;
+    // Optimistic update
+    if (currentValue != null) {
+      final newBusStops = [...currentValue.busStops];
+      final busStop = newBusStops.removeAt(from);
+      newBusStops.insert(to, busStop);
+      state = AsyncValue.data(currentValue.copyWith(busStops: newBusStops));
+    }
+
     await _database.moveBusStopPositionInRoute(from: from, to: to, routeId: id);
     ref.invalidateSelf();
     ref.invalidate(savedUserRoutesProvider);
