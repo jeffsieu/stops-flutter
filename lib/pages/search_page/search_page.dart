@@ -134,9 +134,6 @@ class SearchPageState extends ConsumerState<SearchPage>
     _textController.text = _queryString;
   }
 
-  Map<BusStop, _QueryMetadata> _queryMetadata = <BusStop, _QueryMetadata>{};
-  final Map<BusStop, double> _distanceMetadata = <BusStop, double>{};
-
   List<String> _searchHistory = <String>[];
 
   UserLocationSnapshot get userLocation =>
@@ -307,6 +304,8 @@ class SearchPageState extends ConsumerState<SearchPage>
       return null;
     }, [_filteredBusStops]);
 
+    final queryMetadata = useQueryMetadata();
+
     return provider.MultiProvider(
       providers: [
         provider.Provider(
@@ -319,7 +318,7 @@ class SearchPageState extends ConsumerState<SearchPage>
       child: PopScope(
         canPop: _canPop,
         onPopInvokedWithResult: _onPopInvokedWithResult,
-        child: _buildBody(),
+        child: _buildBody(queryMetadata),
       ),
     );
   }
@@ -465,8 +464,7 @@ class SearchPageState extends ConsumerState<SearchPage>
     }
   }
 
-  Widget _buildBody() {
-    _generateQueryResults();
+  Widget _buildBody(Map<BusStop, _QueryMetadata> queryMetadata) {
     final slivers = <Widget>[
       SliverToBoxAdapter(
         child: AnimatedBuilder(
@@ -532,7 +530,7 @@ class SearchPageState extends ConsumerState<SearchPage>
           ),
         },
         _buildBusStopsSliverHeader(),
-        _buildBusStopList(),
+        _buildBusStopList(queryMetadata),
       },
       if (_query.isNotEmpty &&
           _filteredBusStops.isEmpty &&
@@ -698,85 +696,6 @@ class SearchPageState extends ConsumerState<SearchPage>
     mergeSort(busStopsWithDistance,
         compare: (b1, b2) => b1.distance.compareTo(b2.distance));
     return busStopsWithDistance.map((b) => b.busStop).toList();
-  }
-
-  void _generateQueryResults() {
-    if (_query.isEmpty && !_showServicesOnly) {
-      _filteredBusServices = <BusService>[];
-    } else {
-      _filteredBusServices =
-          filterBusServices(_busServices, _query).toList(growable: false);
-      _filteredBusServices.sort(
-          (BusService a, BusService b) => compareBusNumber(a.number, b.number));
-    }
-
-    final maxDistance = _distanceMetadata.isNotEmpty
-        ? _distanceMetadata.values.toList().reduce(max)
-        : 0;
-
-    if (_query.isNotEmpty) {
-      final isQueryAllNumbers = num.tryParse(_queryString) != null;
-      double distanceFunction(BusStop busStop) {
-        final busStopName = busStop.displayName.toLowerCase();
-        final queryLengthBusStopName = busStopName.length > _query.length
-            ? busStopName.substring(0, _query.length)
-            : busStopName;
-        final busStopNameParts = busStopName.split(RegExp(r'( |/)'));
-        var minTokenDifference = double.maxFinite;
-
-        for (var part in busStopNameParts) {
-          if (part.isEmpty) continue;
-          if (_query.length < part.length) {
-            part = part.substring(0, _query.length);
-          }
-          minTokenDifference = min(minTokenDifference,
-              jw.normalizedDistance(part, _query.toLowerCase()));
-        }
-
-        var distance = jw.normalizedDistance(
-                queryLengthBusStopName, _query.toLowerCase()) -
-            0.01;
-
-        if (minTokenDifference < distance) {
-          distance =
-              minTokenDifference - 0.01 * (_query.length / busStopName.length);
-        }
-
-        if (isQueryAllNumbers) {
-          final codeDistance =
-              busStop.code.startsWith(_queryString) ? -1.0 : 1.0;
-          distance = min(distance, codeDistance);
-        }
-
-        // Add a small bit of distance to sort secondly by distance
-        if (_distanceMetadata.isNotEmpty) {
-          distance += 0.0001 * (_distanceMetadata[busStop] ?? 0) / maxDistance;
-        }
-
-        return distance;
-      }
-
-      final busStopsWithDistance = _busStops
-          .map((BusStop busStop) =>
-              ((busStop: busStop, distance: distanceFunction(busStop))))
-          .where((busStop) =>
-              busStop.distance < SearchPage._searchDifferenceThreshold)
-          .toList();
-      busStopsWithDistance.sort((b1, b2) => b1.distance.compareTo(b2.distance));
-      _filteredBusStops = busStopsWithDistance.map((b) => b.busStop).toList();
-    } else {
-      _filteredBusStops = _busStops;
-    }
-    _queryMetadata = <BusStop, _QueryMetadata>{
-      for (BusStop busStop in _filteredBusStops)
-        busStop: _calculateQueryMetadata(busStop, _query)
-    };
-
-    if (_focusedBusStop != null) {
-      if (!_filteredBusStops.contains(_focusedBusStop)) {
-        _focusedBusStop = null;
-      }
-    }
   }
 
   Widget _buildHistory() {
@@ -1058,16 +977,11 @@ class SearchPageState extends ConsumerState<SearchPage>
     );
   }
 
-  Widget _buildBusStopSearchItem(BusStop busStop, BuildContext context,
+  Widget _buildBusStopSearchItem(
+      BusStop busStop, _QueryMetadata metadata, BuildContext context,
       {bool showMapButton = false,
       bool? isExpanded,
       required void Function() onTap}) {
-    final metadata = _queryMetadata[busStop]!;
-
-    final distance = _distanceMetadata.containsKey(busStop)
-        ? getDistanceVerboseFromMeters(_distanceMetadata[busStop]!)
-        : '';
-
     final name = busStop.displayName;
     final busStopCode = busStop.code;
 
@@ -1093,7 +1007,6 @@ class SearchPageState extends ConsumerState<SearchPage>
       nameStart: nameStart,
       nameBold: nameBold,
       nameEnd: nameEnd,
-      distance: distance,
       isMapEnabled: showMapButton,
       isExpanded: isExpanded,
       onShowOnMapTap: () {
@@ -1119,7 +1032,7 @@ class SearchPageState extends ConsumerState<SearchPage>
     );
   }
 
-  Widget _buildBusStopList() {
+  Widget _buildBusStopList(Map<BusStop, _QueryMetadata> queryMetadata) {
     final busStopsInSelectedBusService = _busStopServicesFilter.isEmpty
         ? []
         : ref
@@ -1137,20 +1050,25 @@ class SearchPageState extends ConsumerState<SearchPage>
         delegate: SliverChildBuilderDelegate(
       (BuildContext context, int position) {
         final busStop = orderedBusStops[position];
+        final metadata = queryMetadata[busStop]!;
 
-        final item = _buildBusStopSearchItem(busStop, context, onTap: () {
+        final item =
+            _buildBusStopSearchItem(busStop, metadata, context, onTap: () {
           if (widget.isSimpleMode) {
             // Return result
             Navigator.pop(context, busStop);
           }
         });
-        return position == 0 ? _buildFirstBusStopItem(context, busStop) : item;
+        return position == 0
+            ? _buildFirstBusStopItem(context, busStop, metadata)
+            : item;
       },
       childCount: _showServicesOnly ? 0 : orderedBusStops.length,
     ));
   }
 
-  Widget _buildFirstBusStopItem(BuildContext context, BusStop busStop) {
+  Widget _buildFirstBusStopItem(
+      BuildContext context, BusStop busStop, _QueryMetadata metadata) {
     return AnimatedBuilder(
       animation: _resultsSheetAnimationController,
       builder: (BuildContext context, Widget? child) {
@@ -1158,6 +1076,7 @@ class SearchPageState extends ConsumerState<SearchPage>
           expandedChild: child,
           collapsedChild: _buildBusStopSearchItem(
             _displayedBusStop!,
+            metadata,
             context,
             showMapButton: true,
             onTap: () {
@@ -1174,6 +1093,7 @@ class SearchPageState extends ConsumerState<SearchPage>
       },
       child: _buildBusStopSearchItem(
         busStop,
+        metadata,
         context,
         showMapButton: false,
         isExpanded: _isNearestBusStopExpanded,
@@ -1201,10 +1121,12 @@ class SearchPageState extends ConsumerState<SearchPage>
           busService.number.toLowerCase().startsWith(query.toLowerCase()));
 
   Map<BusStop, _QueryMetadata> useQueryMetadata() {
-    return <BusStop, _QueryMetadata>{
-      for (BusStop busStop in _filteredBusStops)
-        busStop: _calculateQueryMetadata(busStop, _query)
-    };
+    return useMemoized(() {
+      return <BusStop, _QueryMetadata>{
+        for (BusStop busStop in _filteredBusStops)
+          busStop: _calculateQueryMetadata(busStop, _query)
+      };
+    }, [_filteredBusStops, _query]);
   }
 
   static _QueryMetadata _calculateQueryMetadata(BusStop busStop, String query) {
