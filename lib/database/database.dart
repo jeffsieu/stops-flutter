@@ -102,7 +102,7 @@ class BusStopList extends _$BusStopList {
   }
 
   Future<void> fetchFromApi() async {
-    final busStopList = await ref.read(apiBusStopListProvider.future);
+    final busStopList = await ref.refresh(apiBusStopListProvider.future);
 
     await _cacheBusStops(busStopList);
 

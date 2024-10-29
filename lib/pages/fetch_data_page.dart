@@ -30,14 +30,15 @@ class _FetchDataPageState extends ConsumerState<FetchDataPage> {
       );
     } else {
       return FetchDataPage2(
-          isSetup: widget.isSetup,
-          onFinish: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              SavedRoute().go(context);
-            }
-          });
+        isSetup: widget.isSetup,
+        onFinish: () {
+          if (widget.isSetup) {
+            SavedRoute().go(context);
+          } else {
+            Navigator.pop(context);
+          }
+        },
+      );
     }
   }
 }
