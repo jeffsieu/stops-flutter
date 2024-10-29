@@ -227,7 +227,7 @@ class SavedPageState extends ConsumerState<SavedPage> {
               padding: const EdgeInsets.symmetric(vertical: 32.0),
               child: Center(
                 child: Text(
-                    'Pinned bus stops appear here.\n\nTap the pin next to a bus stop to pin it.\n\n\nAdd a route to organize multiple bus stops together.',
+                    'Saved bus stops appear here.\n\nAdd a route to organize multiple bus stops together.',
                     style: Theme.of(context)
                         .textTheme
                         .headlineMedium!

@@ -48,7 +48,7 @@ class RoutePage extends ConsumerWidget {
                               padding:
                                   const EdgeInsets.symmetric(vertical: 32.0),
                               child: Text(
-                                  'This route has no stops.\n\nTap the edit icon to add stops to this route.',
+                                  'This route has no bus stops.\n\nTap the edit icon to add bus stops to this route.',
                                   style: Theme.of(context)
                                       .textTheme
                                       .headlineMedium!
