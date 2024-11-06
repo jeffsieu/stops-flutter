@@ -73,60 +73,63 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
           _isExpanded = !_isExpanded;
         });
       },
-      child: isExpanded
-          ? Container(
-              padding: const EdgeInsets.only(top: 40.0, bottom: 16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildPinnedServices(context),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Wrap(
-                      spacing: 8.0,
-                      children: [
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                              visualDensity: VisualDensity.compact),
-                          onPressed: () {
-                            setState(() {
-                              _showLegend = !_showLegend;
-                            });
-                          },
-                          child: Text('Legend',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall!
-                                  .copyWith(
-                                      color: Theme.of(context).hintColor)),
-                        ),
-                        OutlinedButton(
-                          style: TextButton.styleFrom(
-                              visualDensity: VisualDensity.compact),
-                          onPressed: () {
-                            SettingsRoute().push(context);
-                          },
-                          child: Text('Missing bus services?',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall!
-                                  .copyWith(
-                                      color: Theme.of(context).hintColor)),
-                        ),
-                      ],
+      child: AnimatedCrossFade(
+        firstChild: Container(
+          padding: const EdgeInsets.only(top: 40.0, bottom: 16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildPinnedServices(context),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Wrap(
+                  spacing: 8.0,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact),
+                      onPressed: () {
+                        setState(() {
+                          _showLegend = !_showLegend;
+                        });
+                      },
+                      child: Text('Legend',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall!
+                              .copyWith(color: Theme.of(context).hintColor)),
                     ),
-                  ),
-                  if (_showLegend)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: BusStopLegendCard(),
+                    OutlinedButton(
+                      style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact),
+                      onPressed: () {
+                        SettingsRoute().push(context);
+                      },
+                      child: Text('Missing bus services?',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall!
+                              .copyWith(color: Theme.of(context).hintColor)),
                     ),
-                ],
+                  ],
+                ),
               ),
-            )
-          : Container(height: 60.0),
+              if (_showLegend)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: BusStopLegendCard(),
+                ),
+            ],
+          ),
+        ),
+        secondChild: Container(height: 60.0),
+        crossFadeState:
+            isExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+        duration: const Duration(milliseconds: 300),
+        sizeCurve: Curves.easeOutCubic,
+      ),
     );
 
     final isEditing = context.watch<EditModel>().isEditing;
@@ -198,16 +201,13 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                             curve: Curves.easeOutCubic,
                             opacity: location != null ? 1 : 0,
                             child: widget.isLoading
-                                ? Container(
-                                    child: Text(
-                                      '100m',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall!
-                                          .copyWith(
-                                              color:
-                                                  Theme.of(context).hintColor),
-                                    ),
+                                ? Text(
+                                    '100m',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall!
+                                        .copyWith(
+                                            color: Theme.of(context).hintColor),
                                   )
                                 : (location != null)
                                     ? SizedBox(
