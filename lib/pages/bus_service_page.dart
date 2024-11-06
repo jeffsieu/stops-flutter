@@ -146,65 +146,68 @@ class BusServicePage extends HookConsumerWidget {
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
               SliverList(
-                delegate: SliverChildBuilderDelegate((routeBusStop, position) {
-                  final routeBusStop = route.busStops[position];
-                  final busStop = routeBusStop.busStop;
-                  final previousRoad = position > 0
-                      ? route.busStops[position - 1].busStop.road
-                      : '';
-                  final newRoad = busStop.road != previousRoad;
+                delegate: SliverChildBuilderDelegate(
+                  (routeBusStop, position) {
+                    final routeBusStop = route.busStops[position];
+                    final busStop = routeBusStop.busStop;
+                    final previousRoad = position > 0
+                        ? route.busStops[position - 1].busStop.road
+                        : '';
+                    final newRoad = busStop.road != previousRoad;
 
-                  return Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Row(
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Row(
+                            children: [
+                              Container(
+                                margin: position == 0
+                                    ? const EdgeInsetsDirectional.only(
+                                        start: 44.0, top: 72.0)
+                                    : position < route.busStops.length - 1
+                                        ? const EdgeInsetsDirectional.only(
+                                            start: 44.0)
+                                        : const EdgeInsetsDirectional.only(
+                                            start: 44.0, bottom: 8.0),
+                                child: Container(
+                                  color: Theme.of(context).hintColor,
+                                  width: 8.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              margin: position == 0
-                                  ? const EdgeInsetsDirectional.only(
-                                      start: 44.0, top: 72.0)
-                                  : position < route.busStops.length - 1
-                                      ? const EdgeInsetsDirectional.only(
-                                          start: 44.0)
-                                      : const EdgeInsetsDirectional.only(
-                                          start: 44.0, bottom: 8.0),
-                              child: Container(
-                                color: Theme.of(context).hintColor,
-                                width: 8.0,
+                            if (newRoad)
+                              Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                    start: 72.0, top: 24.0, bottom: 8.0),
+                                child: Text(busStop.road,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium),
+                              ),
+                            Material(
+                              color: busStop == focusedBusStop
+                                  ? focusedColor
+                                  : Colors.transparent,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0),
+                                child: BusStopOverviewItem(
+                                  busStop,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (newRoad)
-                            Padding(
-                              padding: const EdgeInsetsDirectional.only(
-                                  start: 72.0, top: 24.0, bottom: 8.0),
-                              child: Text(busStop.road,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium),
-                            ),
-                          Material(
-                            color: busStop == focusedBusStop
-                                ? focusedColor
-                                : Colors.transparent,
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: BusStopOverviewItem(
-                                busStop,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                }),
+                      ],
+                    );
+                  },
+                  childCount: route.busStops.length,
+                ),
               ),
             ],
           );
