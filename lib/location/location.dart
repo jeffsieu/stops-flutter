@@ -5,7 +5,7 @@ import 'package:stops_sg/bus_api/bus_api.dart';
 
 part 'location.g.dart';
 
-const kLocationValidDuration = Duration(minutes: 1);
+const kLocationValidDuration = Duration(minutes: 5);
 final Location location = Location();
 
 class UserLocationSnapshot {

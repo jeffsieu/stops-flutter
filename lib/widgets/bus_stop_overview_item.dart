@@ -49,7 +49,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
     final name = busStop.displayName;
     final code = busStop.code;
     final road = busStop.road;
-    final route = context.read<StoredUserRoute?>();
+    final route = context.watch<StoredUserRoute?>();
     final isSaved = (() {
       if (route == null) {
         return false;
@@ -376,7 +376,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
   }
 
   Widget _buildPinnedServices(BuildContext context) {
-    final routeId = context.read<StoredUserRoute?>()?.id;
+    final routeId = context.watch<StoredUserRoute?>()?.id;
     final pinnedServices = routeId != null
         ? ref.watch(pinnedServicesProvider(busStop, routeId)).valueOrNull
         : null;
