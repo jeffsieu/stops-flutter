@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:stops_sg/database/database.dart';
-import 'package:stops_sg/routes/router.dart';
 import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/routes/saved_route.dart';
 

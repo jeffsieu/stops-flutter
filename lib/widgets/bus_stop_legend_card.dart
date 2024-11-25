@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
+import 'package:stops_sg/widgets/bus_type_icon.dart';
 
 class BusStopLegendCard extends StatelessWidget {
   const BusStopLegendCard({super.key});
@@ -80,13 +81,45 @@ class BusStopLegendCard extends StatelessWidget {
                 width: 48,
                 margin: const EdgeInsets.only(right: 16.0),
                 child: Center(
-                  child: Text(
-                    getBusTypeVerbose(BusType.double),
-                    style: Theme.of(context).textTheme.headlineMedium,
+                  child: BusTypeIcon.bendy(
+                    width: 24.0,
+                    height: 24.0,
+                    color: Theme.of(context).hintColor,
                   ),
                 ),
               ),
-              const Text('Double-decker/Long'),
+              const Text('Bendy'),
+            ],
+          ),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                margin: const EdgeInsets.only(right: 16.0),
+                child: Center(
+                  child: BusTypeIcon.double(
+                    width: 24.0,
+                    height: 24.0,
+                    color: Theme.of(context).hintColor,
+                  ),
+                ),
+              ),
+              const Text('Double-decker'),
+            ],
+          ),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                margin: const EdgeInsets.only(right: 16.0),
+                child: Center(
+                  child: Icon(
+                    Icons.not_accessible_rounded,
+                    color: Theme.of(context).hintColor,
+                  ),
+                ),
+              ),
+              const Text('Wheelchair-inaccessible'),
             ],
           ),
         ],

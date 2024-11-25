@@ -2,6 +2,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 
 import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
+import 'package:stops_sg/widgets/bus_type_icon.dart';
 
 Color getBusOperatorColor(String operator) {
   switch (operator) {
@@ -40,16 +41,16 @@ Color getBusLoadColor(BusLoad? load, ThemeData themeData) {
   }
 }
 
-String getBusTypeVerbose(BusType? type) {
+Widget? getBusTypeIcon(BusType? type, {required Color color}) {
   switch (type) {
     case BusType.single:
-      return '';
+      return null;
     case BusType.double:
-      return 'x2';
+      return BusTypeIcon.double(width: 16.0, height: 16.0, color: color);
     case BusType.bendy:
-      return 'x2';
+      return BusTypeIcon.bendy(width: 16.0, height: 16.0, color: color);
     default:
-      return '';
+      return null;
   }
 }
 

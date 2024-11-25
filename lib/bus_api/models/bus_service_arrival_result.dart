@@ -32,6 +32,7 @@ class BusArrival {
     required this.latitude,
     required this.longitude,
     required this.arrivalTime,
+    required this.isWheelchairAccessible,
   });
 
   static BusArrival? fromJson(dynamic json) {
@@ -63,6 +64,10 @@ class BusArrival {
       throw Exception('Unknown bus load: $loadString');
     }
 
+    final featureString = json[kBusServiceFeatureKey] as String?;
+    final isWheelchairAccessible =
+        featureString == kBusServiceFeatureWheelchairAccessible;
+
     final latitude =
         double.tryParse(json[kBusServiceLatitudeKey] as String) ?? 0;
     final longitude =
@@ -77,6 +82,7 @@ class BusArrival {
       latitude: latitude,
       longitude: longitude,
       arrivalTime: arrivalTime,
+      isWheelchairAccessible: isWheelchairAccessible,
     );
   }
 
@@ -85,6 +91,7 @@ class BusArrival {
   final double latitude;
   final double longitude;
   final DateTime arrivalTime;
+  final bool isWheelchairAccessible;
 }
 
 enum BusType { single, double, bendy }

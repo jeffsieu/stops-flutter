@@ -75,6 +75,9 @@ flutter:
   assets:
     - assets/fonts/
     - assets/images/bus-stop.svg
+    - assets/images/bus-articulated-front.svg
+    - assets/images/bus-double-decker.svg
+    - assets/images/bus-stop.svg
     - assets/images/pin.svg
     - assets/images/pin-outline.svg
     - assets/images/icon/

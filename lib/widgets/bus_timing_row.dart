@@ -272,18 +272,27 @@ class _BusTimingItemState extends State<_BusTimingItem>
       _controller.stop();
       _controller.reset();
     }
+
+    final isWheelchairAccessible =
+        widget.busArrival?.isWheelchairAccessible ?? false;
     final busLoadColor =
         getBusLoadColor(widget.busArrival?.load, Theme.of(context));
+    final busTypeIcon = getBusTypeIcon(widget.busArrival?.type,
+        color: Theme.of(context).hintColor);
+    final hasIcons = busTypeIcon != null || !isWheelchairAccessible;
+
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
-        Text(
-          getBusTypeVerbose(widget.busArrival?.type),
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium!
-              .copyWith(color: busLoadColor.withOpacity(0.5)),
-        ),
+        if (hasIcons)
+          Row(
+            children: [
+              if (busTypeIcon != null) busTypeIcon,
+              if (!isWheelchairAccessible)
+                Icon(Icons.not_accessible_rounded,
+                    size: 16.0, color: Theme.of(context).hintColor)
+            ],
+          ),
         SizedBox(
           width: BusTimingRow.height,
           child: Center(

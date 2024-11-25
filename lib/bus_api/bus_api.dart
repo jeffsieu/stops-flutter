@@ -44,6 +44,8 @@ const String kBusServiceLoadKey = 'Load';
 const String kBusServiceLoadLow = 'SEA';
 const String kBusServiceLoadMedium = 'SDA';
 const String kBusServiceLoadHigh = 'LSD';
+const String kBusServiceFeatureKey = 'Feature';
+const String kBusServiceFeatureWheelchairAccessible = 'WAB';
 const String kBusServiceArrivalTimeKey = 'EstimatedArrival';
 
 const String kBusServiceRouteStopSequenceKey = 'StopSequence';
@@ -150,11 +152,12 @@ Future<List<BusServiceArrivalResult>> busStopArrivals(
   final result =
       await ref.watch(_busStopArrivalListProvider(busStop.code).future);
   final services = jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
-  final arrivals = services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
+  final arrivals =
+      services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
 
   ref.cacheFor(const Duration(seconds: _kRefreshInterval));
   ref.refreshIn(const Duration(seconds: _kRefreshInterval));
-  
+
   return arrivals;
 }
 
