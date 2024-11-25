@@ -54,6 +54,16 @@ MAPS_API_KEY=YOUR_API_KEY
      "lta_api_key": "apikey"
  }
  ```
+
+### Build
+
+```sh
+flutter pub get
+dart run build_runner build
+
+# Build app bundle
+flutter build appbundle --obfuscate --split-debug-info=./debug-info --extra-gen-snapshot-options=--save-obfuscation-map=./mapping-info
+```
  
 ## Built with
  - [Flutter](https://flutter.dev/) - The mobile-app framework used
