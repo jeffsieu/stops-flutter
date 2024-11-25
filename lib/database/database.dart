@@ -75,8 +75,13 @@ class CachedDataProgress extends _$CachedDataProgress {
     return progress;
   }
 
-  // TODO: Show 0% progress when re-fetching
-  Future<void> fetchDataFromApi() async {
+  Future<void> fetchDataFromApi(
+      {required bool shouldResetCacheProgress}) async {
+    if (shouldResetCacheProgress) {
+      await resetCacheProgress();
+      ref.invalidateSelf();
+    }
+
     await ref.read(busStopListProvider.notifier).fetchFromApi();
 
     ref.invalidateSelf();
@@ -416,6 +421,13 @@ Future<BusServiceWithRoutes> cachedBusServiceWithRoutes(
   final routes = await getCachedBusRoutes(service);
 
   return BusServiceWithRoutes.fromBusService(service, routes);
+}
+
+Future<void> resetCacheProgress() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove(kAreBusStopsCachedKey);
+  await prefs.remove(kAreBusServicesCachedKey);
+  await prefs.remove(_areBusServiceRoutesCachedKey);
 }
 
 Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/routes/router.dart';
 import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/routes/saved_route.dart';
 
@@ -22,7 +23,9 @@ class _FetchDataPageState extends ConsumerState<FetchDataPage> {
       return FetchDataPage1(
         isSetup: widget.isSetup,
         onNext: () {
-          ref.read(cachedDataProgressProvider.notifier).fetchDataFromApi();
+          ref
+              .read(cachedDataProgressProvider.notifier)
+              .fetchDataFromApi(shouldResetCacheProgress: !widget.isSetup);
           setState(() {
             page = 1;
           });
