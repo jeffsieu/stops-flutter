@@ -19,7 +19,7 @@ class BusStopSheetHeaderDropdown extends ConsumerWidget {
 
     final isInRoute = ref
             .watch(isBusStopInRouteProvider(busStop: busStop, routeId: routeId))
-            .valueOrNull ??
+            .value ??
         false;
     if (isEditing) {
       return IconButton(

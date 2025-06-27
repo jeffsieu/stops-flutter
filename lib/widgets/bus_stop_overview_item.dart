@@ -44,8 +44,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
 
   @override
   Widget build(BuildContext context) {
-    final location =
-        ref.watch(userLocationProvider).valueOrNull?.data?.toLatLng();
+    final location = ref.watch(userLocationProvider).value?.data?.toLatLng();
     final name = busStop.displayName;
     final code = busStop.code;
     final road = busStop.road;
@@ -59,7 +58,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
               .watch(
                 isBusStopInRouteProvider(busStop: busStop, routeId: route.id),
               )
-              .valueOrNull ??
+              .value ??
           false;
     })();
 
@@ -326,7 +325,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                                               .watch(isBusStopInRouteProvider(
                                                   busStop: busStop,
                                                   routeId: route.id))
-                                              .valueOrNull ??
+                                              .value ??
                                           false;
 
                                       return CheckboxListTile(
@@ -378,7 +377,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
   Widget _buildPinnedServices(BuildContext context) {
     final routeId = context.watch<StoredUserRoute?>()?.id;
     final pinnedServices = routeId != null
-        ? ref.watch(pinnedServicesProvider(busStop, routeId)).valueOrNull
+        ? ref.watch(pinnedServicesProvider(busStop, routeId)).value
         : null;
 
     if (pinnedServices == null) {

@@ -27,13 +27,12 @@ class SavedPage extends ConsumerStatefulWidget {
 
 class SavedPageState extends ConsumerState<SavedPage> {
   bool _isEditing = false;
-  List<Bus> get _followedBuses =>
-      ref.watch(followedBusesProvider).valueOrNull ?? [];
+  List<Bus> get _followedBuses => ref.watch(followedBusesProvider).value ?? [];
   bool canScroll = true;
   bool get hasLocationPermissions => ref.watch(userLocationProvider
-      .select((value) => value.valueOrNull?.hasPermission ?? false));
-  LocationData? get locationData => ref
-      .watch(userLocationProvider.select((value) => value.valueOrNull?.data));
+      .select((value) => value.value?.hasPermission ?? false));
+  LocationData? get locationData =>
+      ref.watch(userLocationProvider.select((value) => value.value?.data));
 
   @override
   Widget build(BuildContext context) {

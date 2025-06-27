@@ -19,7 +19,7 @@ class HighlightedIcon extends StatelessWidget {
       decoration: BoxDecoration(
         color: Color.lerp(
                 iconColor, Theme.of(context).scaffoldBackgroundColor, 0.75)
-            ?.withOpacity(opacity),
+            ?.withValues(alpha: opacity),
         borderRadius: const BorderRadius.all(Radius.circular(8.0)),
       ),
       padding: const EdgeInsets.all(4.0),

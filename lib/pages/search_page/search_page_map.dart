@@ -15,7 +15,7 @@ import 'package:stops_sg/utils/distance_utils.dart';
 part 'search_page_map.g.dart';
 
 @riverpod
-Future<String> googleMapDarkStyle(GoogleMapDarkStyleRef ref) async {
+Future<String> googleMapDarkStyle(Ref ref) async {
   return await rootBundle.loadString('assets/maps/map_style_dark.json');
 }
 
@@ -54,10 +54,10 @@ class _SearchPageMapState extends ConsumerState<SearchPageMap> {
 
   @override
   Widget build(BuildContext context) {
-    final userLocation = ref.watch(userLocationProvider).valueOrNull?.data;
+    final userLocation = ref.watch(userLocationProvider).value?.data;
     final initialCameraPosition = _getCameraPositionFromLocation(userLocation);
     final googleMapStyle = Theme.of(context).brightness == Brightness.dark
-        ? ref.watch(googleMapDarkStyleProvider).valueOrNull
+        ? ref.watch(googleMapDarkStyleProvider).value
         : null;
 
     final focusedBusStopLocation = useMemoized(() {
@@ -243,26 +243,24 @@ class _SearchPageMapState extends ConsumerState<SearchPageMap> {
 
   Set<Marker> _buildMapMarkersAround(LatLng? position, BuildContext context,
       {required void Function(BusStop busStop) onBusStopMarkerTap}) {
-    final markers = <Marker>{};
-
     if (position == null) {
-      return markers;
+      return {};
     }
 
-    for (var busStop in widget.busStops) {
-      if (busStop.getMetersFromLocation(position) >
-          _furthestBusStopDistanceMeters) continue;
-      markers.add(Marker(
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-        markerId: MarkerId(busStop.code),
-        position: LatLng(busStop.latitude, busStop.longitude),
-        infoWindow:
-            InfoWindow(title: busStop.displayName, snippet: busStop.road),
-        onTap: () => onBusStopMarkerTap(busStop),
-      ));
-    }
-
-    return markers;
+    return widget.busStops
+        .where((busStop) =>
+            busStop.getMetersFromLocation(position) <=
+            _furthestBusStopDistanceMeters)
+        .map((busStop) => Marker(
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueOrange),
+              markerId: MarkerId(busStop.code),
+              position: LatLng(busStop.latitude, busStop.longitude),
+              infoWindow:
+                  InfoWindow(title: busStop.displayName, snippet: busStop.road),
+              onTap: () => onBusStopMarkerTap(busStop),
+            ))
+        .toSet();
   }
 }
 

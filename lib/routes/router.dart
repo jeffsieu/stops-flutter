@@ -9,7 +9,7 @@ import 'package:stops_sg/routes/saved_route.dart';
 part 'router.g.dart';
 
 @riverpod
-Future<bool> isFullyCached(IsFullyCachedRef ref) async {
+Future<bool> isFullyCached(Ref ref) async {
   final cacheProgress = await ref.watch(cachedDataProgressProvider.future);
   final isFullyCached = cacheProgress == 1.0;
 
@@ -17,7 +17,7 @@ Future<bool> isFullyCached(IsFullyCachedRef ref) async {
 }
 
 @riverpod
-GoRouter router(RouterRef ref) {
+GoRouter router(Ref ref) {
   return GoRouter(
     routes: $appRoutes,
     redirect: (context, state) async {

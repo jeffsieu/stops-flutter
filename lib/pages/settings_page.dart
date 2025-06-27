@@ -27,8 +27,8 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(selectedThemeModeProvider);
-    final isNfcAvailable = ref.watch(nfcAvailabilityProvider).valueOrNull ==
-        NFCAvailability.available;
+    final isNfcAvailable =
+        ref.watch(nfcAvailabilityProvider).value == NFCAvailability.available;
 
     return Scaffold(
       appBar: AppBar(

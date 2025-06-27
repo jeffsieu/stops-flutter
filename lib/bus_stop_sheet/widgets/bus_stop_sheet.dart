@@ -126,7 +126,7 @@ class _BusStopSheetState extends ConsumerState<BusStopSheet>
         context.select((BusStopSheetBloc bloc) => bloc.state.routeId);
     if (busStop == null || routeId == null) return Container();
 
-    final route = ref.watch(savedUserRouteProvider(id: routeId)).valueOrNull;
+    final route = ref.watch(savedUserRouteProvider(id: routeId)).value;
 
     final Widget scrollView = ListView(
       padding: const EdgeInsets.all(0),

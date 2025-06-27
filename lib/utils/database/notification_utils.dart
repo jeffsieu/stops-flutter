@@ -27,11 +27,8 @@ const int alarmManagerTaskId = 0;
 
 const AndroidInitializationSettings androidSettings =
     AndroidInitializationSettings('ic_notification');
-const Future<dynamic> Function(int, String?, String?, String?)?
-    onDidReceiveLocalNotification = null;
 const DarwinInitializationSettings darwinSettings =
-    DarwinInitializationSettings(
-        onDidReceiveLocalNotification: onDidReceiveLocalNotification);
+    DarwinInitializationSettings();
 const InitializationSettings initializationSettings =
     InitializationSettings(android: androidSettings, iOS: darwinSettings);
 
@@ -61,7 +58,7 @@ bool _isInitialized = false;
  * and stop calling itself.
  */
 @riverpod
-Future<void> followedBusNotifications(FollowedBusNotificationsRef ref) async {
+Future<void> followedBusNotifications(Ref ref) async {
   if (!_isInitialized) {
     notifications.initialize(initializationSettings);
     _isInitialized = true;

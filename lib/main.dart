@@ -115,7 +115,7 @@ class StopsApp extends HookConsumerWidget {
 
         final lightThemeWithBoldText = lightTheme.copyWith(
           textTheme: lightTheme.textTheme.merge(lightTextTheme),
-          splashColor: Colors.black.withOpacity(0.05),
+          splashColor: Colors.black.withValues(alpha: 0.05),
           splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
           popupMenuTheme: PopupMenuThemeData(
             elevation: 10,
@@ -154,7 +154,7 @@ class StopsApp extends HookConsumerWidget {
 
         final darkThemeWithBoldText = darkTheme.copyWith(
           textTheme: darkTheme.textTheme.merge(darkTextTheme),
-          splashColor: Colors.white.withOpacity(0.05),
+          splashColor: Colors.white.withValues(alpha: 0.05),
           splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
           popupMenuTheme: PopupMenuThemeData(
             elevation: 10,

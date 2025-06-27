@@ -4,6 +4,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'nfc_availability.g.dart';
 
 @riverpod
-Future<NFCAvailability> nfcAvailability(NfcAvailabilityRef ref) async {
+Future<NFCAvailability> nfcAvailability(Ref ref) async {
   return await FlutterNfcKit.nfcAvailability;
 }

@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stops_sg/bus_api/models/bus_service.dart';
@@ -64,7 +63,7 @@ enum BusApiError {
 }
 
 @riverpod
-Future<String> apiKey(ApiKeyRef ref) async {
+Future<String> apiKey(Ref ref) async {
   final jsonString = await rootBundle.loadString('assets/secrets.json');
   return json.decode(jsonString)['lta_api_key'] as String;
 }
@@ -79,7 +78,7 @@ Future<bool> hasInternetConnection() async {
 }
 
 @riverpod
-Future<String> busApiStringResponse(BusApiStringResponseRef ref,
+Future<String> busApiStringResponse(Ref ref,
     {required String url, required int skip, String? extraParams = ''}) async {
   final apiKey = await ref.watch(apiKeyProvider.future);
   try {
@@ -103,8 +102,8 @@ Future<String> busApiStringResponse(BusApiStringResponseRef ref,
 }
 
 @riverpod
-Future<List<T>> _busApiListResponse<T>(_BusApiListResponseRef<T> ref,
-    String url, T Function(dynamic json) function) async {
+Future<List<T>> _busApiListResponse<T>(
+    Ref ref, String url, T Function(dynamic json) function) async {
   var skip = 0;
   const concurrentCount = 6;
   final resultList = <T>[];
@@ -137,8 +136,7 @@ Future<List<T>> _busApiListResponse<T>(_BusApiListResponseRef<T> ref,
 const String kBusStopServicesKey = 'Services';
 
 @riverpod
-Future<String> _busStopArrivalList(
-    _BusStopArrivalListRef ref, String busStopCode) async {
+Future<String> _busStopArrivalList(Ref ref, String busStopCode) async {
   return await ref.watch(busApiStringResponseProvider(
           url: _kGetBusStopArrivalUrl,
           skip: 0,
@@ -148,7 +146,7 @@ Future<String> _busStopArrivalList(
 
 @riverpod
 Future<List<BusServiceArrivalResult>> busStopArrivals(
-    BusStopArrivalsRef ref, BusStop busStop) async {
+    Ref ref, BusStop busStop) async {
   final result =
       await ref.watch(_busStopArrivalListProvider(busStop.code).future);
   final services = jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
@@ -161,7 +159,7 @@ Future<List<BusServiceArrivalResult>> busStopArrivals(
   return arrivals;
 }
 
-extension RefreshRef<T> on Ref<T> {
+extension RefreshRef on Ref {
   void refreshIn(Duration duration) {
     Timer.periodic(duration, (timer) {
       invalidateSelf();
@@ -169,7 +167,7 @@ extension RefreshRef<T> on Ref<T> {
   }
 }
 
-extension CacheForExtension<T> on AutoDisposeRef<T> {
+extension CacheForExtension on Ref {
   /// Keeps the provider alive for [duration].
   void cacheFor(Duration duration) {
     final link = keepAlive();
@@ -180,28 +178,27 @@ extension CacheForExtension<T> on AutoDisposeRef<T> {
 }
 
 @riverpod
-Future<List<BusStop>> apiBusStopList(ApiBusStopListRef ref) async {
+Future<List<BusStop>> apiBusStopList(Ref ref) async {
   return await ref.watch(
       _busApiListResponseProvider(_kGetBusStopsUrl, BusStop.fromJson).future);
 }
 
 @riverpod
-Future<List<BusService>> apiBusServiceList(ApiBusServiceListRef ref) async {
+Future<List<BusService>> apiBusServiceList(Ref ref) async {
   return await ref.watch(
       _busApiListResponseProvider(_kGetBusServicesUrl, BusService.fromJson)
           .future);
 }
 
 @riverpod
-Future<List<Map<String, dynamic>>> apiBusServiceRouteList(
-    ApiBusServiceRouteListRef ref) async {
+Future<List<Map<String, dynamic>>> apiBusServiceRouteList(Ref ref) async {
   return await ref.watch(
       _busApiListResponseProvider(_kGetBusRoutesUrl, busServiceRouteStopToJson)
           .future);
 }
 
 @riverpod
-Future<DateTime?> firstArrivalTime(FirstArrivalTimeRef ref,
+Future<DateTime?> firstArrivalTime(Ref ref,
     {required BusStop busStop, required String busServiceNumber}) async {
   final arrivalResults =
       await ref.watch(busStopArrivalsProvider(busStop).future);

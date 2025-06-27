@@ -17,7 +17,7 @@ class _BusServiceFilterSheetState extends ConsumerState<BusServiceFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final busServices = ref.watch(busServiceListProvider).valueOrNull ?? [];
+    final busServices = ref.watch(busServiceListProvider).value ?? [];
 
     final matchingBusServices = SearchPageState.filterBusServices(
             busServices, _busStopServicesFilterQuery)

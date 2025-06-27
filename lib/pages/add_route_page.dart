@@ -32,7 +32,7 @@ class AddRoutePageState extends ConsumerState<AddRoutePage> {
   Color _color = Colors.red;
   final TextEditingController _nameController = TextEditingController();
   StoredUserRoute? get route => widget.routeId != null
-      ? ref.watch(savedUserRouteProvider(id: widget.routeId!)).valueOrNull
+      ? ref.watch(savedUserRouteProvider(id: widget.routeId!)).value
       : null;
 
   @override

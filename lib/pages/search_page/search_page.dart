@@ -38,7 +38,7 @@ part 'search_page.g.dart';
 const RANDOM_SEED = 0x12345678;
 
 @riverpod
-Future<List<BusStop>> busStopsByDistance(BusStopsByDistanceRef ref) async {
+Future<List<BusStop>> busStopsByDistance(Ref ref) async {
   final busStops = await ref.watch(busStopListProvider.future);
   final location = await ref.watch(userLocationProvider.future);
   final locationData = location.data;
@@ -70,7 +70,7 @@ enum BusStopSearchFilter { all, withService }
 
 @riverpod
 Future<List<BusStop>> busStopsInServices(
-    BusStopsInServicesRef ref, List<BusService> busServices) async {
+    Ref ref, List<BusService> busServices) async {
   final allBusServiceRoutes = await Future.wait(
     busServices.map((busService) async {
       final service = await ref
@@ -119,10 +119,9 @@ class SearchPageState extends ConsumerState<SearchPage>
   // via a fade down
   static const _resultsSheetCollapsedHeight = 124.0;
 
-  List<BusStop>? get _busStops =>
-      ref.watch(busStopsByDistanceProvider).valueOrNull;
+  List<BusStop>? get _busStops => ref.watch(busStopsByDistanceProvider).value;
   List<BusService> get _busServices =>
-      ref.watch(busServiceListProvider).valueOrNull ?? [];
+      ref.watch(busServiceListProvider).value ?? [];
   bool get areBusStopsLoading =>
       ref.watch(busStopsByDistanceProvider).isLoading ||
       ref.watch(busStopsByDistanceProvider).isRefreshing ||
@@ -289,7 +288,7 @@ class SearchPageState extends ConsumerState<SearchPage>
     SystemChrome.setSystemUIOverlayStyle(StopsApp.overlayStyleOf(context));
 
     final homeRoute =
-        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).valueOrNull;
+        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).value;
 
     useEffect(() {
       _filteredBusServices =
@@ -1070,9 +1069,7 @@ class SearchPageState extends ConsumerState<SearchPage>
   Widget _buildBusStopList(Map<BusStop, _QueryMetadata> queryMetadata) {
     final busStopsInSelectedBusService = _busStopServicesFilter.isEmpty
         ? []
-        : ref
-                .watch(busStopsInServicesProvider(_busStopServicesFilter))
-                .valueOrNull ??
+        : ref.watch(busStopsInServicesProvider(_busStopServicesFilter)).value ??
             [];
 
     final orderedBusStops = _filteredBusStops

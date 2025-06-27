@@ -125,7 +125,7 @@ class BusStopList extends _$BusStopList {
 }
 
 @riverpod
-Future<BusStop?> busStopWithCode(BusStopWithCodeRef ref, String code) async {
+Future<BusStop?> busStopWithCode(Ref ref, String code) async {
   final busStop = await ref.watch(busStopListProvider.selectAsync((busStops) =>
       busStops.firstWhereOrNull((busStop) => busStop.code == code)));
   return busStop;
@@ -180,7 +180,7 @@ Future<List<StoredUserRoute>> _getUserRoutes() async {
 }
 
 @riverpod
-Future<List<BusStop>?> nearestBusStops(NearestBusStopsRef ref,
+Future<List<BusStop>?> nearestBusStops(Ref ref,
     {required String busServiceFilter,
     required Duration minimumRefreshDuration}) async {
   // Wait at least 300ms before refreshing
@@ -215,7 +215,7 @@ Future<List<BusStop>> _getBusStopsInRouteWithId(int routeId) async {
 
 @riverpod
 Future<List<BusService>> pinnedServices(
-    PinnedServicesRef ref, BusStop busStop, int routeId) async {
+    Ref ref, BusStop busStop, int routeId) async {
   final pinnedServices = await getPinnedServicesInRouteWithId(busStop, routeId);
   return pinnedServices;
 }
@@ -344,7 +344,7 @@ class SavedUserRoute extends _$SavedUserRoute {
 }
 
 @riverpod
-Future<bool> isBusServicePinned(IsBusServicePinnedRef ref,
+Future<bool> isBusServicePinned(Ref ref,
     {required BusStop busStop,
     required BusService busService,
     required int routeId}) async {
@@ -354,7 +354,7 @@ Future<bool> isBusServicePinned(IsBusServicePinnedRef ref,
 }
 
 @riverpod
-Future<bool> isBusStopInRoute(IsBusStopInRouteRef ref,
+Future<bool> isBusStopInRoute(Ref ref,
     {required BusStop busStop, required int routeId}) async {
   return await ref.watch(savedUserRouteProvider(id: routeId).selectAsync(
       (data) => (data?.busStops ?? []).any((b) => b.code == busStop.code)));
@@ -416,7 +416,7 @@ Future<bool> areBusServicesCached() async {
 
 @riverpod
 Future<BusServiceWithRoutes> cachedBusServiceWithRoutes(
-    CachedBusServiceWithRoutesRef ref, String serviceNumber) async {
+    Ref ref, String serviceNumber) async {
   final service = await _database.getCachedBusService(serviceNumber);
   final routes = await getCachedBusRoutes(service);
 
@@ -469,7 +469,6 @@ Future<List<BusService>> getPinnedServicesInRouteWithId(
 }
 
 @riverpod
-Future<List<BusService>> busStopServices(
-    BusStopServicesRef ref, BusStop busStop) async {
+Future<List<BusService>> busStopServices(Ref ref, BusStop busStop) async {
   return await _database.getServicesIn(busStop);
 }

@@ -38,7 +38,7 @@ class BusStopSearchItem extends ConsumerWidget {
     final isInRoute = ref
             .watch(isBusStopInRouteProvider(
                 busStop: busStop, routeId: kDefaultRouteId))
-            .valueOrNull ??
+            .value ??
         false;
 
     return Padding(

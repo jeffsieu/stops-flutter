@@ -24,7 +24,7 @@ class BusServicePage extends HookConsumerWidget {
     final tabController = useTabController(initialLength: 2);
 
     final homeRoute =
-        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).valueOrNull;
+        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).value;
 
     return Scaffold(
       body: provider.MultiProvider(
@@ -45,12 +45,12 @@ class BusServicePage extends HookConsumerWidget {
       BuildContext context, WidgetRef ref, TabController tabController) {
     final focusedBusStop = focusedBusStopCode == null
         ? null
-        : ref.watch(busStopWithCodeProvider(focusedBusStopCode!)).valueOrNull;
+        : ref.watch(busStopWithCodeProvider(focusedBusStopCode!)).value;
     final service =
         ref.watch(cachedBusServiceWithRoutesProvider(serviceNumber));
 
     final focusedRoute = useMemoized(() {
-      final serviceValue = service.valueOrNull;
+      final serviceValue = service.value;
 
       if (focusedBusStop == null || serviceValue == null) {
         return null;

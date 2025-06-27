@@ -20,7 +20,7 @@ class RoutePage extends ConsumerWidget {
       appBar: AppBar(
         automaticallyImplyLeading: true,
         backgroundColor: Colors.transparent,
-        title: Text(latestRoute.valueOrNull?.name ?? 'Route'),
+        title: Text(latestRoute.value?.name ?? 'Route'),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),

@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stops_sg/bus_api/models/bus.dart';
 import 'package:stops_sg/database/stops_database.dart';
 
-
 part 'followed_buses.g.dart';
 
 const String _isBusFollowedKey = 'BUS_FOLLOW';
@@ -93,7 +92,7 @@ Future<void> _unfollowBus(
 }
 
 @riverpod
-Future<bool> isBusFollowed(IsBusFollowedRef ref,
+Future<bool> isBusFollowed(Ref ref,
     {required String busStopCode, required String busServiceNumber}) async {
   final followedBuses = await ref.watch(followedBusesProvider.future);
 

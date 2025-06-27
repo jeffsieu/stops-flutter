@@ -51,7 +51,7 @@ class BusTimingState extends ConsumerState<BusTimingRow>
           .watch(isBusFollowedProvider(
               busStopCode: widget.busStop.code,
               busServiceNumber: widget.busService.number))
-          .valueOrNull ??
+          .value ??
       false;
 
   @override
@@ -62,7 +62,7 @@ class BusTimingState extends ConsumerState<BusTimingRow>
                 busStop: widget.busStop,
                 busService: widget.busService,
                 routeId: route.id))
-            .valueOrNull ??
+            .value ??
         false;
 
     final Widget item = InkWell(

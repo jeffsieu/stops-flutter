@@ -34,10 +34,10 @@ class _NearbyStopsSectionState extends ConsumerState<NearbyStopsSection> {
   @override
   Widget build(BuildContext context) {
     final hasLocationPermissions = ref.watch(userLocationProvider
-        .select((value) => value.valueOrNull?.hasPermission ?? false));
+        .select((value) => value.value?.hasPermission ?? false));
 
     final homeRoute =
-        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).valueOrNull;
+        ref.watch(savedUserRouteProvider(id: kDefaultRouteId)).value;
 
     if (homeRoute == null) {
       return Container();
@@ -86,14 +86,14 @@ class _NearbyStopsSectionState extends ConsumerState<NearbyStopsSection> {
                   alignment: Alignment.topCenter,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOutCubic,
-                  child: (_nearestBusStops.valueOrNull?.isNotEmpty ?? true)
+                  child: (_nearestBusStops.value?.isNotEmpty ?? true)
                       ? ListView.separated(
                           physics: const NeverScrollableScrollPhysics(),
                           scrollDirection: Axis.vertical,
                           shrinkWrap: true,
                           itemCount: min(
                               _suggestionsCount,
-                              _nearestBusStops.valueOrNull?.length ??
+                              _nearestBusStops.value?.length ??
                                   _suggestionsCount),
                           separatorBuilder:
                               (BuildContext context, int position) =>
@@ -180,7 +180,7 @@ class _NearbyStopsSectionState extends ConsumerState<NearbyStopsSection> {
 
   Widget _buildSuggestionItem(BusStop? busStop) {
     final location = ref.watch(userLocationProvider);
-    final latLng = location.valueOrNull?.data?.toLatLng();
+    final latLng = location.value?.data?.toLatLng();
     final distance =
         latLng != null ? busStop?.getMetersFromLocation(latLng) : null;
 
