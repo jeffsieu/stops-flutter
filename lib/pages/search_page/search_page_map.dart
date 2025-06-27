@@ -157,7 +157,7 @@ class _SearchPageMapState extends ConsumerState<SearchPageMap> {
           ),
         Padding(
           padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + kToolbarHeight * 2,
+            top: MediaQuery.of(context).padding.top + kToolbarHeight * 2 - 16.0,
             left: 16.0,
             right: 16.0,
           ),
@@ -182,8 +182,8 @@ class _SearchPageMapState extends ConsumerState<SearchPageMap> {
                     borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(8.0)),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8.0, horizontal: 12.0),
+                      padding: const EdgeInsetsDirectional.only(
+                          top: 24.0, bottom: 8.0, start: 12.0, end: 12.0),
                       child: Row(
                         children: [
                           Icon(Icons.info_outline_rounded,

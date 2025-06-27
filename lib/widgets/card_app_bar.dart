@@ -20,6 +20,7 @@ class CardAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
+      margin: EdgeInsets.zero,
       color: Theme.of(context).colorScheme.surfaceBright,
       clipBehavior: Clip.antiAlias,
       shape: Theme.of(context).cardTheme.shape,
