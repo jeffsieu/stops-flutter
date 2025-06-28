@@ -104,7 +104,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
         final appName = packageInfo.appName;
         final appVersion = packageInfo.version;
 
-        if (!context.mounted) {
+        if (!mounted) {
           return;
         }
 
@@ -179,7 +179,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
 
     await ref.read(selectedThemeModeProvider.notifier).setThemeMode(themeMode);
 
-    if (context.mounted) {
+    if (mounted) {
       Navigator.pop(context);
     }
   }

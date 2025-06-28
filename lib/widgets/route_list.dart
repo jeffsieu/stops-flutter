@@ -50,6 +50,10 @@ class RouteList extends ConsumerWidget {
           final route = newUserRoutes.removeAt(oldIndex);
           newUserRoutes.insert(newIndex, route);
 
+          if (!context.mounted) {
+            return;
+          }
+
           ReorderStatusNotification(false).dispatch(context);
         },
         itemBuilder: (BuildContext context, int position) {
