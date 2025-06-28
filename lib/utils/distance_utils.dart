@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart' as latlong;
+import 'package:stops_sg/utils/bus_utils.dart';
 
 double metersBetween(
     double latitude1, double longitude1, double latitude2, double longitude2) {
@@ -9,9 +10,5 @@ double metersBetween(
 }
 
 String formatDistance(double distanceMeters) {
-  if (distanceMeters < 1000) {
-    return '${distanceMeters.toStringAsFixed(0)}m';
-  } else {
-    return '${(distanceMeters / 1000).toStringAsFixed(1)}km';
-  }
+  return getDistanceVerboseFromMeters(distanceMeters);
 }

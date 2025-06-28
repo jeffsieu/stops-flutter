@@ -70,6 +70,11 @@ String getBusTimingShortened(int timeMinutes) {
 
 String getDistanceVerboseFromMeters(double distanceMeters) {
   final distanceKilometers = distanceMeters / 1000;
+
+  if (distanceKilometers > 100) {
+    return '>100km';
+  }
+
   return distanceMeters < 1000
       ? '${distanceMeters.round()} m'
       : '${distanceKilometers.toStringAsFixed(1)} km';
