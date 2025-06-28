@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stops_sg/main.dart';
 import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/routes/routes_route.dart';
@@ -20,10 +21,25 @@ class HomePageScaffold extends ConsumerStatefulWidget {
   ConsumerState<HomePageScaffold> createState() => _HomePageScaffoldState();
 }
 
-class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
-  int _bottomNavIndex = defaultBottomNavIndex;
+final savedRouteLocation = SavedRoute().location;
+final searchRouteLocation = SearchRoute().location;
+final routesRouteLocation = RoutesRoute().location;
+final settingsRouteLocation = SettingsRoute().location;
 
-  Widget get body => widget.child;
+class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
+  int get _bottomNavIndex {
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location == savedRouteLocation) {
+      return 0;
+    } else if (location == searchRouteLocation) {
+      return 1;
+    } else if (location == routesRouteLocation) {
+      return 2;
+    } else if (location == settingsRouteLocation) {
+      return 3;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +48,6 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
 
     return PopScope(
       canPop: _canPop,
-      onPopInvokedWithResult: _onPopInvokedWithResult,
       child: KeyboardDismissOnTap(
         child: Scaffold(
           resizeToAvoidBottomInset: true,
@@ -40,9 +55,6 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
             selectedIndex: _bottomNavIndex,
             labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             onDestinationSelected: (int index) {
-              setState(() {
-                _bottomNavIndex = index;
-              });
               if (index == 0) {
                 SavedRoute().go(context);
               } else if (index == 1) {
@@ -75,7 +87,7 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
               ),
             ],
           ),
-          body: body,
+          body: widget.child,
         ),
       ),
     );
@@ -87,19 +99,5 @@ class _HomePageScaffoldState extends ConsumerState<HomePageScaffold> {
     }
 
     return true;
-  }
-
-  void _onPopInvokedWithResult<T>(bool didPop, T? result) {
-    if (didPop) {
-      return;
-    }
-
-    if (_bottomNavIndex != defaultBottomNavIndex) {
-      setState(() {
-        _bottomNavIndex = defaultBottomNavIndex;
-      });
-
-      return;
-    }
   }
 }
