@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/bus_stop_sheet/widgets/bus_stop_sheet.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/main.dart';
@@ -17,6 +16,8 @@ import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/utils/database/followed_buses.dart';
 import 'package:stops_sg/utils/time_utils.dart';
+
+const Duration kSheetEditDuration = Duration(milliseconds: 250);
 
 class BusTimingRow extends ConsumerStatefulWidget {
   const BusTimingRow(
