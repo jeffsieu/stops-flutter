@@ -46,6 +46,11 @@ class _RoutesPageState extends ConsumerState<RoutesPage> {
           if (notification.action == RouteAction.edit) {
             _pushEditRouteRoute(context, ref, notification.route);
           }
+          if (notification.action == RouteAction.delete) {
+            ref
+                .read(savedUserRoutesProvider.notifier)
+                .deleteRoute(notification.route);
+          }
 
           return false;
         },

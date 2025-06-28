@@ -217,6 +217,9 @@ Future<List<BusStop>> _getBusStopsInRouteWithId(int routeId) async {
 Future<List<BusService>> pinnedServices(
     Ref ref, BusStop busStop, int routeId) async {
   final pinnedServices = await getPinnedServicesInRouteWithId(busStop, routeId);
+
+  ref.cacheFor(const Duration(hours: 1));
+
   return pinnedServices;
 }
 
@@ -230,6 +233,7 @@ class SavedUserRoutes extends _$SavedUserRoutes {
   Future<void> addRoute(UserRoute route) async {
     await _database.addUserRoute(route);
     ref.invalidateSelf();
+    await future;
   }
 
   Future<void> updateRoute(StoredUserRoute route) async {
@@ -246,11 +250,19 @@ class SavedUserRoutes extends _$SavedUserRoutes {
 
     await _database.updateUserRoute(route);
     ref.invalidateSelf();
+    await future;
+  }
+
+  Future<void> deleteRoute(StoredUserRoute route) async {
+    await _database.deleteUserRoute(id: route.id);
+    ref.invalidateSelf();
+    await future;
   }
 
   Future<void> moveUserRoutePosition(int from, int to) async {
     await _database.moveUserRoutePosition(from, to);
     ref.invalidateSelf();
+    await future;
   }
 }
 
@@ -291,18 +303,7 @@ class SavedUserRoute extends _$SavedUserRoute {
     ref.invalidateSelf();
     ref.invalidate(savedUserRoutesProvider);
 
-    /// TODO: SnackBar
-    // ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    //   content: Text(
-    //       'Unpinned ${busStop.displayName} from ${route == StoredUserRoute.home ? "home" : route.name}'),
-    //   action: SnackBarAction(
-    //     label: 'UNDO',
-    //     onPressed: () {
-    //       addBusStopToRouteWithId(busStop, routeId, context);
-    //     },
-    //   ),
-    // ));
+    await future;
   }
 
   Future<void> pinBusService(
@@ -311,6 +312,8 @@ class SavedUserRoute extends _$SavedUserRoute {
         busStop: busStop, busService: busService, routeId: id);
     ref.invalidateSelf();
     ref.invalidate(savedUserRoutesProvider);
+
+    await future;
   }
 
   Future<void> unpinBusService(
@@ -319,12 +322,16 @@ class SavedUserRoute extends _$SavedUserRoute {
         busStop: busStop, busService: busService, routeId: id);
     ref.invalidateSelf();
     ref.invalidate(savedUserRoutesProvider);
+
+    await future;
   }
 
   Future<void> delete(StoredUserRoute userRoute) async {
     await _database.deleteUserRoute(id: id);
     ref.invalidateSelf();
     ref.invalidate(savedUserRoutesProvider);
+
+    await future;
   }
 
   Future<void> moveBusStop(int from, int to) async {
@@ -340,6 +347,8 @@ class SavedUserRoute extends _$SavedUserRoute {
     await _database.moveBusStopPositionInRoute(from: from, to: to, routeId: id);
     ref.invalidateSelf();
     ref.invalidate(savedUserRoutesProvider);
+
+    await future;
   }
 }
 
