@@ -10,6 +10,7 @@ import 'package:stops_sg/bus_api/models/bus_service.dart';
 import 'package:stops_sg/bus_api/models/bus_service_arrival_result.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/database/database.dart';
+import 'package:stops_sg/database/stops_database.dart';
 
 part 'bus_api.g.dart';
 
@@ -77,10 +78,12 @@ Future<bool> hasInternetConnection() async {
   }
 }
 
-@riverpod
-Future<String> busApiStringResponse(Ref ref,
-    {required String url, required int skip, String? extraParams = ''}) async {
-  final apiKey = await ref.watch(apiKeyProvider.future);
+Future<String> getBusApiStringResponse({
+  required String url,
+  required int skip,
+  required String apiKey,
+  String? extraParams = '',
+}) async {
   try {
     final response = await http.get(
         Uri.parse('$_kRootUrl$url?\$skip=$skip$extraParams'),
@@ -102,8 +105,10 @@ Future<String> busApiStringResponse(Ref ref,
 }
 
 @riverpod
-Future<List<T>> _busApiListResponse<T>(
-    Ref ref, String url, T Function(dynamic json) function) async {
+Raw<Stream<List<T>>> _busApiListResponse<T>(
+    Ref ref, String url, T Function(dynamic json) function) async* {
+  final apiKey = await ref.watch(apiKeyProvider.future);
+  const kSkipInterval = 500;
   var skip = 0;
   const concurrentCount = 6;
   final resultList = <T>[];
@@ -111,59 +116,74 @@ Future<List<T>> _busApiListResponse<T>(
   while (!isAtListEnd) {
     final futures = <Future<String>>[];
     for (var i = 0; i < concurrentCount; i++) {
-      futures.add(await ref
-          .read(busApiStringResponseProvider(url: url, skip: skip).future));
-      skip += 500;
+      futures
+          .add(getBusApiStringResponse(url: url, skip: skip, apiKey: apiKey));
+      skip += kSkipInterval;
     }
     final results = await Future.wait(futures);
-    for (var result in results) {
-      try {
-        final rawList = jsonDecode(result)['value'] as List<dynamic>?;
-        if (rawList == null || rawList.isEmpty) break;
-        resultList.addAll(rawList.map<T>(function));
-        if (rawList.length < 500) {
-          isAtListEnd = true;
-          break;
-        }
-      } on FormatException {
-        continue;
-      }
+
+    final decodedResults = results
+        .map((result) {
+          try {
+            final rawList = jsonDecode(result)['value'] as List<dynamic>?;
+            if (rawList == null || rawList.isEmpty) {
+              return null;
+            }
+
+            return rawList.map<T>(function);
+          } on FormatException {
+            return null;
+          }
+        })
+        .nonNulls
+        .toList();
+
+    if (decodedResults.any((list) => list.length < kSkipInterval)) {
+      isAtListEnd = true;
     }
+
+    resultList.addAll(decodedResults.expand((list) => list));
+    yield resultList;
   }
-  return resultList;
+
+  yield resultList;
 }
 
 const String kBusStopServicesKey = 'Services';
 
 @riverpod
 Future<String> _busStopArrivalList(Ref ref, String busStopCode) async {
-  return await ref.watch(busApiStringResponseProvider(
-          url: _kGetBusStopArrivalUrl,
-          skip: 0,
-          extraParams: '&BusStopCode=$busStopCode')
-      .future);
+  final apiKey = await ref.watch(apiKeyProvider.future);
+  return await getBusApiStringResponse(
+    url: _kGetBusStopArrivalUrl,
+    skip: 0,
+    apiKey: apiKey,
+    extraParams: '&BusStopCode=$busStopCode',
+  );
 }
 
 @riverpod
 Future<List<BusServiceArrivalResult>> busStopArrivals(
     Ref ref, BusStop busStop) async {
+  ref.cacheFor(const Duration(seconds: _kRefreshInterval));
+  ref.refreshIn(const Duration(seconds: _kRefreshInterval));
+
   final result =
       await ref.watch(_busStopArrivalListProvider(busStop.code).future);
   final services = jsonDecode(result)[kBusStopServicesKey] as List<dynamic>;
   final arrivals =
       services.map(BusServiceArrivalResult.fromJson).toList(growable: true);
 
-  ref.cacheFor(const Duration(seconds: _kRefreshInterval));
-  ref.refreshIn(const Duration(seconds: _kRefreshInterval));
-
   return arrivals;
 }
 
 extension RefreshRef on Ref {
   void refreshIn(Duration duration) {
-    Timer.periodic(duration, (timer) {
+    final timer = Timer.periodic(duration, (timer) {
       invalidateSelf();
     });
+
+    onDispose(timer.cancel);
   }
 }
 
@@ -178,23 +198,21 @@ extension CacheForExtension on Ref {
 }
 
 @riverpod
-Future<List<BusStop>> apiBusStopList(Ref ref) async {
-  return await ref.watch(
-      _busApiListResponseProvider(_kGetBusStopsUrl, BusStop.fromJson).future);
+Raw<Stream<List<BusStop>>> apiBusStopList(Ref ref) {
+  return ref
+      .watch(_busApiListResponseProvider(_kGetBusStopsUrl, BusStop.fromJson));
 }
 
 @riverpod
-Future<List<BusService>> apiBusServiceList(Ref ref) async {
-  return await ref.watch(
-      _busApiListResponseProvider(_kGetBusServicesUrl, BusService.fromJson)
-          .future);
+Raw<Stream<List<BusService>>> apiBusServiceList(Ref ref) {
+  return ref.watch(
+      _busApiListResponseProvider(_kGetBusServicesUrl, BusService.fromJson));
 }
 
 @riverpod
-Future<List<Map<String, dynamic>>> apiBusServiceRouteList(Ref ref) async {
-  return await ref.watch(
-      _busApiListResponseProvider(_kGetBusRoutesUrl, busServiceRouteStopToJson)
-          .future);
+Raw<Stream<List<BusServiceRouteEntry>>> apiBusServiceRouteList(Ref ref) {
+  return ref.watch(
+      _busApiListResponseProvider(_kGetBusRoutesUrl, parseBusServiceRouteStop));
 }
 
 @riverpod

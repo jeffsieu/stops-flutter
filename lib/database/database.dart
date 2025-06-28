@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stops_sg/bus_api/bus_api.dart';
@@ -22,13 +24,16 @@ typedef BusPinStatusListener = void Function(
 const int kDefaultRouteId = -1;
 const String defaultRouteName = 'Saved';
 const String _themeModeKey = 'THEME_OPTION';
-const String _busServiceSkipNumberKey = 'BUS_SERVICE_SKIP';
 const String _searchHistoryKey = 'SEARCH_HISTORY';
 const String kAreBusStopsCachedKey = 'BUS_STOP_CACHE';
 const String kAreBusServicesCachedKey = 'BUS_SERVICE_CACHE';
 const String _areBusServiceRoutesCachedKey = 'BUS_ROUTE_CACHE';
 
 final StopsDatabase _database = StopsDatabase();
+
+const kExpectedBusStopListLength = 5160;
+const kExpectedBusServiceListLength = 748;
+const kExpectedBusServiceRouteListLength = 25977;
 
 Future<ThemeMode> _getThemeMode() async {
   final prefs = await SharedPreferences.getInstance();
@@ -78,42 +83,52 @@ class CachedDataProgress extends _$CachedDataProgress {
   Future<void> fetchDataFromApi(
       {required bool shouldResetCacheProgress}) async {
     if (shouldResetCacheProgress) {
+      state = AsyncData(0);
       await resetCacheProgress();
       ref.invalidateSelf();
     }
 
-    await ref.read(busStopListProvider.notifier).fetchFromApi();
+    final busStopListProgressStream =
+        ref.read(busStopListProvider.notifier).fetchFromApi();
 
-    ref.invalidateSelf();
+    await for (final progress in busStopListProgressStream) {
+      state = AsyncValue.data(progress * 0.25);
+    }
 
-    await ref.read(busServiceListProvider.notifier).fetchFromApi();
+    final busServiceListProgressStream =
+        ref.read(busServiceListProvider.notifier).fetchFromApi();
 
-    ref.invalidateSelf();
+    await for (final progress in busServiceListProgressStream) {
+      state = AsyncValue.data(progress * 0.25 + 0.25);
+    }
 
-    await ref
+    final busServiceRouteListProgressStream = ref
         .read(busServiceRouteListProvider(BusService(number: '', operator: ''))
             .notifier)
         .fetchFromApi();
+
+    await for (final progress in busServiceRouteListProgressStream) {
+      state = AsyncValue.data(progress * 0.5 + 0.5);
+    }
 
     ref.invalidateSelf();
   }
 }
 
-@riverpod
-class BusStopList extends _$BusStopList {
+@Riverpod(keepAlive: true)
+class BusStopList extends _$BusStopList
+    with FetchFromApiMixin<BusStop, BusStop> {
+  @override
+  ProviderListenable<Raw<Stream<List<BusStop>>>> get apiProvider =>
+      apiBusStopListProvider;
+  @override
+  int get expectedLength => kExpectedBusStopListLength;
+  @override
+  Future<void> Function(List<BusStop>) get cacheFunction => _cacheBusStops;
+
   @override
   Future<List<BusStop>> build() async {
     return await _database.getCachedBusStops();
-  }
-
-  Future<void> fetchFromApi() async {
-    final busStopList = await ref.refresh(apiBusStopListProvider.future);
-
-    await _cacheBusStops(busStopList);
-
-    // TODO: Figure out why the following line breaks fetching
-    // ref.invalidateSelf();
-    // await future;
   }
 
   Future<void> updateBusStop(BusStop newBusStop) async {
@@ -124,6 +139,27 @@ class BusStopList extends _$BusStopList {
   }
 }
 
+mixin FetchFromApiMixin<T, U> on AnyNotifier<AsyncValue<List<T>>, List<T>> {
+  ProviderListenable<Raw<Stream<List<U>>>> get apiProvider;
+  int get expectedLength;
+  Future<void> Function(List<U>) get cacheFunction;
+
+  Stream<double> fetchFromApi() async* {
+    final stream = ref.read(apiProvider);
+
+    var last = <U>[];
+    await for (final items in stream) {
+      yield min(items.length / expectedLength, 1.0);
+      last = items;
+    }
+
+    print("fetched ${last.length} items from API");
+
+    // Cache the last value
+    await cacheFunction(last);
+  }
+}
+
 @riverpod
 Future<BusStop?> busStopWithCode(Ref ref, String code) async {
   final busStop = await ref.watch(busStopListProvider.selectAsync((busStops) =>
@@ -131,52 +167,59 @@ Future<BusStop?> busStopWithCode(Ref ref, String code) async {
   return busStop;
 }
 
-@riverpod
-class BusServiceList extends _$BusServiceList {
+@Riverpod(keepAlive: true)
+class BusServiceList extends _$BusServiceList
+    with FetchFromApiMixin<BusService, BusService> {
+  @override
+  ProviderListenable<Raw<Stream<List<BusService>>>> get apiProvider =>
+      apiBusServiceListProvider;
+
+  @override
+  int get expectedLength => kExpectedBusServiceListLength;
+
+  @override
+  Future<void> Function(List<BusService>) get cacheFunction =>
+      _cacheBusServices;
+
   @override
   Future<List<BusService>> build() async {
     return await _database.getCachedBusServices();
   }
-
-  Future<void> fetchFromApi() async {
-    final busServiceList = await ref.read(apiBusServiceListProvider.future);
-    await cacheBusServices(busServiceList);
-
-    // TODO: Figure out why the following line breaks fetching
-    // ref.invalidateSelf();
-  }
 }
 
-@riverpod
-class BusServiceRouteList extends _$BusServiceRouteList {
+@Riverpod(keepAlive: true)
+class BusServiceRouteList extends _$BusServiceRouteList
+    with FetchFromApiMixin<BusServiceRoute, BusServiceRouteEntry> {
+  @override
+  ProviderListenable<Raw<Stream<List<BusServiceRouteEntry>>>> get apiProvider =>
+      apiBusServiceRouteListProvider;
+
+  @override
+  int get expectedLength => kExpectedBusServiceRouteListLength;
+
+  @override
+  Future<void> Function(List<BusServiceRouteEntry>) get cacheFunction =>
+      _cacheBusServiceRoutes;
+
   @override
   Future<List<BusServiceRoute>> build(BusService busService) async {
     return await getCachedBusRoutes(busService);
-  }
-
-  Future<void> fetchFromApi() async {
-    final busServiceRouteList =
-        await ref.read(apiBusServiceRouteListProvider.future);
-    await cacheBusServiceRoutes(busServiceRouteList);
-
-    // TODO: Figure out why the following line breaks fetching
-    // ref.invalidateSelf();
   }
 }
 
 Future<List<StoredUserRoute>> _getUserRoutes() async {
   final routeEntries = await _database.getStoredUserRoutes();
-  final routes = <StoredUserRoute>[];
-  for (var routeEntry in routeEntries) {
+
+  return await Future.wait(routeEntries.map((routeEntry) async {
     final busStops = await _getBusStopsInRouteWithId(routeEntry.id);
 
-    routes.add(StoredUserRoute(
-        id: routeEntry.id,
-        name: routeEntry.name,
-        color: Color(routeEntry.color),
-        busStops: busStops));
-  }
-  return routes;
+    return StoredUserRoute(
+      id: routeEntry.id,
+      name: routeEntry.name,
+      color: Color(routeEntry.color),
+      busStops: busStops,
+    );
+  }));
 }
 
 @riverpod
@@ -192,21 +235,21 @@ Future<List<BusStop>?> nearestBusStops(Ref ref,
   if (locationData == null) {
     stopwatch.stop();
     return null;
-  } else {
-    final result = await _database.getNearestBusStops((
-      latitude: locationData.latitude!,
-      longitude: locationData.longitude!,
-    ), busServiceFilter);
-
-    // Wait at least 300ms before refreshing
-    if (stopwatch.elapsed < minimumRefreshDuration) {
-      await Future.delayed(minimumRefreshDuration - stopwatch.elapsed);
-    }
-
-    stopwatch.stop();
-
-    return result;
   }
+
+  final result = await _database.getNearestBusStops((
+    latitude: locationData.latitude!,
+    longitude: locationData.longitude!,
+  ), busServiceFilter);
+
+  // Wait at least 300ms before refreshing
+  if (stopwatch.elapsed < minimumRefreshDuration) {
+    await Future.delayed(minimumRefreshDuration - stopwatch.elapsed);
+  }
+
+  stopwatch.stop();
+
+  return result;
 }
 
 Future<List<BusStop>> _getBusStopsInRouteWithId(int routeId) async {
@@ -288,14 +331,7 @@ class SavedUserRoute extends _$SavedUserRoute {
     ref.invalidateSelf();
     ref.invalidate(savedUserRoutesProvider);
 
-    /// TODO: SnackBar
-//    action: SnackBarAction(
-//      label: 'SHOW ME',
-//      onPressed: () {
-//        Navigator.popUntil(context, ModalRoute.withName('/home'));
-//      },
-//    ),
-    // ));
+    await future;
   }
 
   Future<void> removeBusStop(BusStop busStop) async {
@@ -411,7 +447,7 @@ Future<bool> areBusStopsCached() async {
   return prefs.containsKey(kAreBusStopsCachedKey);
 }
 
-Future<void> cacheBusServices(List<BusService> busServices) async {
+Future<void> _cacheBusServices(List<BusService> busServices) async {
   await _database.cacheBusServices(busServices);
 
   final prefs = await SharedPreferences.getInstance();
@@ -439,7 +475,7 @@ Future<void> resetCacheProgress() async {
   await prefs.remove(_areBusServiceRoutesCachedKey);
 }
 
-Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {
+BusServiceRouteEntry parseBusServiceRouteStop(dynamic busStop) {
   final serviceNumber = busStop[kBusServiceNumberKey] as String;
   final direction = busStop[kBusServiceDirectionKey] as int;
   final busStopCode = busStop[kBusStopCodeKey] as String;
@@ -451,13 +487,13 @@ Map<String, dynamic> busServiceRouteStopToJson(dynamic busStop) {
     'busStopCode': busStopCode,
     'distance': distance,
   };
-  return json;
+
+  return BusServiceRouteEntry.fromJson(json);
 }
 
-Future<void> cacheBusServiceRoutes(
-    List<Map<String, dynamic>> busServiceRoutesRaw) async {
-  await _database.cacheBusServiceRoutes(
-      busServiceRoutesRaw.map(BusServiceRouteEntry.fromJson).toList());
+Future<void> _cacheBusServiceRoutes(
+    List<BusServiceRouteEntry> busServiceRoutes) async {
+  await _database.cacheBusServiceRoutes(busServiceRoutes);
 
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool(_areBusServiceRoutesCachedKey, true);
