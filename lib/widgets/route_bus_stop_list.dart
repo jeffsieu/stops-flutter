@@ -8,12 +8,17 @@ import 'package:stops_sg/utils/reorder_status_notification.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/reorderable_bus_stop_list.dart';
 
-class BusStopOverviewList extends ConsumerWidget {
-  const BusStopOverviewList(
-      {super.key, required this.routeId, required this.emptyView});
+class RouteBusStopList extends ConsumerWidget {
+  const RouteBusStopList({
+    super.key,
+    required this.routeId,
+    required this.emptyView,
+    this.defaultExpanded,
+  });
 
   final int routeId;
   final Widget emptyView;
+  final bool? defaultExpanded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,6 +40,7 @@ class BusStopOverviewList extends ConsumerWidget {
       child: ReorderableBusStopList(
           busStops: busStops,
           isEditing: isEditing,
+          defaultExpanded: defaultExpanded,
           onReorderStart: (int position) {
             ReorderStatusNotification(true).dispatch(context);
           },

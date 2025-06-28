@@ -5,15 +5,14 @@ import 'package:location/location.dart';
 import 'package:provider/provider.dart' hide Consumer;
 import 'package:stops_sg/bus_api/bus_api.dart';
 import 'package:stops_sg/bus_api/models/bus.dart';
-import 'package:stops_sg/bus_stop_sheet/bloc/bus_stop_sheet_bloc.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/location/location.dart';
 import 'package:stops_sg/main.dart';
 import 'package:stops_sg/utils/database/followed_buses.dart';
 import 'package:stops_sg/utils/reorder_status_notification.dart';
 import 'package:stops_sg/utils/time_utils.dart';
-import 'package:stops_sg/widgets/bus_stop_overview_list.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
+import 'package:stops_sg/widgets/route_bus_stop_list.dart';
 
 class SavedPage extends ConsumerStatefulWidget {
   const SavedPage({super.key});
@@ -134,9 +133,7 @@ class SavedPageState extends ConsumerState<SavedPage> {
                             final bus = _followedBuses[position];
                             return ListTile(
                               onTap: () {
-                                context.read<BusStopSheetBloc>().add(
-                                    SheetRequested(
-                                        bus.busStop, kDefaultRouteId));
+                                // TODO: Show bus stop information
                               },
                               title: Consumer(
                                 builder: (context, ref, child) {
@@ -179,6 +176,11 @@ class SavedPageState extends ConsumerState<SavedPage> {
                               await ref
                                   .read(followedBusesProvider.notifier)
                                   .unfollowAllBuses();
+
+                              if (!mounted) {
+                                return;
+                              }
+
                               ScaffoldMessenger.of(context)
                                   .hideCurrentSnackBar();
                               ScaffoldMessenger.of(context)
@@ -220,7 +222,7 @@ class SavedPageState extends ConsumerState<SavedPage> {
         update: (_, __) => EditModel(isEditing: _isEditing),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: BusStopOverviewList(
+          child: RouteBusStopList(
             routeId: kDefaultRouteId,
             emptyView: Container(
               padding: const EdgeInsets.symmetric(vertical: 32.0),

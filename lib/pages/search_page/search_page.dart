@@ -27,7 +27,7 @@ import 'package:stops_sg/routes/routes.dart';
 import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
 import 'package:stops_sg/widgets/bus_service_search_item.dart';
-import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
+import 'package:stops_sg/widgets/bus_stop_item.dart';
 import 'package:stops_sg/widgets/bus_stop_search_item.dart';
 import 'package:stops_sg/widgets/card_app_bar.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
@@ -35,7 +35,7 @@ import 'package:stops_sg/widgets/highlighted_icon.dart';
 
 part 'search_page.g.dart';
 
-const RANDOM_SEED = 0x12345678;
+const kRandomSeed = 0x12345678;
 
 @riverpod
 Future<List<BusStop>> busStopsByDistance(Ref ref) async {
@@ -534,9 +534,10 @@ class SearchPageState extends ConsumerState<SearchPage>
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: BusStopOverviewItem(
+              child: BusStopItem(
                 _focusedBusStop!,
-                isExpanded: _isMapVisible ? false : _isFocusedBusStopExpanded,
+                defaultExpanded:
+                    _isMapVisible ? false : _isFocusedBusStopExpanded,
                 onTap: () {
                   if (_isMapVisible) {
                     _expandSheet();
@@ -1042,7 +1043,7 @@ class SearchPageState extends ConsumerState<SearchPage>
       nameBold: nameBold,
       nameEnd: nameEnd,
       isMapEnabled: showMapButton,
-      isExpanded: isExpanded,
+      defaultExpanded: isExpanded,
       onShowOnMapTap: () {
         void focusOnBusStop() async {
           final controller = await _googleMapController.future;
@@ -1082,11 +1083,11 @@ class SearchPageState extends ConsumerState<SearchPage>
       return SliverList(delegate: SliverChildBuilderDelegate(
         (BuildContext context, int position) {
           final name =
-              'Bus stop ${Random(RANDOM_SEED + position).nextInt(999) + 1}';
+              'Bus stop ${Random(kRandomSeed + position).nextInt(999) + 1}';
           final road =
-              '${Random(RANDOM_SEED + position).nextInt(99) + 1} Street';
+              '${Random(kRandomSeed + position).nextInt(99) + 1} Street';
           final code =
-              '${Random(RANDOM_SEED + position).nextInt(90000) + 10000}';
+              '${Random(kRandomSeed + position).nextInt(90000) + 10000}';
 
           final placeholderBusStop = BusStop(
             defaultName: name,
@@ -1106,7 +1107,7 @@ class SearchPageState extends ConsumerState<SearchPage>
                   Theme.of(context).canvasColor, 0.9)!,
               highlightColor: Theme.of(context).canvasColor,
               child: IgnorePointer(
-                child: BusStopOverviewItem(
+                child: BusStopItem(
                     key: ValueKey(position), isLoading: true, busStop),
               ),
             ),

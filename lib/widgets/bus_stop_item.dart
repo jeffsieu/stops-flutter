@@ -1,7 +1,9 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:provider/provider.dart' hide Consumer;
 import 'package:shimmer/shimmer.dart';
 import 'package:stops_sg/bus_api/bus_api.dart';
@@ -11,6 +13,7 @@ import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/location/location.dart';
 import 'package:stops_sg/routes/routes.dart';
+import 'package:stops_sg/routes/saved_route.dart';
 import 'package:stops_sg/routes/settings_route.dart';
 import 'package:stops_sg/utils/bus_stop_distance_utils.dart';
 import 'package:stops_sg/utils/bus_utils.dart';
@@ -21,25 +24,30 @@ import 'package:stops_sg/widgets/edit_model.dart';
 import 'package:stops_sg/widgets/highlighted_icon.dart';
 import 'package:stops_sg/widgets/outline_titled_container.dart';
 
-class BusStopOverviewItem extends ConsumerStatefulWidget {
-  const BusStopOverviewItem(this.busStop,
-      {super.key, this.onTap, this.isExpanded, this.isLoading = false});
+class BusStopItem extends StatefulHookConsumerWidget {
+  const BusStopItem(
+    this.busStop, {
+    super.key,
+    this.onTap,
+    this.defaultExpanded,
+    this.isLoading = false,
+    this.hideSavedIcon = false,
+  });
 
   final BusStop busStop;
   final void Function()? onTap;
-  final bool? isExpanded;
+  final bool? defaultExpanded;
+  final bool hideSavedIcon;
   final bool isLoading;
 
   @override
-  ConsumerState<BusStopOverviewItem> createState() =>
-      _BusStopOverviewItemState();
+  ConsumerState<BusStopItem> createState() => _BusStopItemState();
 }
 
-class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
+class _BusStopItemState extends ConsumerState<BusStopItem> {
   BusStop get busStop => widget.busStop;
 
-  bool _isExpanded = false;
-  bool get isExpanded => widget.isExpanded ?? _isExpanded;
+  bool isExpanded = false;
   bool _showLegend = false;
 
   @override
@@ -49,6 +57,13 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
     final code = busStop.code;
     final road = busStop.road;
     final route = context.watch<StoredUserRoute?>();
+
+    useEffect(() {
+      setState(() {
+        isExpanded = widget.defaultExpanded ?? false;
+      });
+    }, [widget.defaultExpanded]);
+
     final isSaved = (() {
       if (route == null) {
         return false;
@@ -69,7 +84,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
       onTap: () {
         widget.onTap?.call();
         setState(() {
-          _isExpanded = !_isExpanded;
+          isExpanded = !isExpanded;
         });
       },
       child: AnimatedCrossFade(
@@ -278,91 +293,111 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                   ),
                 ),
               ),
-              AnimatedOpacity(
-                opacity: isExpanded ? 1 : 0,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                child: IconButton.outlined(
-                  style: IconButton.styleFrom(
-                    backgroundColor: isSaved
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        : Theme.of(context).scaffoldBackgroundColor,
-                    foregroundColor: isSaved
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).hintColor,
+              if (!widget.hideSavedIcon) ...{
+                AnimatedOpacity(
+                  opacity: isExpanded ? 1 : 0,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  child: IconButton.outlined(
+                    style: IconButton.styleFrom(
+                      backgroundColor: isSaved
+                          ? Theme.of(context).colorScheme.primaryContainer
+                          : Theme.of(context).scaffoldBackgroundColor,
+                      foregroundColor: isSaved
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).hintColor,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onPressed: () async {
+                      if (!isSaved) {
+                        ref
+                            .read(savedUserRouteProvider(id: kDefaultRouteId)
+                                .notifier)
+                            .addBusStop(busStop);
+
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text('Saved ${busStop.displayName}'),
+                          action: SnackBarAction(
+                            label: 'View',
+                            onPressed: () {
+                              SavedRoute().go(context);
+                            },
+                          ),
+                        ));
+                        return;
+                      }
+
+                      showModalBottomSheet(
+                        isScrollControlled: true,
+                        useRootNavigator: true,
+                        useSafeArea: true,
+                        context: context,
+                        builder: (context) => DraggableScrollableSheet(
+                          expand: false,
+                          builder: (context, scrollController) =>
+                              Consumer(builder: (context, ref, child) {
+                            final routes = ref.watch(savedUserRoutesProvider);
+
+                            return switch (routes) {
+                              AsyncData(:final value) => Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsetsDirectional.only(
+                                          start: 16.0, end: 16.0, top: 24.0),
+                                      child: Text('Save to',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge),
+                                    ),
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      controller: scrollController,
+                                      itemBuilder: (context, index) {
+                                        final route = value[index];
+                                        final isBusStopInRoute = ref
+                                                .watch(isBusStopInRouteProvider(
+                                                    busStop: busStop,
+                                                    routeId: route.id))
+                                                .value ??
+                                            false;
+
+                                        return CheckboxListTile(
+                                          value: isBusStopInRoute,
+                                          title: Text(route.name),
+                                          onChanged: (checked) async {
+                                            if (checked ?? false) {
+                                              await ref
+                                                  .read(savedUserRouteProvider(
+                                                          id: route.id)
+                                                      .notifier)
+                                                  .addBusStop(busStop);
+                                            } else {
+                                              await ref
+                                                  .read(savedUserRouteProvider(
+                                                          id: route.id)
+                                                      .notifier)
+                                                  .removeBusStop(busStop);
+                                            }
+                                          },
+                                        );
+                                      },
+                                      itemCount: value.length,
+                                    ),
+                                  ],
+                                ),
+                              _ => const SizedBox(),
+                            };
+                          }),
+                        ),
+                      );
+                    },
+                    selectedIcon: const Icon(Icons.bookmark_added_rounded),
+                    isSelected: isSaved,
+                    icon: const Icon(Icons.bookmark_add_outlined),
                   ),
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    showModalBottomSheet(
-                      isScrollControlled: true,
-                      useRootNavigator: true,
-                      useSafeArea: true,
-                      context: context,
-                      builder: (context) => DraggableScrollableSheet(
-                        expand: false,
-                        builder: (context, scrollController) =>
-                            Consumer(builder: (context, ref, child) {
-                          final routes = ref.watch(savedUserRoutesProvider);
-
-                          return switch (routes) {
-                            AsyncData(:final value) => Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsetsDirectional.only(
-                                        start: 16.0, end: 16.0, top: 24.0),
-                                    child: Text('Add to route',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge),
-                                  ),
-                                  ListView.builder(
-                                    shrinkWrap: true,
-                                    controller: scrollController,
-                                    itemBuilder: (context, index) {
-                                      final route = value[index];
-                                      final isBusStopInRoute = ref
-                                              .watch(isBusStopInRouteProvider(
-                                                  busStop: busStop,
-                                                  routeId: route.id))
-                                              .value ??
-                                          false;
-
-                                      return CheckboxListTile(
-                                        value: isBusStopInRoute,
-                                        title: Text(route.name),
-                                        onChanged: (checked) async {
-                                          if (checked ?? false) {
-                                            await ref
-                                                .read(savedUserRouteProvider(
-                                                        id: route.id)
-                                                    .notifier)
-                                                .addBusStop(busStop);
-                                          } else {
-                                            await ref
-                                                .read(savedUserRouteProvider(
-                                                        id: route.id)
-                                                    .notifier)
-                                                .removeBusStop(busStop);
-                                          }
-                                        },
-                                      );
-                                    },
-                                    itemCount: value.length,
-                                  ),
-                                ],
-                              ),
-                            _ => const SizedBox(),
-                          };
-                        }),
-                      ),
-                    );
-                  },
-                  selectedIcon: const Icon(Icons.bookmark_added_rounded),
-                  isSelected: isSaved,
-                  icon: const Icon(Icons.bookmark_add_outlined),
                 ),
-              ),
+              },
             ],
           ),
         ),
@@ -402,16 +437,17 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
       child: Builder(
         builder: (context) {
           switch (busStopArrivals) {
-            case AsyncData(:final value):
+            case AsyncValue<List<BusServiceArrivalResult>>(:final value?):
               {
                 final busArrivals = value
                     .where((BusServiceArrivalResult result) =>
                         pinnedServices.isEmpty ||
                         pinnedServices.contains(result.busService))
+                    .sorted((BusServiceArrivalResult a,
+                            BusServiceArrivalResult b) =>
+                        compareBusNumber(
+                            a.busService.number, b.busService.number))
                     .toList(growable: false);
-                busArrivals.sort((BusServiceArrivalResult a,
-                        BusServiceArrivalResult b) =>
-                    compareBusNumber(a.busService.number, b.busService.number));
 
                 return busArrivals.isNotEmpty
                     ? AbsorbPointer(
@@ -445,7 +481,7 @@ class _BusStopOverviewItemState extends ConsumerState<BusStopOverviewItem> {
                       );
               }
 
-            case AsyncError(:final error):
+            case AsyncValue(:final error?):
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

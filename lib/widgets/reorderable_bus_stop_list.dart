@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:provider/provider.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
-import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
+import 'package:stops_sg/widgets/bus_stop_item.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 
 class ReorderableBusStopList extends ConsumerWidget {
@@ -14,10 +14,12 @@ class ReorderableBusStopList extends ConsumerWidget {
     this.onReorderStart,
     this.onReorderEnd,
     this.onReorder,
+    this.defaultExpanded,
   });
 
   final List<BusStop> busStops;
   final bool isEditing;
+  final bool? defaultExpanded;
   final Function(BusStop busStop) onBusStopRemoved;
   final Function(int position)? onReorderStart;
   final Function(int position)? onReorderEnd;
@@ -53,9 +55,11 @@ class ReorderableBusStopList extends ConsumerWidget {
           final Widget busStopItem = ProxyProvider(
             update: (context, value, previous) =>
                 EditModel(isEditing: isEditing),
-            child: BusStopOverviewItem(
+            child: BusStopItem(
               busStop,
               key: Key(busStop.code),
+              defaultExpanded: defaultExpanded,
+              hideSavedIcon: true,
             ),
           );
 

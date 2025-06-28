@@ -7,7 +7,7 @@ import 'package:stops_sg/bus_api/models/bus_service_with_routes.dart';
 import 'package:stops_sg/bus_api/models/bus_stop.dart';
 import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
-import 'package:stops_sg/widgets/bus_stop_overview_item.dart';
+import 'package:stops_sg/widgets/bus_stop_item.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 
 class BusServicePage extends HookConsumerWidget {
@@ -196,7 +196,7 @@ class BusServicePage extends HookConsumerWidget {
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16.0),
-                                child: BusStopOverviewItem(
+                                child: BusStopItem(
                                   busStop,
                                 ),
                               ),

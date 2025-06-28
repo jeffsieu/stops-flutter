@@ -5,7 +5,7 @@ import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/routes/edit_route_route.dart';
 import 'package:stops_sg/routes/routes.dart';
-import 'package:stops_sg/widgets/bus_stop_overview_list.dart';
+import 'package:stops_sg/widgets/route_bus_stop_list.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
 
 class RoutePage extends ConsumerWidget {
@@ -42,8 +42,9 @@ class RoutePage extends ConsumerWidget {
                         create: (_) => value,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: BusStopOverviewList(
+                          child: RouteBusStopList(
                             routeId: value.id,
+                            defaultExpanded: true,
                             emptyView: Container(
                               padding:
                                   const EdgeInsets.symmetric(vertical: 32.0),
