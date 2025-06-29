@@ -62,6 +62,7 @@ class _BusStopItemState extends ConsumerState<BusStopItem> {
       setState(() {
         isExpanded = widget.defaultExpanded ?? false;
       });
+      return null;
     }, [widget.defaultExpanded]);
 
     final isSaved = (() {

@@ -593,7 +593,7 @@ extension on UserRoute {
   UserRoutesCompanion toInsertCompanion(int position) {
     return UserRoutesCompanion.insert(
       name: name,
-      color: color.value,
+      color: color.toARGB32(),
       position: position,
     );
   }
@@ -603,7 +603,7 @@ extension on StoredUserRoute {
   UserRoutesCompanion toCompanion() {
     return UserRoutesCompanion(
       name: Value<String>(name),
-      color: Value<int>(color.value),
+      color: Value<int>(color.toARGB32()),
     );
   }
 }

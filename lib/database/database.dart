@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stops_sg/bus_api/bus_api.dart';
@@ -153,10 +152,9 @@ mixin FetchFromApiMixin<T, U> on AnyNotifier<AsyncValue<List<T>>, List<T>> {
       last = items;
     }
 
-    print("fetched ${last.length} items from API");
-
     // Cache the last value
     await cacheFunction(last);
+    ref.invalidateSelf();
   }
 }
 

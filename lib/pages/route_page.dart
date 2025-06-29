@@ -5,8 +5,8 @@ import 'package:stops_sg/database/database.dart';
 import 'package:stops_sg/database/models/user_route.dart';
 import 'package:stops_sg/routes/edit_route_route.dart';
 import 'package:stops_sg/routes/routes.dart';
-import 'package:stops_sg/widgets/route_bus_stop_list.dart';
 import 'package:stops_sg/widgets/edit_model.dart';
+import 'package:stops_sg/widgets/route_bus_stop_list.dart';
 
 class RoutePage extends ConsumerWidget {
   const RoutePage({super.key, required this.routeId});
