@@ -295,109 +295,119 @@ class _BusStopItemState extends ConsumerState<BusStopItem> {
                 ),
               ),
               if (!widget.hideSavedIcon) ...{
-                AnimatedOpacity(
-                  opacity: isExpanded ? 1 : 0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  child: IconButton.outlined(
-                    style: IconButton.styleFrom(
-                      backgroundColor: isSaved
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : Theme.of(context).scaffoldBackgroundColor,
-                      foregroundColor: isSaved
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).hintColor,
-                    ),
-                    padding: EdgeInsets.zero,
-                    onPressed: () async {
-                      if (!isSaved) {
-                        ref
-                            .read(savedUserRouteProvider(id: kDefaultRouteId)
-                                .notifier)
-                            .addBusStop(busStop);
+                IgnorePointer(
+                  ignoring: !isExpanded,
+                  child: AnimatedOpacity(
+                    opacity: isExpanded ? 1 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    child: IconButton.outlined(
+                      style: IconButton.styleFrom(
+                        backgroundColor: isSaved
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : Theme.of(context).scaffoldBackgroundColor,
+                        foregroundColor: isSaved
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).hintColor,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: () async {
+                        if (!isSaved) {
+                          ref
+                              .read(savedUserRouteProvider(id: kDefaultRouteId)
+                                  .notifier)
+                              .addBusStop(busStop);
 
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Saved ${busStop.displayName}'),
-                          action: SnackBarAction(
-                            label: 'View',
-                            onPressed: () {
-                              SavedRoute().go(context);
-                            },
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Saved ${busStop.displayName}'),
+                            action: SnackBarAction(
+                              label: 'View',
+                              onPressed: () {
+                                SavedRoute().go(context);
+                              },
+                            ),
+                          ));
+                          return;
+                        }
+
+                        showModalBottomSheet(
+                          isScrollControlled: true,
+                          useRootNavigator: true,
+                          useSafeArea: true,
+                          context: context,
+                          builder: (context) => DraggableScrollableSheet(
+                            expand: false,
+                            builder: (context, scrollController) =>
+                                Consumer(builder: (context, ref, child) {
+                              final routes = ref.watch(savedUserRoutesProvider);
+
+                              return switch (routes) {
+                                AsyncData(:final value) => Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding:
+                                            const EdgeInsetsDirectional.only(
+                                                start: 16.0,
+                                                end: 16.0,
+                                                top: 24.0),
+                                        child: Text('Save to',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleLarge),
+                                      ),
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        controller: scrollController,
+                                        itemBuilder: (context, index) {
+                                          final route = value[index];
+                                          final isBusStopInRoute = ref
+                                                  .watch(
+                                                      isBusStopInRouteProvider(
+                                                          busStop: busStop,
+                                                          routeId: route.id))
+                                                  .value ??
+                                              false;
+
+                                          return CheckboxListTile(
+                                            value: isBusStopInRoute,
+                                            title: Text(route.name),
+                                            onChanged: (checked) async {
+                                              if (checked ?? false) {
+                                                await ref
+                                                    .read(
+                                                        savedUserRouteProvider(
+                                                                id: route.id)
+                                                            .notifier)
+                                                    .addBusStop(busStop);
+                                              } else {
+                                                await ref
+                                                    .read(
+                                                        savedUserRouteProvider(
+                                                                id: route.id)
+                                                            .notifier)
+                                                    .removeBusStop(busStop);
+                                              }
+                                            },
+                                          );
+                                        },
+                                        itemCount: value.length,
+                                      ),
+                                    ],
+                                  ),
+                                _ => const SizedBox(),
+                              };
+                            }),
                           ),
-                        ));
-                        return;
-                      }
-
-                      showModalBottomSheet(
-                        isScrollControlled: true,
-                        useRootNavigator: true,
-                        useSafeArea: true,
-                        context: context,
-                        builder: (context) => DraggableScrollableSheet(
-                          expand: false,
-                          builder: (context, scrollController) =>
-                              Consumer(builder: (context, ref, child) {
-                            final routes = ref.watch(savedUserRoutesProvider);
-
-                            return switch (routes) {
-                              AsyncData(:final value) => Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsetsDirectional.only(
-                                          start: 16.0, end: 16.0, top: 24.0),
-                                      child: Text('Save to',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleLarge),
-                                    ),
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      controller: scrollController,
-                                      itemBuilder: (context, index) {
-                                        final route = value[index];
-                                        final isBusStopInRoute = ref
-                                                .watch(isBusStopInRouteProvider(
-                                                    busStop: busStop,
-                                                    routeId: route.id))
-                                                .value ??
-                                            false;
-
-                                        return CheckboxListTile(
-                                          value: isBusStopInRoute,
-                                          title: Text(route.name),
-                                          onChanged: (checked) async {
-                                            if (checked ?? false) {
-                                              await ref
-                                                  .read(savedUserRouteProvider(
-                                                          id: route.id)
-                                                      .notifier)
-                                                  .addBusStop(busStop);
-                                            } else {
-                                              await ref
-                                                  .read(savedUserRouteProvider(
-                                                          id: route.id)
-                                                      .notifier)
-                                                  .removeBusStop(busStop);
-                                            }
-                                          },
-                                        );
-                                      },
-                                      itemCount: value.length,
-                                    ),
-                                  ],
-                                ),
-                              _ => const SizedBox(),
-                            };
-                          }),
-                        ),
-                      );
-                    },
-                    selectedIcon: const Icon(Icons.bookmark_added_rounded),
-                    isSelected: isSaved,
-                    icon: const Icon(Icons.bookmark_add_outlined),
+                        );
+                      },
+                      selectedIcon: const Icon(Icons.bookmark_added_rounded),
+                      isSelected: isSaved,
+                      icon: const Icon(Icons.bookmark_add_outlined),
+                    ),
                   ),
-                ),
+                )
               },
             ],
           ),

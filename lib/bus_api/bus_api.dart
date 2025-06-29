@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stops_sg/bus_api/models/bus_service.dart';
@@ -109,99 +108,47 @@ Future<String> getBusApiStringResponse({
 Raw<Stream<List<T>>> _busApiListResponse<T>(
     Ref ref, String url, T Function(dynamic json) function) async* {
   final apiKey = await ref.watch(apiKeyProvider.future);
-
   const kSkipInterval = 500;
-  const maxConcurrentRequests = 6;
+  const concurrentCount = 3;
 
-  final allData = <T>[];
-  final skipController = StreamController<int>();
-  final dataBatchController = StreamController<List<T>>();
+  final finalItems = <T>[];
+  var skip = 0;
+  var hasMoreData = true;
 
-  // Keep track of active requests
-  var currentSkip = 0;
-  var activeRequests = 0;
-  var hasMoreData = true; // Flag to indicate if there's more data to fetch
-
-  Future<List<T>> fetchBatch(int skip) async {
-    final result =
-        await getBusApiStringResponse(url: url, skip: skip, apiKey: apiKey);
-
-    final rawList = jsonDecode(result)['value'] as List<dynamic>?;
-
-    return rawList?.map<T>(function).toList() ?? [];
-  }
-
-  // Function to enqueue a new request if concurrency limit allows
-  void enqueueRequest() {
-    if (hasMoreData && activeRequests < maxConcurrentRequests) {
-      skipController.add(currentSkip);
-      currentSkip += kSkipInterval;
-      activeRequests++;
+  while (hasMoreData) {
+    final futures = <Future<String>>[];
+    for (var i = 0; i < concurrentCount; i++) {
+      futures
+          .add(getBusApiStringResponse(url: url, skip: skip, apiKey: apiKey));
+      skip += kSkipInterval;
     }
-  }
+    final results = await Future.wait(futures);
 
-  // Start by enqueueing the initial set of requests
-  for (var i = 0; i < maxConcurrentRequests; i++) {
-    enqueueRequest();
-  }
+    final decodedItems = results
+        .map((result) {
+          try {
+            final rawList = jsonDecode(result)['value'] as List<dynamic>?;
+            if (rawList == null || rawList.isEmpty) {
+              return null;
+            }
 
-  skipController.stream.asyncMap((skipValue) async {
-    try {
-      final batch = await fetchBatch(skipValue);
-      if (!dataBatchController.isClosed) {
-        dataBatchController.add(batch);
-      }
-      return batch; // Return the batch for the map operation (though we add to dataBatchController)
-    } catch (e) {
-      if (!dataBatchController.isClosed) {
-        dataBatchController.addError(e); // Propagate error
-      }
-      return []; // Return empty on error to avoid breaking the stream
-    } finally {
-      activeRequests--; // Decrement active requests when a request completes
-      enqueueRequest(); // Try to enqueue another request
+            return rawList.map<T>(function);
+          } on FormatException {
+            return null;
+          }
+        })
+        .nonNulls
+        .toList();
+
+    if (decodedItems.any((list) => list.length < kSkipInterval)) {
+      hasMoreData = false;
     }
-  }).listen(
-    (batch) {
-      // This listener is primarily for error handling and flow control.
-      // Actual data processing happens below in the main async* generator.
-      if (batch.isEmpty && hasMoreData) {
-        hasMoreData = false; // No more data to fetch
-        skipController
-            .close(); // Close the skip stream as no more skips are needed
-      }
-    },
-    onError: (error) {
-      debugPrint('Error in concurrent fetch stream: $error');
-      // Close controllers on error to prevent further operations
-      skipController.close();
-      dataBatchController.close();
-    },
-    onDone: () {
-      // All skip values have been processed.
-      // We still need to wait for all data batches to be processed by dataBatchController.
-      if (activeRequests == 0) {
-        dataBatchController.close();
-      }
-    },
-  );
 
-  await for (final batch in dataBatchController.stream) {
-    if (batch.isEmpty && allData.isNotEmpty) {
-      yield List.from(allData);
-      break;
-    } else if (batch.isNotEmpty) {
-      allData.addAll(batch);
-      yield List.from(allData); // Yield a copy of the current total data
-    } else if (batch.isEmpty && allData.isEmpty) {
-      // If the very first request returns an empty batch
-      break;
-    }
+    finalItems.addAll(decodedItems.expand((list) => list));
+    yield finalItems;
   }
 
-  // Ensure all controllers are closed in case of early exit or error
-  if (!skipController.isClosed) skipController.close();
-  if (!dataBatchController.isClosed) dataBatchController.close();
+  yield finalItems;
 }
 
 const String kBusStopServicesKey = 'Services';

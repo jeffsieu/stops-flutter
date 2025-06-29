@@ -33,7 +33,6 @@ class RoutePage extends ConsumerWidget {
         AsyncData(:final value) => value != null
             ? CustomScrollView(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
                     child: Provider<EditModel>(
@@ -61,6 +60,11 @@ class RoutePage extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 16.0,
+                    ),
+                  )
                 ],
               )
             : const Center(child: Text('Error: route missing')),
