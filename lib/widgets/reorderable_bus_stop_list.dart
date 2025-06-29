@@ -99,29 +99,33 @@ class ReorderableBusStopList extends ConsumerWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        AnimatedOpacity(
-                          duration: const Duration(milliseconds: 600),
-                          opacity: isEditing ? 1.0 : 0.0,
-                          curve: isEditing
-                              ? const Interval(0.5, 1)
-                              : const Interval(0, 0.25),
-                          child: AnimatedSlide(
+                        IgnorePointer(
+                          ignoring: !isEditing,
+                          child: AnimatedOpacity(
                             duration: const Duration(milliseconds: 600),
-                            offset:
-                                isEditing ? Offset.zero : const Offset(0, 0.25),
+                            opacity: isEditing ? 1.0 : 0.0,
                             curve: isEditing
-                                ? const Interval(0.5, 1,
-                                    curve: Curves.easeOutCubic)
-                                : const Interval(0, 0.5,
-                                    curve: Curves.easeOutCubic),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsetsDirectional.only(end: 8.0),
-                              child: IconButton(
-                                onPressed: () => onBusStopRemoved(busStop),
-                                icon: Icon(
-                                  Icons.clear_rounded,
-                                  color: Theme.of(context).hintColor,
+                                ? const Interval(0.5, 1)
+                                : const Interval(0, 0.25),
+                            child: AnimatedSlide(
+                              duration: const Duration(milliseconds: 600),
+                              offset: isEditing
+                                  ? Offset.zero
+                                  : const Offset(0, 0.25),
+                              curve: isEditing
+                                  ? const Interval(0.5, 1,
+                                      curve: Curves.easeOutCubic)
+                                  : const Interval(0, 0.5,
+                                      curve: Curves.easeOutCubic),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsetsDirectional.only(end: 8.0),
+                                child: IconButton(
+                                  onPressed: () => onBusStopRemoved(busStop),
+                                  icon: Icon(
+                                    Icons.clear_rounded,
+                                    color: Theme.of(context).hintColor,
+                                  ),
                                 ),
                               ),
                             ),
